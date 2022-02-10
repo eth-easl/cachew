@@ -46,7 +46,7 @@ message NamedJobKeyDef {
   int64 index = 2;
 }
 
-// Next tag: 10
+// Next tag: 18
 message CreateJobUpdate {
   reserved 5, 6;
   int64 job_id = 1;
@@ -63,6 +63,9 @@ message CreateJobUpdate {
   // EASL
   string job_type = 13; // i.e read, write, cache
   int64 target_worker_count = 14; // determined by elasticity policy
+  int64 target_local_workers = 15; // decided between epochs
+  int64 target_remote_workers = 16; // decided between epochs
+  repeated string local_workers = 17;
 }
 
 // Next tag: 5

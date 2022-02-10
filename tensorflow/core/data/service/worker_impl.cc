@@ -160,7 +160,7 @@ void DataServiceWorkerImpl::Stop() {
 
 Status DataServiceWorkerImpl::GetElementResult(
     const GetElementRequest* request, struct GetElementResult* result) {
-  Task* task;
+  Task* task = nullptr;
   {
     mutex_lock l(mu_);
     if (cancelled_) {
@@ -175,17 +175,23 @@ Status DataServiceWorkerImpl::GetElementResult(
     }
     auto it = tasks_.find(request->task_id());
     if (it == tasks_.end()) {
+      if (deleted_tasks_.contains(request->task_id())) {
+        return errors::FailedPrecondition(
+            "Got request for local task ", request->task_id(), " of worker ",
+            worker_address_, ", which has been deleted. You may be creating ",
+            "a duplicate job which has already finished. To fix this, make "
+            "sure to create your dataset only once, as opposed to re-creating "
+            "it repeatedly inside a loop.");
+      }
       if (finished_tasks_.contains(request->task_id())) {
         VLOG(3) << "Task is already finished";
         result->end_of_sequence = true;
         result->skip = false;
         return Status::OK();
-      } else {
-        // Perhaps the workers hasn't gotten the task from the dispatcher yet.
-        // Return Unavailable so that the client knows to continue retrying.
-        VLOG(1) << "Task not found (probably not received from dispatcher yet";
-        return errors::Unavailable("Task ", request->task_id(), " not found");
       }
+      // Perhaps the worker hasn't gotten the task from the dispatcher yet.
+      // Return Unavailable so that the client knows to continue retrying.
+      return errors::Unavailable("Task ", request->task_id(), " not found");
     }
     task = it->second.get();
     TF_RETURN_IF_ERROR(EnsureTaskInitialized(*task));
@@ -470,6 +476,9 @@ Status DataServiceWorkerImpl::Heartbeat() TF_LOCKS_EXCLUDED(mu_) {
     mutex_lock l(mu_);
     for (const auto& task : new_tasks) {
       VLOG(1) << "Received new task from dispatcher with id " << task.task_id();
+      if (deleted_tasks_.contains(task.task_id())) {
+        continue;
+      }
       Status s = ProcessTaskInternal(task);
       if (!s.ok() && !errors::IsAlreadyExists(s)) {
         LOG(WARNING) << "Failed to start processing task " << task.task_id()
@@ -480,6 +489,9 @@ Status DataServiceWorkerImpl::Heartbeat() TF_LOCKS_EXCLUDED(mu_) {
     for (int64 task_id : task_ids_to_delete) {
       VLOG(3) << "Deleting task " << task_id
               << " at the request of the dispatcher";
+      if (!tasks_.contains(task_id)) {
+        continue;
+      }
       tasks_to_delete.push_back(std::move(tasks_[task_id]));
       tasks_.erase(task_id);
       finished_tasks_.insert(task_id);
@@ -492,12 +504,45 @@ Status DataServiceWorkerImpl::Heartbeat() TF_LOCKS_EXCLUDED(mu_) {
   return Status::OK();
 }
 
+void DataServiceWorkerImpl::DeleteLocalTask(const TaskInfo& task_info)
+TF_LOCKS_EXCLUDED(mu_) {
+  std::shared_ptr<Task> task;
+  {
+    mutex_lock l(mu_);
+    auto it = tasks_.find(task_info.task_id());
+    if (it == tasks_.end() || !it->second) {
+      return;
+    }
+    task = std::move(it->second);
+    tasks_.erase(task_info.task_id());
+    pending_completed_tasks_.insert(task_info.task_id());
+    deleted_tasks_.insert(task_info.task_id());
+  }
+
+  VLOG(2) << "Delete local task " << task_info.task_id() << " from worker "
+          << worker_address_ << " at the request of the client.";
+  StopTask(*task);
+}
+
 void LocalWorkers::Add(absl::string_view worker_address,
                        std::shared_ptr<DataServiceWorkerImpl> worker) {
   DCHECK(worker != nullptr) << "Adding a nullptr local worker is disallowed.";
   VLOG(1) << "Register local worker at address " << worker_address;
   mutex_lock l(mu_);
   (*local_workers_)[worker_address] = worker;
+}
+
+std::vector<std::string> LocalWorkers::GetList() {
+  string local_workers_string = "";
+  std::vector<std::string> local_workers;
+  for (auto it = local_workers_->begin(); it != local_workers_->end(); ++it) {
+      local_workers.push_back(it->first);
+      local_workers_string += it->first + "; ";
+  }
+
+  VLOG(1) << "EASL-DSL: Check List of Local Workers: " << local_workers_string;
+
+  return local_workers;
 }
 
 std::shared_ptr<DataServiceWorkerImpl> LocalWorkers::Get(

@@ -137,14 +137,21 @@ class DispatcherState {
                  int64 num_split_providers,
                  absl::optional<NamedJobKey> named_job_key,
                  absl::optional<int64> num_consumers, const std::string& job_type,
-                 int64 target_worker_count)
+                 int64 target_worker_count,
+                 int64 target_remote_workers,
+                 int64 target_local_workers,
+                 absl::flat_hash_set<std::string> local_workers = {}
+                 )
         : job_id(job_id),
           dataset_id(dataset_id),
           processing_mode(processing_mode),
           named_job_key(named_job_key),
           num_consumers(num_consumers),
           job_type(job_type),
-          target_worker_count(target_worker_count){
+          target_worker_count(target_worker_count),
+          target_remote_workers(target_remote_workers),
+          target_local_workers(target_local_workers),
+          local_workers(local_workers){
       if (processing_mode == ProcessingMode::DISTRIBUTED_EPOCH) {
         distributed_epoch_state = DistributedEpochState(num_split_providers);
       }
@@ -176,6 +183,10 @@ class DispatcherState {
     const std::string job_type;
     int64 target_worker_count; // Non-constant, can be dynamically adjusted.
     int64 current_worker_count = 0;
+    // EASL - DSL
+    const int64 target_remote_workers; // replaces worker_count as there is a distinction now
+    const int64 target_local_workers; // replaces worker_count as there is a distinction now
+    absl::flat_hash_set<std::string> local_workers; // list of local workers in the client
   };
 
   struct Task {
@@ -228,7 +239,9 @@ class DispatcherState {
   // is lower than or equal to 0, then the reserved number of workers is equal
   // to all the available workers.
   std::vector<std::shared_ptr<const Worker>> ReserveWorkers(int64 job_id,
-    int64 num_workers = 0);
+    int64 target_remote_workers = 0,
+    int64 target_local_workers = 0,
+    const absl::flat_hash_set<std::string> local_workers = {});
 
   // Returns the next available job id.
   int64 NextAvailableJobId() const;

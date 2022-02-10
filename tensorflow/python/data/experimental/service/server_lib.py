@@ -33,8 +33,10 @@ class DispatcherConfig(
     collections.namedtuple("DispatcherConfig", [
         "port", "protocol", "work_dir", "fault_tolerant_mode",
         "job_gc_check_interval_ms", "job_gc_timeout_ms", "cache_policy",
-        "cache_format", "cache_compression", "cache_ops_parallelism", "cache_path",
-        "scaling_policy", "log_dir", "log_dumps_interval_ms"
+        "cache_format", "cache_compression", "cache_ops_parallelism",
+        "cache_path", "scaling_policy", "log_dir",
+        "log_dumps_interval_ms",
+        "avg_bytes_per_element_local_workers_threshold"
     ])):
   """Configuration class for tf.data service dispatchers.
 
@@ -68,13 +70,16 @@ class DispatcherConfig(
     cache_policy: The cache policy applied by the dispatcher (e.g. no-chache,
       all-cache..).
     cache_format: The file format used for the cache of the service.
-    cache_compression: The compression schema (if any) to use for the caching ops
+    cache_compression: The compression schema (if any) to use for the
+     caching ops
     cache_ops_parallelism: The number of parallel threads the caching ops
       shoujld use for reading/writing to cache
     cache_path: The base path to use for storing the cache contents.
     scaling_policy: The scaling policy applied by the dispatcher.
-    log_dir: The directory to put the logs into. If set not empty (""), logs will be printed there.
-    log_dumps_interval_ms: How often the dispatcher should dump the logs into the log_dir.
+    log_dir: The directory to put the logs into. If set not empty (""),
+    logs will be printed there.
+    log_dumps_interval_ms: How often the dispatcher should dump the
+    logs into the log_dir.
         Only valid if log_dir is not empty.
   """
 
@@ -92,7 +97,9 @@ class DispatcherConfig(
               cache_path="./outputs",
               scaling_policy=1,
               log_dir="",
-              log_dumps_interval_ms=None):
+              log_dumps_interval_ms=None,
+              avg_bytes_per_element_local_workers_threshold= 1024*1024*100 # 100MB
+              ):
     if protocol is None:
       protocol = _pywrap_utils.TF_DATA_DefaultProtocol()
     if job_gc_check_interval_ms is None:
@@ -100,7 +107,7 @@ class DispatcherConfig(
     if job_gc_timeout_ms is None:
       job_gc_timeout_ms = 5 * 60 * 1000  # 5 minutes.
     if log_dumps_interval_ms is None:
-        log_dumps_interval_ms = 100 # 100msec
+      log_dumps_interval_ms = 100 # 100msec
     """
     if cache_policy is None:
       cache_policy=1
@@ -115,8 +122,12 @@ class DispatcherConfig(
                  cls).__new__(cls, port, protocol, work_dir,
                               fault_tolerant_mode, job_gc_check_interval_ms,
                               job_gc_timeout_ms, cache_policy, cache_format,
-                              cache_compression, cache_ops_parallelism, cache_path, scaling_policy,
-                              log_dir, log_dumps_interval_ms)
+                              cache_compression, cache_ops_parallelism,
+                              cache_path,
+                              scaling_policy,
+                              log_dir,
+                              log_dumps_interval_ms,
+                              avg_bytes_per_element_local_workers_threshold)
 
 
 @tf_export("data.experimental.service.DispatchServer", v1=[])
@@ -188,7 +199,9 @@ class DispatchServer(object):
         cache_path=config.cache_path,
         scaling_policy=config.scaling_policy,
         log_dir=config.log_dir,
-        log_dumps_interval_ms=config.log_dumps_interval_ms)
+        log_dumps_interval_ms=config.log_dumps_interval_ms,
+        avg_bytes_per_element_local_workers_threshold=
+        config.avg_bytes_per_element_local_workers_threshold)
     self._server = _pywrap_server_lib.TF_DATA_NewDispatchServer(
         config_proto.SerializeToString())
     if start:

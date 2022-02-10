@@ -197,7 +197,8 @@ class DataServiceDispatcherImpl {
   Status CreateJob(int64 dataset_id, ProcessingMode processing_mode,
                    absl::optional<DispatcherState::NamedJobKey> named_job_key,
                    absl::optional<int64> num_consumers,
-                   std::shared_ptr<const DispatcherState::Job>& job)
+                   std::shared_ptr<const DispatcherState::Job>& job,
+                   absl::flat_hash_set<std::string> local_workers)
       TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
   // Creates tasks for the specified worker, one task for every unfinished job.
   Status CreateTasksForWorker(const std::string& worker_address);

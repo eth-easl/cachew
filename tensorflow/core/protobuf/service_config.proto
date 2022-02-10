@@ -43,7 +43,8 @@ message DispatcherConfig {
   string log_dir = 13;
   // The interval at which the dispatcher should dump log files.
   int64 log_dumps_interval_ms = 14;
-
+  // MUYU's modification
+  int64 avg_bytes_per_element_local_workers_threshold = 15;
 }
 
 // Configuration for a tf.data service WorkerServer.

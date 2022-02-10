@@ -130,11 +130,19 @@ void DispatcherState::CreateJob(const CreateJobUpdate& create_job) {
                                    ProcessingMode(create_job.processing_mode()),
                                    create_job.num_split_providers(),
                                    named_job_key, num_consumers,
-                                   create_job.job_type(), create_job.target_worker_count());
+                                   create_job.job_type(),
+                                   create_job.target_worker_count(),
+                                   create_job.target_remote_workers(),
+                                   create_job.target_local_workers());
   DCHECK(!jobs_.contains(job_id));
   jobs_[job_id] = job;
   tasks_by_job_[job_id] = TasksById();
   ending_tasks_by_job_[job_id] = TasksById();
+
+  for (auto worker: create_job.local_workers()) {
+    VLOG(1) << "EASL-DSL (DispatcherState::CreateJob): adding local worker to dispatcher's state: " << worker;
+    job->local_workers.insert(worker);
+  }
 
   if (named_job_key.has_value()) {
     DCHECK(!named_jobs_.contains(named_job_key.value()) ||
@@ -373,29 +381,60 @@ DispatcherState::ListAvailableWorkers() const {
   return workers;
 }
 
+// Reserves a number of available workers for a particular job. If num_workers
+// is lower than or equal to 0, then the reserved number of workers is equal
+// to all the available workers.
 std::vector<std::shared_ptr<const DispatcherState::Worker>>
 DispatcherState::ReserveWorkers(
-    int64 job_id, int64 target_num_workers) {
-  // DCHECK(num_workers <= avail_workers_.size()); 
-  jobs_[job_id]->target_worker_count = target_num_workers;
+    int64 job_id,
+    int64 target_remote_workers,
+    int64 target_local_workers,
+    const absl::flat_hash_set<std::string> local_workers) {
   // If the number of required workers is below those available, we just assign
   // as many as there are available at this epoch's scheduling time.
-  int64 num_workers = target_num_workers <= 0 
-    || target_num_workers > avail_workers_.size() ? avail_workers_.size() 
-    : target_num_workers;
+  int64 target_worker_count = target_remote_workers + target_local_workers;
+  if(target_worker_count <= 0 || target_worker_count > avail_workers_.size()) {
+      target_remote_workers = avail_workers_.size();
+      target_local_workers = avail_workers_.size();
+  }
+
+  jobs_[job_id]->target_worker_count = target_worker_count;
+
   std::vector<std::shared_ptr<const Worker>> workers;
-  workers.reserve(num_workers);
-  VLOG(0) << "(ReserveWorkers) User got " << num_workers << " workers from " 
-          << "target " << target_num_workers << " workers";
+  workers.reserve(avail_workers_.size());
+  VLOG(0) << "EASL-DSL (DispatcherState::ReserveWorkers)" << "\n"
+          << "Available remote: " << avail_workers_.size() << "\n"
+          << "Available local: " << local_workers.size() << "\n"
+          << "Target remote: " << target_remote_workers << "\n"
+          << "Target local: " << target_local_workers << "\n";
+
   for (auto it = avail_workers_.begin(); it != avail_workers_.end(); ) {
-    num_workers--;
+    bool is_local = local_workers.count(it->first);
+    if (is_local) {
+        VLOG(0) << "EASL-DSL (DispatcherState::ReserveWorkers) found local worker " << it->first;
+        if (target_local_workers <= 0) { // No additional local workers needed
+            it++;
+            continue;
+        } else {
+          target_local_workers--;
+        }
+    } else {
+        VLOG(0) << "EASL-DSL (DispatcherState::ReserveWorkers) found remote worker " << it->first;
+        if (target_remote_workers <= 0) { // No additional remote workers needed
+            it++;
+            continue;
+        } else {
+            target_remote_workers--;
+        }
+    }
+
     workers.push_back(it->second);
     VLOG(0) << "(ReserveWorkers) Assigning worker at address " 
             << it->second->address << " to job " << job_id;
     workers_by_job_[job_id][it->second->address] = it->second;
     jobs_by_worker_[it->second->address][job_id] = jobs_[job_id];
     avail_workers_.erase(it++);
-    if (num_workers == 0)
+    if (target_local_workers + target_remote_workers == 0)
       break;
   }
   VLOG(0) << "(ReserveWorkers) Number of workers for job " << job_id << " is: "

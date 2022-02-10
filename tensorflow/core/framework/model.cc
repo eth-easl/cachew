@@ -1342,7 +1342,7 @@ double Node::TotalProcessingTimeForInputs(
   double sum = 0;
   for (auto& input : inputs_) {
     // Inputs for which autotuning is disabled are excluded.
-    if (input->autotune()) {
+    if (input->autotune() and false) {
       double input_processing_time =
           total_processing_times.at(input->long_name());
       int64 num_elements = input->num_elements();

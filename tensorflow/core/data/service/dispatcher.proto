@@ -119,7 +119,7 @@ message JobKey {
   int64 job_name_index = 2;
 }
 
-// Next tag: 8
+// Next tag: 9
 message GetOrCreateJobRequest {
   reserved 3, 4;
   // The id of the dataset to create a job for.
@@ -134,6 +134,8 @@ message GetOrCreateJobRequest {
   oneof optional_num_consumers {
     int64 num_consumers = 7;
   }
+  // DSL - to pass the array of available local workers to the dispatcher's job creation logic
+  repeated string local_workers = 8;
 }
 
 // Next tag: 2
@@ -188,7 +190,7 @@ message ClientHeartbeatRequest {
   double result_queue_size = 10;
 }
 
-// Next tag: 4
+// Next tag: 5
 message ClientHeartbeatResponse {
   // A list of all tasks that the client should read from.
   repeated TaskInfo task_info = 1;
@@ -198,6 +200,8 @@ message ClientHeartbeatResponse {
   }
   // Whether the job has finished.
   bool job_finished = 2;
+  // DSL: to check whether we should use local workers (based on last epoch's metrics)
+  bool target_local_workers = 4;
 }
 
 // Next tag: 3

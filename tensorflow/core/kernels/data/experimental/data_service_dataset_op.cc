@@ -21,6 +21,7 @@ limitations under the License.
 #include <queue>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -277,7 +278,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       for (auto& worker_thread : worker_threads_) {
         worker_thread.reset();
       }
-
+      DeleteLocalWorkerTasks();
       VLOG(1) << "Destroyed data service dataset iterator for job id "
               << job_client_id_;
     }
@@ -302,7 +303,10 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           [&]() {
             return dispatcher_->GetOrCreateJob(
                 dataset()->dataset_id_, dataset()->processing_mode_, key,
-                dataset()->num_consumers_, job_client_id_);
+                dataset()->num_consumers_,
+                job_client_id_,
+                LocalWorkers::GetList()
+                );
           },
           /*description=*/
           strings::StrCat("get or create job with dispatcher at ",
@@ -548,6 +552,25 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       worker_thread_cv_.notify_all();
       manager_thread_cv_.notify_all();
       get_next_cv_.notify_all();
+    }
+
+    void DeleteLocalWorkerTasks() {
+      if (dataset()->target_workers_ != TargetWorkers::LOCAL) {
+        return;
+      }
+      std::vector<std::shared_ptr<Task>> tasks;
+      {
+        mutex_lock l(mu_);
+        tasks = tasks_;
+      }
+
+      for (const std::shared_ptr<Task>& task : tasks) {
+        std::shared_ptr<DataServiceWorkerImpl> worker =
+                LocalWorkers::Get(task->info.worker_address());
+        if (worker) {
+          worker->DeleteLocalTask(task->info);
+        }
+      }
     }
 
     // Periodically refresh the task list.
@@ -996,7 +1019,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       if (enqueue_result && !result.end_of_sequence) {
-        results_.push(std::move(result));
+          results_.push(std::move(result));
       }
       get_next_cv_.notify_all();
     }

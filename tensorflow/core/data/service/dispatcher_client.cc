@@ -198,7 +198,8 @@ Status DataServiceDispatcherClient::RegisterDataset(
 Status DataServiceDispatcherClient::GetOrCreateJob(
     int64 dataset_id, ProcessingMode processing_mode,
     const absl::optional<JobKey>& job_key, absl::optional<int64> num_consumers,
-    int64& job_client_id) {
+    int64& job_client_id,
+    std::vector<std::string> local_workers) {
   TF_RETURN_IF_ERROR(EnsureInitialized());
   GetOrCreateJobRequest req;
   req.set_dataset_id(dataset_id);
@@ -209,6 +210,9 @@ Status DataServiceDispatcherClient::GetOrCreateJob(
   if (num_consumers.has_value()) {
     req.set_num_consumers(num_consumers.value());
   }
+  // DSL - client sends a list of its local workers to the dispatcher
+  *req.mutable_local_workers() = {local_workers.begin(), local_workers.end()};
+
   GetOrCreateJobResponse resp;
   grpc::ClientContext client_ctx;
   grpc::Status status = stub_->GetOrCreateJob(&client_ctx, req, &resp);

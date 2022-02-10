@@ -276,6 +276,7 @@ cc_library(
     deps = [
         ":cache_utils",
         ":scaling_utils",
+        ":local_workers_utils",
         ":common_proto_cc",
         ":credentials_factory",
         ":data_service",
@@ -897,6 +898,21 @@ cc_library(
         "//tensorflow/core/platform:status",
         "//tensorflow/core/platform:errors",
         "//tensorflow/core:framework",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "local_workers_utils",
+    srcs = ["easl/local_workers_utils.cc"],
+    hdrs = [
+        "easl/local_workers_utils.h",
+    ],
+    deps = [
+        ":common_proto_cc",
+        ":dispatcher_state",
+        ":metadata_store",
+        "//tensorflow/core:lib",
         "@com_google_absl//absl/strings",
     ],
 )
