@@ -1310,12 +1310,14 @@ Status DataServiceDispatcherImpl::AssignTask(std::shared_ptr<const Task> task)
 Status DataServiceDispatcherImpl::ClientHeartbeat(
     const ClientHeartbeatRequest* request, ClientHeartbeatResponse* response) {
   TF_RETURN_IF_ERROR(CheckStarted());
+  std::shared_ptr<const Job> job;
+  Status s = state_.JobForJobClientId(request->job_client_id(), job);
+  bool do_reassign_workers = false;
+  {
   mutex_lock l(mu_);
   VLOG(4) << "Received heartbeat from client id " << request->job_client_id();
   latest_client_heartbeats_time_[request->job_client_id()] =
       absl::FromUnixMicros(env_->NowMicros());
-  std::shared_ptr<const Job> job;
-  Status s = state_.JobForJobClientId(request->job_client_id(), job);
   if (errors::IsNotFound(s) && !config_.fault_tolerant_mode()) {
     return errors::NotFound(
         "Unknown job client id ", request->job_client_id(),
@@ -1325,7 +1327,6 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   TF_RETURN_IF_ERROR(s);
 
   // EASL: Update the client metrics
-  bool do_reassign_workers = false;
   int64 job_target_worker_count;
   string job_type;
   string job_name = job->named_job_key->name;
@@ -1489,6 +1490,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
       response->set_block_round(job->pending_tasks.front().target_round);
     }
 
+  }
   }
   // Free the lock to reassign workers.
   if (do_reassign_workers) {
