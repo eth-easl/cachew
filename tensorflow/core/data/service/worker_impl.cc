@@ -205,6 +205,7 @@ Status DataServiceWorkerImpl::ValidateWorkerConfig() const {
 
 Status DataServiceWorkerImpl::GetElementResult(
     const GetElementRequest* request, struct GetElementResult* result) {
+//  VLOG(0) << "Enter GetElement Result";
   Task* task = nullptr;
   {
     mutex_lock l(mu_);
@@ -289,6 +290,7 @@ Status DataServiceWorkerImpl::ProcessTaskInternal(const TaskDef& task_def)
 
 Status DataServiceWorkerImpl::EnsureTaskInitialized(
     DataServiceWorkerImpl::Task& task) {
+//  VLOG(0) << "Enter Ensure Task Initialized";
   if (task.task_def.worker_address() != worker_address_) {
     return errors::Internal(absl::Substitute(
         "Dispatcher's worker address $0 does not match worker's address $1.",

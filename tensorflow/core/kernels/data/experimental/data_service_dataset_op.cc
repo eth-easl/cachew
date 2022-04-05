@@ -927,10 +927,10 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
               next_task_index_--;
             }
             if (!tasks_.empty() && next_task_index_ >= tasks_.size()) {
+              ++index;
               AdvanceTaskIndex();
             }
           } else {
-            ++index;
             VLOG(0) << "Avoided removing task which is not done..";
           }
         }
@@ -1040,9 +1040,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           std::min<int64_t>(tasks_.size(), max_outstanding_requests_);
       while (num_running_worker_threads_ < max_num_threads && !cancelled_ &&
              status_.ok() && !job_finished_) {
-        VLOG(0) << "updateWorkerThread, num_running_worker_threads_: "
-                << num_running_worker_threads_
-                << " max_outstanding_requests_: " << max_outstanding_requests_;
+//        VLOG(0) << "updateWorkerThread, num_running_worker_threads_: "
+//                << num_running_worker_threads_
+//                << " max_outstanding_requests_: " << max_outstanding_requests_;
         num_running_worker_threads_++;
         auto done = [this]() {
           mutex_lock l(mu_);
@@ -1140,19 +1140,20 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       VLOG(4) << "Searching for the next task to process.";
-      if (ShouldProcessLocalTask()) {
-        std::shared_ptr<Task> task = GetLocalTaskToProcess();
-        if (task) {
-          VLOG(4) << "Selected a local task to process: "
-                  << task->info.ShortDebugString();
-          return task;
-        }
-      }
+//      if (ShouldProcessLocalTask()) {
+//        std::shared_ptr<Task> task = GetLocalTaskToProcess();
+//        if (task) {
+//          VLOG(4) << "Selected a local task to process: "
+//                  << task->info.ShortDebugString();
+//          return task;
+//        }
+//      }
 
       if (ShouldProcessAnyTask()) {
+//        VLOG(0) << "(Muyu) Should Process Any Task";
         std::shared_ptr<Task> task = GetAnyTaskToProcess();
         if (task) {
-          VLOG(3) << "Selected a task to process: "
+          VLOG(1) << "Selected a task to process: "
                   << task->info.ShortDebugString();
           return task;
         }
@@ -1222,7 +1223,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         // EASL - request pipelining: change skipping condition.
         //  from: !task->in_use && !task->end_of_sequence && !task->removed
         if (task->num_outstanding_requests < max_request_pipelining_per_task_
-          && !task->end_of_sequence && !task->removed) {
+        && !task->end_of_sequence && !task->removed) {
           return task;
         }
       }
@@ -1233,6 +1234,18 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     // task a chance to proceed.
     std::shared_ptr<Task> GetAnyTaskToProcess()
         TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+      // (MUYU) DEBUG PRINT MANY TASKS
+
+//      std::string str = "";
+//      for (int i = 0; i < tasks_.size(); ++i) {
+//        string tmpstr = "";
+//        tmpstr += "[[(" + tasks_[i]->info.worker_address() + "); ";
+//        tmpstr += "(" + tasks_[i]->info.transfer_address() + "); ";
+//        tmpstr += "(" + tasks_[i]->info.task_id() + ");]]   ";
+//        str += tmpstr;
+//      }
+//      VLOG(0) << "=== Print Existing Tasks === " << str;
+
       for (int i = 0; i < tasks_.size(); ++i) {
         std::shared_ptr<Task>& task = tasks_[next_task_index_];
         if (StrictRoundRobin() &&
@@ -1250,18 +1263,20 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         if(current_round_ < task->info.starting_round() ||
            task->num_outstanding_requests >= max_request_pipelining_per_task_ ||
            task->end_of_sequence || task->removed) {
-          VLOG(3) << "Skipping task " << next_task_index_
+          VLOG(0) << "Skipping task " << next_task_index_
                   << ". starting round: " << task->info.starting_round()
                   << ". current round: " << current_round_
                   << ". task->in_use: " << task->in_use
                   << ". task->num_outstanding_requests: " << task->num_outstanding_requests
                   << ". end_of_sequence: " << task->end_of_sequence
-                  << ". task->removed: " << task->removed;
+                  << ". task->removed: " << task->removed
+                  << ". task->info.id: " << task->info.task_id();
           AdvanceTaskIndex();
           continue;
         }
         task->round = current_round_;
         AdvanceTaskIndex();
+        VLOG(0) << "Choosing Task ID: " << task->info.task_id();
         return task;
       }
       return nullptr;

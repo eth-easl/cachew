@@ -615,8 +615,9 @@ Status DataServiceDispatcherImpl::GetSplit(const GetSplitRequest* request,
   int64_t task_id = request->task_id();
   int64_t repetition = request->repetition();
   int64_t provider_index = request->split_provider_index();
-  VLOG(3) << "Received GetSplit request for job " << job_id << ", repetition "
-          << repetition << ", split provider index " << provider_index;
+//  VLOG(0) << "Received GetSplit request for job " << job_id << ", repetition "
+//          << repetition << ", split provider index " << provider_index <<
+//          ", task id " << task_id;
   std::shared_ptr<const Job> job;
   TF_RETURN_IF_ERROR(state_.JobFromId(job_id, job));
   if (!job->distributed_epoch_state.has_value()) {

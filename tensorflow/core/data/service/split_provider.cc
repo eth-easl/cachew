@@ -36,6 +36,9 @@ Status DataServiceSplitProvider::GetNext(Tensor* split, bool* end_of_splits) {
     dispatcher_ =
         absl::make_unique<DataServiceDispatcherClient>(address_, protocol_);
   }
+//  VLOG(0) << "Sent GetSplit request for job " << job_id_ << ", repetition "
+//          << repetition_ << ", split provider index " << split_provider_index_ <<
+//          ", task id " << task_id_;
   return grpc_util::Retry(
       [this, split, end_of_splits] {
         return dispatcher_->GetSplit(job_id_, task_id_, repetition_,

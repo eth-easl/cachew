@@ -35,7 +35,7 @@ class DataServiceSplitProvider : public SplitProvider {
   DataServiceSplitProvider(const std::string& address,
                            const std::string& protocol, int64_t job_id,
       int64_t split_provider_index, int64_t timeout_ms, int64_t task_id)
-      : address_(address),
+      : address_(address), // Dispatcher Address
         protocol_(protocol),
         job_id_(job_id),
         split_provider_index_(split_provider_index),
