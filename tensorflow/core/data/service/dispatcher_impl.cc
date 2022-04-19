@@ -93,7 +93,7 @@ constexpr const char kActiveTime[] = "active_time";
 constexpr const char kWorkingTime[] = "working_time";
 
 const uint64 kElementThreshold = 300;
-const bool kEnableEventLogging = false;
+const bool kEnableEventLogging = true;
 
 
 using Dataset = DispatcherState::Dataset;
@@ -404,7 +404,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
     std::shared_ptr<const Task> task_object;
     Status s = state_.TaskFromId(task.id(), task_object);
 
-    if (s.ok()) {
+    if (s.ok() && !task_object->finished) {
       auto job_id = task_object->job->job_id;
       std::string last_node_name = task.last_node_name();
       std::string last_tf_node_name = task.last_tf_node_name();
@@ -419,9 +419,11 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
       //         << " > last_tf_node_name = " << last_tf_node_name << "\n"
       //         << " > marker_node_name = " << marker_node_name;
 
-      if(!s.ok()){
+      if(!s.ok()) {
         // Ignore metrics if job has already been removed from metadata store.
         // Otherwise return status error.
+        VLOG(0) << "(DataServiceDispatcherImpl::WorkerHeartbeat) "
+                     << "Could not update node names " << s.error_message();
         if(!errors::IsNotFound(s)){ return s; }
       } else {
         for (int j = 0; j < task.nodes_size(); ++j) {
@@ -440,46 +442,51 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
 //          TF_RETURN_IF_ERROR(metadata_store_.UpdateInputPipelineMetrics(job_id,
 //            task.mutable_nodes(j)->name(), request->worker_address(),
 //            node_metrics));
-          metadata_store_.UpdateInputPipelineMetrics(job_id,
+          s = metadata_store_.UpdateInputPipelineMetrics(job_id,
             task.mutable_nodes(j)->name(), request->worker_address(),
             node_metrics);
+
+          if (!s.ok()) {
+            VLOG(0) << "(DataServiceDispatcherImpl::WorkerHeartbeat) "
+                    << "Could not update pipeline metrics " << s.error_message();
+          }
         }
-      }
 
-      // Try to see if we need to decide on the execution mode
-      string job_type;
-      uint64 element_count;
-      Status s1 = metadata_store_.GetJobTypeByJobId(job_id, job_type);
-      Status s2 = metadata_store_.GetNumberOfProducedElements(job_id,
-         element_count);
+        // Try to see if we need to decide on the execution mode
+        string job_type;
+        uint64 element_count;
+        Status s1 = metadata_store_.GetJobTypeByJobId(job_id, job_type);
+        Status s2 = metadata_store_.GetNumberOfProducedElements(job_id,
+                                                                element_count);
 
-      if (s1.ok() && s2.ok() && job_type == "PROFILE" &&
-        element_count >= kElementThreshold) {
-        VLOG(0) << "(WorkerHeartbeat) At least "
-                     << kElementThreshold << " elements have been produced";
-        // Will change the job_type of job with job_id to something else
-        service::easl::cache_utils::DetermineJobTypeUpdated(config_,
-          cache_state_, metadata_store_, job_id);
+        if (s1.ok() && s2.ok() && job_type == "PROFILE" &&
+            element_count >= kElementThreshold) {
+          VLOG(0) << "(WorkerHeartbeat) At least "
+                  << kElementThreshold << " elements have been produced";
+          // Will change the job_type of job with job_id to something else
+          service::easl::cache_utils::DetermineJobTypeUpdated(config_,
+                                                              cache_state_, metadata_store_, job_id);
 
-        // We will allow the job to start scaling
-        // Note that job is expected to start at 1 worker
-        VLOG(0) << "(WorkerHeartbeat) Enabling scaling";
-        metadata_store_.ResetSameScaleCounter(job_id);
-        metadata_store_.SetJobIsScaling(job_id);
+          // We will allow the job to start scaling
+          // Note that job is expected to start at 1 worker
+          VLOG(0) << "(WorkerHeartbeat) Enabling scaling";
+          metadata_store_.ResetSameScaleCounter(job_id);
+          metadata_store_.SetJobIsScaling(job_id);
 
-        // Logging stuff
-        if (kEnableEventLogging) {
-          std::shared_ptr<const Dataset> dataset;
-          state_.DatasetFromId(task_object->job->dataset_id, dataset);
+          // Logging stuff
+          if (kEnableEventLogging) {
+            std::shared_ptr<const Dataset> dataset;
+            state_.DatasetFromId(task_object->job->dataset_id, dataset);
 
-          string job_type;
-          string job_name = task_object->job->named_job_key.value().name;
-          Status s3 = metadata_store_.GetJobTypeByJobId(job_id, job_type);
+            string job_type;
+            string job_name = task_object->job->named_job_key->name;
+            Status s3 = metadata_store_.GetJobTypeByJobId(job_id, job_type);
 
-          if (s3.ok()) {
-            RecordEvent(dataset->fingerprint, dataset->dataset_id, job_name,
-                        task_object->job->job_id, "execution_policy_decision",
-                        job_type);
+            if (s3.ok()) {
+              RecordEvent(dataset->fingerprint, dataset->dataset_id, job_name,
+                          task_object->job->job_id, "execution_policy_decision",
+                          job_type);
+            }
           }
         }
       }
