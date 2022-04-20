@@ -411,28 +411,13 @@ void DispatcherState::ReassignFreeWorkers() {
     // Went through all jobs, can return
     return;
   }
-  VLOG(3) << "EASL (ReassignFreeWorkers) - avail_workers_.size() " << avail_workers_.size();
+  VLOG(0) << "EASL (ReassignFreeWorkers) - avail_workers_.size() "
+      << avail_workers_.size();
   for(auto it = avail_workers_.begin(); it != avail_workers_.end(); it++){
-    // Get a job in need of workers
+    // Get a job in need of workers (i.e. num_assigned_workers < job->target_worker_count)
     std::shared_ptr<Job> job = job_iter->second;
     int64 num_assigned_workers = workers_by_job_[job->job_id].size();
-    while (job->finished || num_assigned_workers == job->target_worker_count){
-      // Check if split provider has reached eos
-      if (job->distributed_epoch_state.has_value()){
-        for (auto repetition : job->distributed_epoch_state.value().repetitions){
-          if (repetition!=0){
-            // (Damien) We only allow for one repetitions per input pipeline.
-            job_iter++;
-            if(job_iter == jobs_.end()){
-              // Went through all jobs, can return
-              return;
-            }
-            continue;
-          }
-        }
-      } else {
-        VLOG(0) << "Dynamic scaling with parallel epochs mode may lead to infinite dataset.";
-      }
+    while (job->finished || num_assigned_workers >= job->target_worker_count){
       job_iter++;
       if(job_iter == jobs_.end()){
         // Went through all jobs, can return
@@ -441,7 +426,7 @@ void DispatcherState::ReassignFreeWorkers() {
       job = job_iter->second;
       num_assigned_workers = workers_by_job_[job->job_id].size();
     }
-    VLOG(3) << "EASL - (ReassignFreeWorkers) Reassigned worker "
+    VLOG(0) << "EASL - (ReassignFreeWorkers) Reassigned worker "
             << it->second->address << " to job " << job->job_id;
 
     // Assign one worker to the job
@@ -513,6 +498,7 @@ DispatcherState::ListJobsForWorker(const absl::string_view worker_address) {
             << " is not yet assigned to any jobs.";
   }
 
+  // FIXME(DanGraur): This will throw a nullptr exception if `it` is at end.
   const absl::flat_hash_map<int64, std::shared_ptr<Job>>& worker_jobs =
       it->second;
   jobs.reserve(worker_jobs.size());

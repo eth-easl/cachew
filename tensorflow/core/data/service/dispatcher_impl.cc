@@ -348,7 +348,7 @@ Status DataServiceDispatcherImpl::ReassignFreeWorkersAndCreateTasks() TF_LOCKS_E
           assigned_job_ids.insert(task->job->job_id);
         }
       }
-      // Create task if worker does not have a task for a job it should have one for
+      // Create task if worker is assigned to job (but has no task for it yet)
       for (const auto& new_job : state_.ListJobsForWorker(worker->address)){
         if (!assigned_job_ids.contains(new_job->job_id) && !new_job->finished){
           // CreateTask
@@ -1206,7 +1206,7 @@ Status DataServiceDispatcherImpl::GetOrCreateWorkerStub(
 
 Status DataServiceDispatcherImpl::AssignTask(std::shared_ptr<const Task> task)
     TF_LOCKS_EXCLUDED(mu_) {
-  VLOG(2) << "Started assigning task " << task->task_id << " to worker "
+  VLOG(0) << "Started assigning task " << task->task_id << " to worker "
           << task->worker_address;
   grpc::ClientContext client_ctx;
   ProcessTaskRequest req;
@@ -1224,7 +1224,7 @@ Status DataServiceDispatcherImpl::AssignTask(std::shared_ptr<const Task> task)
         absl::StrCat("Failed to submit task to worker ", task->worker_address),
         s);
   }
-  VLOG(2) << "Finished assigning task " << task->task_id << " to worker "
+  VLOG(0) << "Finished assigning task " << task->task_id << " to worker "
           << task->worker_address;
   return Status::OK();
 }
@@ -1396,7 +1396,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     task_info->set_starting_round(task->starting_round);
   }
   response->set_job_finished(job->finished);
-  VLOG(4) << "Found " << response->task_info_size()
+  VLOG(0) << "Found " << response->task_info_size()
           << " tasks for job client id " << request->job_client_id();
 
   return Status::OK();
