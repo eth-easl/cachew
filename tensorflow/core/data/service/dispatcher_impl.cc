@@ -954,6 +954,11 @@ Status DataServiceDispatcherImpl::CreateJob(
   }
   int64 job_id = state_.NextAvailableJobId();
 
+  // We need to make sure that the job has a name
+  if (!named_job_key.has_value()) {
+    return errors::FailedPrecondition("Jobs must be named");
+  }
+
   // EASL - Caching decision: should the job compute, write or read from cache?
   int64 worker_count;
   std::string job_type;
