@@ -1025,7 +1025,7 @@ Status DataServiceDispatcherImpl::CreateJob(
   string job_name = request.job_key().job_name();
   std::shared_ptr<const Dataset> dataset;
   TF_RETURN_IF_ERROR(state_.DatasetFromId(dataset_id, dataset));
-  int64 dataset_fingerprint = dataset->fingerprint;
+  uint64 dataset_fingerprint = dataset->fingerprint;
   std::string compute_dataset_key = DatasetKey(dataset_id, dataset_fingerprint);
 
   service::easl::cache_utils::DetermineJobType(config_, cache_state_,

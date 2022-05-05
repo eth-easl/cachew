@@ -213,7 +213,7 @@ class JobMetrics {
     JobMetrics(int64 job_id,
                std::string& job_type,
                int64 dataset_id,
-               int64 dataset_fingerprint,
+               uint64 dataset_fingerprint,
                std::string& dataset_key,
                bool is_scaling = true,
                const string& name = string());
@@ -245,7 +245,7 @@ class MetadataStore {
   Status CreateJob(int64 job_id,
                    string& job_type,
                    int64 dataset_id,
-                   int64 dataset_fingerprint,
+                   uint64 dataset_fingerprint,
                    std::string& dataset_key,
                    bool trigger_rescale = false);
 
@@ -254,7 +254,7 @@ class MetadataStore {
                        string& job_name,
                        string& job_type,
                        int64 dataset_id,
-                       int64 dataset_fingerprint,
+                       uint64 dataset_fingerprint,
                        std::string& dataset_key,
                        bool trigger_rescale = false);
 
@@ -270,16 +270,16 @@ class MetadataStore {
   Status GetInputPipelineMetrics(int64 job_id, 
     std::shared_ptr<InputPipelineMetrics>& metrics) const;
 
-  Status GetJobMetricsByDatasetFingerprint(const int64 dataset_fingerprint,
+  Status GetJobMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<JobMetrics>& metrics) const;
   Status GetJobMetricsByDatasetFingerprintAndName(
-    const int64 dataset_fingerprint, const string& job_name,
+    const uint64 dataset_fingerprint, const string& job_name,
     std::shared_ptr<JobMetrics>& metrics) const;
 
-  Status GetModelMetricsByDatasetFingerprint(const int64 dataset_fingerprint,
+  Status GetModelMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<ModelMetrics>& metrics) const;
 
-  Status GetInputPipelineMetricsByDatasetFingerprint(const int64 dataset_fingerprint,
+  Status GetInputPipelineMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<InputPipelineMetrics>& metrics) const;
   
   Status GetLastNodeMetrics(int64 job_id, 
@@ -289,11 +289,11 @@ class MetadataStore {
   Status GetMarkerNodeMetrics(int64 job_id, 
     std::shared_ptr<NodeMetrics>& metrics) const;
 
-  Status GetLastNodeMetricsByDatasetFingerprint(const int64 dataset_fingerprint,
+  Status GetLastNodeMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<NodeMetrics>& metrics) const;
-  Status GetLastTFNodeMetricsByDatasetFingerprint(const int64 dataset_fingerprint,
+  Status GetLastTFNodeMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<NodeMetrics>& metrics) const;
-  Status GetMarkerNodeMetricsByDatasetFingerprint(const int64 dataset_fingerprint,
+  Status GetMarkerNodeMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<NodeMetrics>& metrics) const;
 
   // Update or create the metrics for a client
