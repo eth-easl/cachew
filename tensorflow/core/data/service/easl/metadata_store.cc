@@ -649,7 +649,7 @@ Status MetadataStore::UpdateNodeNames(int64 job_id, string last_node_name,
   return s;
 }
 
-Status MetadataStore::SetJobType(int64 fingerprint, string job_type) {
+Status MetadataStore::SetJobType(uint64 fingerprint, string job_type) {
   auto it = fingerprint_key_metadata_.find(fingerprint);
   if (it == fingerprint_key_metadata_.end()) {
     return errors::NotFound("Could not find the dataset");
@@ -659,7 +659,7 @@ Status MetadataStore::SetJobType(int64 fingerprint, string job_type) {
   return Status::OK();
 }
 
-  Status MetadataStore::SetJobType(int64 fingerprint, const string& job_name,
+  Status MetadataStore::SetJobType(uint64 fingerprint, const string& job_name,
     string job_type) {
     string key = CreateFingerprintNameKey(fingerprint, job_name);
     auto it = fingerprint_name_metadata_.find(key);
@@ -671,7 +671,7 @@ Status MetadataStore::SetJobType(int64 fingerprint, string job_type) {
     return Status::OK();
   }
 
-Status MetadataStore::GetJobType(int64 fingerprint, string& job_type) {
+Status MetadataStore::GetJobType(uint64 fingerprint, string& job_type) {
   auto it = fingerprint_key_metadata_.find(fingerprint);
   if (it == fingerprint_key_metadata_.end()) {
     return errors::NotFound("Could not find the dataset");
@@ -681,12 +681,12 @@ Status MetadataStore::GetJobType(int64 fingerprint, string& job_type) {
   return Status::OK();
 }
 
-string MetadataStore::CreateFingerprintNameKey(int64 fingerprint,
+string MetadataStore::CreateFingerprintNameKey(uint64 fingerprint,
   const string& job_name) const {
   return std::to_string(fingerprint) + job_name;
 }
 
-Status MetadataStore::GetJobType(int64 fingerprint, const string& job_name,
+Status MetadataStore::GetJobType(uint64 fingerprint, const string& job_name,
     string& job_type) {
     string key = CreateFingerprintNameKey(fingerprint, job_name);
     auto it = fingerprint_name_metadata_.find(key);
@@ -751,7 +751,7 @@ Status MetadataStore::SetLastPerformance(int64 job_id,
   return Status::OK();
 }
 
-bool MetadataStore::JobSeenBefore(int64 fingerprint) {
+bool MetadataStore::JobSeenBefore(uint64 fingerprint) {
   return fingerprint_key_metadata_.contains(fingerprint);
 }
 

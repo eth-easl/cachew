@@ -66,7 +66,7 @@ void CopyToString(const tstring& src, tstring* dst) {
 }
 void CopyToString(int64_t src, tstring* dst) { *dst = std::to_string(src); }
 
-// Copies a feature value `src` to an int64 fingerprint `dst`.
+// Copies a feature value `src` to an uint64 fingerprint `dst`.
 void CopyToFingerprint(const tstring& feature, uint64* dst) {
   *dst = Fingerprint64(feature);
 }

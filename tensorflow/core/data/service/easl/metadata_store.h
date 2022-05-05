@@ -307,12 +307,12 @@ class MetadataStore {
   Status UpdateNodeNames(int64 job_id, string last_node_name, 
     string last_tf_node_name, string marker_node_name);
 
-  string CreateFingerprintNameKey(int64 fingerprint, const string& job_name) const;
+  string CreateFingerprintNameKey(uint64 fingerprint, const string& job_name) const;
 
-  Status SetJobType(int64 fingerprint, string job_type);
-  Status SetJobType(int64 fingerprint, const string& name, string job_type);
-  Status GetJobType(int64 fingerprint, string& job_type);
-  Status GetJobType(int64 fingerprint, const string& name, string& job_type);
+  Status SetJobType(uint64 fingerprint, string job_type);
+  Status SetJobType(uint64 fingerprint, const string& name, string job_type);
+  Status GetJobType(uint64 fingerprint, string& job_type);
+  Status GetJobType(uint64 fingerprint, const string& name, string& job_type);
   Status SetJobTypeByJobId(int64 job_id, string job_type);
   Status GetJobTypeByJobId(int64 job_id, string& job_type);
 
@@ -323,7 +323,7 @@ class MetadataStore {
   Status GetLastPerformance(int64 job_id, Performance& last_performance);
   Status SetLastPerformance(int64 job_id, Performance last_performance);
 
-  bool JobSeenBefore(int64 fingerprint);
+  bool JobSeenBefore(uint64 fingerprint);
 
   Status GetWorkerUpdateCounter(int64 job_id, uint64& heartbeat_counter);
   Status GetNumberOfProducedElements(int64 job_id, uint64& element_count);

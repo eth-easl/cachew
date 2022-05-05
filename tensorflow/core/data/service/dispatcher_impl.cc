@@ -153,7 +153,7 @@ void PrepareGraph(GraphDef* graph) {
 
 // EASL: Recording events
 constexpr const char kEventFileLocation[] = "events.csv";
-void RecordEvent(const int64 fingerprint, const int64 dataset_id,
+void RecordEvent(const uint64 fingerprint, const int64 dataset_id,
   const string& job_name, const int64 job_id, const string& event_type,
   const string& additional_info = "") {
   uint64 time_now = Env::Default()->NowMicros();
