@@ -132,20 +132,12 @@ Status DynamicWorkerCountUpdate(
     if (second_to_last_metrics->worker_count() < last_metrics->worker_count()) {
       // We are scaling up
       if (relative_improvement > kMinBatchTimeRelativeImprovementUp) {
-        if (last_performance == Performance::UP) {
           metadata_store.SetLastPerformance(job_id, Performance::NA);
           worker_count = last_metrics->worker_count() + 1;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
                   << "Improvement large enough:\n"
                   << " > improvement: " << relative_improvement << "\n"
                   << " > next worker count: " << worker_count;
-        } else {
-          worker_count = last_metrics->worker_count();
-          metadata_store.SetLastPerformance(job_id, Performance::UP);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
-                  << "Improvement large enough, but awaiting confirmation:\n"
-                  << " > improvement: " << relative_improvement;
-        }
       } else {
         if (last_performance == Performance::DOWN) {
           worker_count = second_to_last_metrics->worker_count();
@@ -169,20 +161,12 @@ Status DynamicWorkerCountUpdate(
       // We are scaling down
       if (relative_improvement > -kMinBatchTimeRelativeImprovementDown
         && last_metrics->worker_count() > 1) {
-        if (last_performance == Performance::DOWN) {
           worker_count = last_metrics->worker_count() - 1;
           metadata_store.SetLastPerformance(job_id, Performance::NA);
           VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
                   << "Improvement loss ok:\n"
                   << " > improvement: " << relative_improvement << "\n"
                   << " > next worker count: " << worker_count;
-        } else {
-          worker_count = last_metrics->worker_count();
-          metadata_store.SetLastPerformance(job_id, Performance::DOWN);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
-                  << "Improvement loss ok, but waiting for confirmation:\n"
-                  << " > improvement: " << relative_improvement;
-        }
       } else {
         if (last_performance == Performance::UP
           || last_metrics->worker_count() == 1) {
