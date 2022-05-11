@@ -19,14 +19,13 @@ namespace easl {
 namespace scaling_utils {
 
 namespace {
-using Performance = data::easl::Performance;
-int MAX_WORKERS_PER_JOB = 100;
+  int MAX_WORKERS_PER_JOB = 100;
 
-double kMinBatchTimeRelativeImprovementUp = 0.07; // 7%
-double kMinBatchTimeRelativeImprovementDown = 0.03;
-uint32 kInStabilityBeforeScaling = 20;
-double kMinQueueSizeRelativeGrowth = 1.5; // +50%
-double kMinBatchTimeRelativeGrowth = 1.5; // +50%
+  double kMinBatchTimeRelativeImprovementUp = 0.07; // 7%
+  double kMinBatchTimeRelativeImprovementDown = 0.03;
+  uint32 kInStabilityBeforeScaling = 20;
+  double kMinQueueSizeRelativeGrowth = 1.5; // +50%
+  double kMinBatchTimeRelativeGrowth = 1.5; // +50%
 }
 
 
@@ -73,14 +72,14 @@ Status DynamicWorkerCountUpdate(
 
   ModelMetrics::MetricsHistory metrics_history = model_metrics->metrics_history_;
   VLOG(0) << "EASL (DynamicWorkerCountUpdate) - Worker count for last metrics: "
-               << metrics_history[metrics_history.size()-1]->worker_count(); // Guaranteed to succeed.
+          << metrics_history[metrics_history.size()-1]->worker_count(); // Guaranteed to succeed.
 
 
   std::shared_ptr<ModelMetrics::Metrics> last_metrics =
       metrics_history[metrics_history.size() - 1];
   int64 current_target_worker_count;
   TF_RETURN_IF_ERROR(metadata_store.GetJobTargetWorkerCount(job_id,
-    current_target_worker_count));
+                                                            current_target_worker_count));
   if (last_metrics->worker_count() != current_target_worker_count) {
     VLOG(0) << "EASL (DynamicWorkerCountUpdate) - Target metrics count not fulfilled:\n"
             << " > target: " << current_target_worker_count << "\n"
@@ -98,14 +97,13 @@ Status DynamicWorkerCountUpdate(
       return Status::OK();
     }
 
-    // Also ensures the right metrics are picked for the performance code
     int second_to_last_index = metrics_history.size() - 2;
     std::shared_ptr<ModelMetrics::Metrics> second_to_last_metrics =
-      metrics_history[second_to_last_index];
+        metrics_history[second_to_last_index];
     while(second_to_last_metrics->worker_count() == last_metrics->worker_count()) {
       if (second_to_last_index == 0){
         VLOG(0) << "EASL (DynamicWorkerCountUpdate) - Should not enter here!"
-        << "This might lead to an infinite loop! ";
+                << "This might lead to an infinite loop! ";
         worker_count = metrics_history.back()->worker_count();
         metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
         return Status::OK();
@@ -119,89 +117,48 @@ Status DynamicWorkerCountUpdate(
 
     if (relative_improvement > 1.2 || relative_improvement < -1.2) {
       VLOG(0) << "(EASL::DynamicWorkerCountUpdate) Relative improvement "
-                   << "was unstable: " << relative_improvement
-                   << "; discarding it...";
+              << "was unstable: " << relative_improvement
+              << "; discarding it...";
       worker_count = current_target_worker_count;
       return Status::OK();
     }
 
-    Performance last_performance;
-    TF_RETURN_IF_ERROR(metadata_store.GetLastPerformance(job_id,
-        last_performance));
-
     if (second_to_last_metrics->worker_count() < last_metrics->worker_count()) {
       // We are scaling up
-      if (relative_improvement > kMinBatchTimeRelativeImprovementUp) {
-        if (last_performance == Performance::UP) {
-          metadata_store.SetLastPerformance(job_id, Performance::NA);
-          worker_count = last_metrics->worker_count() + 1;
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
-                  << "Improvement large enough:\n"
-                  << " > improvement: " << relative_improvement << "\n"
-                  << " > next worker count: " << worker_count;
-        } else {
-          worker_count = last_metrics->worker_count();
-          metadata_store.SetLastPerformance(job_id, Performance::UP);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
-                  << "Improvement large enough, but awaiting confirmation:\n"
-                  << " > improvement: " << relative_improvement;
-        }
+      if (relative_improvement > kMinBatchTimeRelativeImprovementUp){
+        worker_count = last_metrics->worker_count() + 1;
+        VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
+                << "Improvement large enough:\n"
+                << " > improvement: " << relative_improvement << "\n"
+                << " > next worker count: " << worker_count;
       } else {
-        if (last_performance == Performance::DOWN) {
-          worker_count = second_to_last_metrics->worker_count();
-          model_metrics->converged_metrics_ = second_to_last_metrics;
-          metadata_store.UnsetJobIsScaling(job_id);
-          metadata_store.SetLastPerformance(job_id, Performance::NA);
-          metadata_store.ResetSameScaleCounter(job_id);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
-                  << "Improvement NOT large enough:\n"
-                  << " > improvement: " << relative_improvement << "\n"
-                  << " > next worker count: " << worker_count;
-        } else {
-          worker_count = last_metrics->worker_count();
-          metadata_store.SetLastPerformance(job_id, Performance::DOWN);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
-                  << "Improvement NOT large enough, but waiting for confirmation:\n"
-                  << " > improvement: " << relative_improvement;
-        }
+        worker_count = second_to_last_metrics->worker_count();
+        model_metrics->converged_metrics_ = second_to_last_metrics;
+        metadata_store.UnsetJobIsScaling(job_id);
+        metadata_store.ResetSameScaleCounter(job_id);
+        VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
+                << "Improvement NOT large enough:\n"
+                << " > improvement: " << relative_improvement << "\n"
+                << " > next worker count: " << worker_count;
       }
     } else {
       // We are scaling down
       if (relative_improvement > -kMinBatchTimeRelativeImprovementDown
-        && last_metrics->worker_count() > 1) {
-        if (last_performance == Performance::DOWN) {
-          worker_count = last_metrics->worker_count() - 1;
-          metadata_store.SetLastPerformance(job_id, Performance::NA);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
-                  << "Improvement loss ok:\n"
-                  << " > improvement: " << relative_improvement << "\n"
-                  << " > next worker count: " << worker_count;
-        } else {
-          worker_count = last_metrics->worker_count();
-          metadata_store.SetLastPerformance(job_id, Performance::DOWN);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
-                  << "Improvement loss ok, but waiting for confirmation:\n"
-                  << " > improvement: " << relative_improvement;
-        }
+          && last_metrics->worker_count() > 1) {
+        worker_count = last_metrics->worker_count() - 1;
+        VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
+                << "Improvement loss ok:\n"
+                << " > improvement: " << relative_improvement << "\n"
+                << " > next worker count: " << worker_count;
       } else {
-        if (last_performance == Performance::UP
-          || last_metrics->worker_count() == 1) {
-          worker_count = second_to_last_metrics->worker_count();
-          model_metrics->converged_metrics_ = second_to_last_metrics;
-          metadata_store.UnsetJobIsScaling(job_id);
-          metadata_store.SetLastPerformance(job_id, Performance::NA);
-          metadata_store.ResetSameScaleCounter(job_id);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
-                  << "Improvement loss NOT ok (or only 1 worker left):\n"
-                  << " > improvement: " << relative_improvement << "\n"
-                  << " > next worker count: " << worker_count;
-        } else {
-          worker_count = last_metrics->worker_count();
-          metadata_store.SetLastPerformance(job_id, Performance::UP);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
-                  << "Improvement loss not ok, but waiting for confirmation:\n"
-                  << " > improvement: " << relative_improvement;
-        }
+        worker_count = second_to_last_metrics->worker_count();
+        model_metrics->converged_metrics_ = second_to_last_metrics;
+        metadata_store.UnsetJobIsScaling(job_id);
+        metadata_store.ResetSameScaleCounter(job_id);
+        VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
+                << "Improvement loss NOT ok (or only 1 worker left):\n"
+                << " > improvement: " << relative_improvement << "\n"
+                << " > next worker count: " << worker_count;
       }
     }
     metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
@@ -210,11 +167,11 @@ Status DynamicWorkerCountUpdate(
     // We're not scaling --> We're in a period of stability
     uint64 same_scale_counter;
     TF_RETURN_IF_ERROR(metadata_store.IncrementSameScaleCounter(job_id,
-      same_scale_counter));
+                                                                same_scale_counter));
 
     if (same_scale_counter > kInStabilityBeforeScaling) {
       VLOG(0) << "(EASL::DynamicWorkerCountUpdate::StablePeriod) - "
-          << "Checking for potential rescaling after stable period.";
+              << "Checking for potential rescaling after stable period.";
       metadata_store.ResetSameScaleCounter(job_id);
       std::shared_ptr<ModelMetrics::Metrics> converged_metrics = model_metrics->converged_metrics_;
       std::shared_ptr<ModelMetrics::Metrics> last_metrics = metrics_history.back();
@@ -224,9 +181,9 @@ Status DynamicWorkerCountUpdate(
       double relative_queue_size = queue_size_last_metrics / queue_size_converged;
 
       VLOG(0) << "(EASL::DynamicWorkerCountUpdate::StablePeriod) - "
-          << "relative_queue_size: " << relative_queue_size << "\n"
-          << "queue_size_converged: " << queue_size_converged << "\n"
-          << "queue_size_last_metrics: " << queue_size_last_metrics << "\n";
+              << "relative_queue_size: " << relative_queue_size << "\n"
+              << "queue_size_converged: " << queue_size_converged << "\n"
+              << "queue_size_last_metrics: " << queue_size_last_metrics << "\n";
 
       double converged_batch_time = converged_metrics->last_x_batch_time_ms();
       double l_batch_time = last_metrics->last_x_batch_time_ms();
@@ -243,7 +200,6 @@ Status DynamicWorkerCountUpdate(
         VLOG(0) << "Triggering downscale";
         worker_count = converged_metrics->worker_count() - 1;
         metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
-        metadata_store.SetLastPerformance(job_id, Performance::NA);
         metadata_store.SetJobIsScaling(job_id);
         return Status::OK();
       }
@@ -253,7 +209,6 @@ Status DynamicWorkerCountUpdate(
         VLOG(0) << "Triggering upscale";
         worker_count = converged_metrics->worker_count() + 1;
         metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
-        metadata_store.SetLastPerformance(job_id, Performance::NA);
         metadata_store.SetJobIsScaling(job_id);
         return Status::OK();
       }
@@ -283,5 +238,4 @@ Status DynamicWorkerCountUpdate(
 } // namespace service
 } // namespace data
 } // namespace tensorflow
-
 
