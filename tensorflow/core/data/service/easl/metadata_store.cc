@@ -11,8 +11,8 @@ namespace data {
 namespace easl {
 
 namespace {
-  const uint8 kMaxClientMetricsHistory = 20;
-  const uint8 kMaxPerWorkerClientMetricHistory = 3;
+  const uint16 kMaxClientMetricsHistory = 200;
+  const uint16 kMaxPerWorkerClientMetricHistory = 12;
 }
 
 

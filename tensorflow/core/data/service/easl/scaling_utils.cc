@@ -105,8 +105,15 @@ Status DynamicWorkerCountUpdate(
     while(second_to_last_metrics->worker_count() == last_metrics->worker_count()) {
       if (second_to_last_index == 0){
         VLOG(0) << "EASL (DynamicWorkerCountUpdate) - Should not enter here!"
-        << "This might lead to an infinite loop! ";
-        worker_count = metrics_history.back()->worker_count();
+                      << "This leads to an infinite loop!\n"
+                      << " > Converging here since scaling is not justified.";
+
+        worker_count = last_metrics->worker_count();
+        model_metrics->converged_metrics_ = last_metrics;
+        metadata_store.UnsetJobIsScaling(job_id);
+        metadata_store.SetLastPerformance(job_id, Performance::NA);
+        metadata_store.ResetSameScaleCounter(job_id);
+
         metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
         return Status::OK();
       }
