@@ -140,6 +140,7 @@ Status DynamicWorkerCountUpdate(
                   << " > improvement: " << relative_improvement << "\n"
                   << " > next worker count: " << worker_count;
         } else {
+          worker_count = last_metrics->worker_count();
           metadata_store.SetLastPerformance(job_id, Performance::UP);
           VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
                   << "Improvement large enough, but awaiting confirmation:\n"
@@ -157,6 +158,7 @@ Status DynamicWorkerCountUpdate(
                   << " > improvement: " << relative_improvement << "\n"
                   << " > next worker count: " << worker_count;
         } else {
+          worker_count = last_metrics->worker_count();
           metadata_store.SetLastPerformance(job_id, Performance::DOWN);
           VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
                   << "Improvement NOT large enough, but waiting for confirmation:\n"
@@ -175,6 +177,7 @@ Status DynamicWorkerCountUpdate(
                   << " > improvement: " << relative_improvement << "\n"
                   << " > next worker count: " << worker_count;
         } else {
+          worker_count = last_metrics->worker_count();
           metadata_store.SetLastPerformance(job_id, Performance::DOWN);
           VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
                   << "Improvement loss ok, but waiting for confirmation:\n"
@@ -193,6 +196,7 @@ Status DynamicWorkerCountUpdate(
                   << " > improvement: " << relative_improvement << "\n"
                   << " > next worker count: " << worker_count;
         } else {
+          worker_count = last_metrics->worker_count();
           metadata_store.SetLastPerformance(job_id, Performance::UP);
           VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingDown) "
                   << "Improvement loss not ok, but waiting for confirmation:\n"
