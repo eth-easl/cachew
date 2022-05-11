@@ -63,6 +63,7 @@ class CacheState {
 
   void SetDatasetSourceCached(const uint64 fingerprint);
 
+  void PrintContents();
 
   // Returns an error if the jo is not found.
   Status GetCachingJobId(const uint64 fingerprint,

@@ -141,6 +141,7 @@ std::string DatasetKey(
     // If fingerprint is not cached, but has metrics --> job exists, just copy over the last thing
     //  Only issue here: When job changes type during first epoch to put / put_source make sure to still allow the epoch extension
     // When job does not exist, set it to PROFILE
+    cache_state.PrintContents();
 
     if (cache_state.IsDatasetCached(fingerprint)) {
       job_type = "GET";

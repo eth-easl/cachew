@@ -82,6 +82,18 @@ void CacheState::SetDatasetSourceCached(const uint64 fingerprint) {
   is_source_cached_[fingerprint] = true;
 }
 
+void CacheState::PrintContents() {
+  VLOG(0) << "Printing the source_cache contents";
+  for (auto x : is_source_cached_) {
+    VLOG(0) << " > " << x.first << ": " << x.second;
+  }
+
+  VLOG(0) << "Printing the full_cache contents";
+  for (auto x : is_cached_) {
+    VLOG(0) << " > " << x.first << ": " << x.second;
+  }
+}
+
 Status CacheState::GetCachingJobId(const uint64 fingerprint, int64 &job_id) const {
   auto it = fingerprint_to_caching_job_.find(fingerprint);
   if(it == fingerprint_to_caching_job_.end()){
