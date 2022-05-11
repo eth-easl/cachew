@@ -338,6 +338,9 @@ class GraphHasher {
 
   Status HashNodeNonInput(const NodeDef* node, bool hash_functions,
                           uint64* hash) {
+
+    // FIXME(DanGraur): It could be that we're hashing the different values for
+    //                  the marker node's attributes
     auto iter = attr_cache_->find(std::make_pair(node, hash_functions));
     if (iter != attr_cache_->end()) {
       *hash = iter->second;
