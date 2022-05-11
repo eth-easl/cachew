@@ -735,6 +735,8 @@ Status DataServiceDispatcherImpl::GetOrRegisterDataset(
   PrepareGraph(graph);
   TF_RETURN_IF_ERROR(HashGraph(*graph, &fingerprint));
 
+  VLOG(0) << "(GetOrRegisterDataset) We have hashed a new graph: " << fingerprint;
+
   mutex_lock l(mu_);
 #if defined(PLATFORM_GOOGLE)
   VLOG_LINES(4,
