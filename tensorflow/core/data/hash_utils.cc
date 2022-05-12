@@ -364,7 +364,8 @@ class GraphHasher {
     for (const auto& attr : reg->op_def.attr()) {
       const auto& attr_key = attr.name();
       // Ignore "metadata" attribute of tf.data operations.
-      if (DatasetOpKernel::IsDatasetOp(reg->op_def) && attr_key == "metadata")
+      if (DatasetOpKernel::IsDatasetOp(reg->op_def) && (attr_key == "metadata"
+        || attr_key == "job_name"))
         continue;
       auto node_attr_iter = node->attr().find(attr_key);
       if (node_attr_iter == node->attr().end()) {
