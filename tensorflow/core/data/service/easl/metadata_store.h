@@ -74,6 +74,7 @@ class ModelMetrics {
     Status GetAllWorkerCountMetrics(std::shared_ptr<MetricsByWorkerCount>& metrics);
     Status GetAllClientMetrics(const int64 worker_count, std::shared_ptr<MetricsCollection>&);
     Status GetMetricsHistory(MetricsHistory& metrics_history);
+    uint32 GetClientCount();
 
     // Dump metrics to a string stream
     void DumpToStream(std::stringstream& ss);

@@ -74,6 +74,15 @@ Status ModelMetrics::UpdateClientMetrics(
   return Status::OK();
 }
 
+uint32 ModelMetrics::GetClientCount() {
+  uint32 max_clients = 0;
+  for (auto& m : metrics_) {
+    max_clients = max_clients >= m.second->size() ?
+        max_clients : m.second->size();
+  }
+  return max_clients;
+}
+
 Status ModelMetrics::GetAllWorkerCountMetrics(std::shared_ptr<MetricsByWorkerCount>& metrics){
   metrics = std::make_shared<MetricsByWorkerCount>(metrics_);
   return Status::OK();
