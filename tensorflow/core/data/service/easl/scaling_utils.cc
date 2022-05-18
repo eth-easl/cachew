@@ -30,7 +30,7 @@ double kMinBatchTimeRelativeImprovementDown = 0; // This should be in the range 
 uint32 kInStabilityBeforeScaling = 20;
 double kMinQueueSizeRelativeGrowth = 1.5; // +50%
 double kMinBatchTimeRelativeGrowth = 1.5; // +50%
-double kScaleChangeFraction = 0.1; // 10%
+double kScaleChangeFraction = 0.4; // 10%
 }
 
 
