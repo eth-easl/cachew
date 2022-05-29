@@ -28,8 +28,21 @@ ModelMetrics::Metrics::Metrics(int64 worker_count,
       relative_wait_fraction_(relative_wait_fraction),
       result_queue_size_(result_queue_size){}
 
+ModelMetrics::Metrics::Metrics(int64 worker_count,
+                               int64 local_worker_count,
+                               double last_x_batch_time_ms, double relative_wait_fraction,
+                               double result_queue_size):
+        worker_count_(worker_count),
+        remote_worker_count_(worker_count - local_worker_count), // worker_count is from tasks_.size(), (includes local + remote)
+        local_worker_count_(local_worker_count),
+        last_x_batch_time_ms_(last_x_batch_time_ms),
+        relative_wait_fraction_(relative_wait_fraction),
+        result_queue_size_(result_queue_size){}
+
 ModelMetrics::Metrics::Metrics(ModelMetrics::Metrics& other) :
     worker_count_(other.worker_count_),
+    remote_worker_count_(other.remote_worker_count_),
+    local_worker_count_(other.local_worker_count_),
     last_x_batch_time_ms_(other.last_x_batch_time_ms_),
     relative_wait_fraction_(other.relative_wait_fraction_),
     result_queue_size_(other.result_queue_size_){}
@@ -41,6 +54,11 @@ Status ModelMetrics::UpdateClientMetrics(
   //  absl::flat_hash_map<int64, std::deque<std::shared_ptr<ModelMetrics::Metrics>>>;
 
   auto metrics_ptr = std::make_shared<Metrics>(metrics);
+
+//  VLOG(0) << "EASL-MUYU: UpdateClientMetrics: "
+//    << "remote_worker_count: " << metrics_ptr->remote_worker_count()
+//    << "; local_worker_count: " << metrics_ptr->local_worker_count();
+
   int64 worker_count = metrics.worker_count();
   // Level 1 - worker_count
   auto worker_count_it = metrics_.find(worker_count);
@@ -323,12 +341,47 @@ JobMetrics::JobMetrics(int64 job_id,
         model_metrics_(), 
         input_pipeline_metrics_(),
         is_scaling_(is_scaling),
+        scaling_state_(JobScalingState::ONLY_REMOTE),
         target_worker_count_(1),
+        target_remote_worker_count_(1),
+        target_local_worker_count_(0),
         same_scale_counter_(0),
         last_performance_(Performance::NA) {
           model_metrics_ = std::make_shared<ModelMetrics>();
           input_pipeline_metrics_ = std::make_shared<InputPipelineMetrics>();
         }
+
+// For cases that start from local worker
+JobMetrics::JobMetrics(
+        int64 job_id,
+                       std::string& job_type,
+                       int64 dataset_id,
+                       uint64 dataset_fingerprint,
+                       std::string& dataset_key,
+                       bool is_scaling,
+                       const string& name,
+                       int64 target_remote_worker_count,
+                       int64 target_local_worker_count,
+                       JobScalingState scaling_state
+                       )
+        : job_id_(job_id),
+          job_type_(job_type),
+          dataset_id_(dataset_id),
+          dataset_fingerprint_(dataset_fingerprint),
+          dataset_key_(dataset_key),
+          name_(name),
+          model_metrics_(),
+          input_pipeline_metrics_(),
+          is_scaling_(is_scaling),
+          scaling_state_(scaling_state),
+          target_worker_count_(1),
+          target_remote_worker_count_(target_remote_worker_count),
+          target_local_worker_count_(target_local_worker_count),
+          same_scale_counter_(0),
+          last_performance_(Performance::NA) {
+  model_metrics_ = std::make_shared<ModelMetrics>();
+  input_pipeline_metrics_ = std::make_shared<InputPipelineMetrics>();
+}
 
 
 // JobMetrics
@@ -390,6 +443,7 @@ Status MetadataStore::CreateJob(int64 job_id, string& job_type,
     job_metrics->is_scaling_ = true;
     job_metrics->same_scale_counter_ = 0;
     job_metrics->target_worker_count_ = 1;
+    // TODO MUYU has never seen this logic triggering
     job_metrics->model_metrics_->metrics_history_.clear();
   }
 
@@ -434,6 +488,62 @@ Status MetadataStore::CreateJobName(int64 job_id, string& job_name,
     job_metadata_.insert_or_assign(job_id, job_metrics);
 
     return Status::OK();
+}
+
+Status MetadataStore::CreateJobName(int64 job_id, string& job_name,
+                                    string& job_type, int64 dataset_id, uint64 dataset_fingerprint,
+                                    std::string& dataset_key, bool trigger_rescale,
+                                    int64 policy) {
+  string key = CreateFingerprintNameKey(dataset_fingerprint, job_name);
+  auto it = fingerprint_name_metadata_.find(key);
+  if ( it == fingerprint_name_metadata_.end()) {
+    // We've never seen this input pipeline; it's expected to be a PROFILING job
+//    CHECK_EQ(job_type, "PROFILE");
+    VLOG(0) << "CreateJobName:Muyu - Profile";
+    bool is_scaing = job_type != "PROFILE";
+    std::string ds_key = dataset_key;
+    int64 target_remote_worker_count, target_local_worker_count;
+    JobScalingState scaling_state;
+    if (policy == 3) {
+      target_remote_worker_count = 1;
+      target_local_worker_count = 0;
+      scaling_state = JobScalingState::ONLY_REMOTE;
+    }
+    else if (policy == 4) {
+      target_remote_worker_count = 0;
+      target_local_worker_count = 1;
+      scaling_state = JobScalingState::INCREASING_LOCAL;
+    }
+    else {
+      VLOG(0) << "CreateJobName with wrong policy option";
+    }
+    auto job_metrics = std::make_shared<JobMetrics>(
+            job_id, job_type, dataset_id, dataset_fingerprint, ds_key,
+            is_scaing, job_name, target_remote_worker_count,
+            target_local_worker_count, scaling_state);
+    job_metadata_.insert_or_assign(job_id, job_metrics);
+
+    return Status::OK();
+  }
+
+  // TODO FIXME This is not a deep copy of the JobMetrics object
+  // Multiple clients could copy the same object and share it, the second client would overwrite the job_id_, .. fields.
+  std::shared_ptr<JobMetrics> job_metrics = it->second;
+  job_metrics->job_id_ = job_id;
+  job_metrics->job_type_ = job_type;
+  job_metrics->dataset_id_ = dataset_id;
+  job_metrics->dataset_key_ = dataset_key;
+
+  if (trigger_rescale) {
+    job_metrics->is_scaling_ = true;
+    job_metrics->same_scale_counter_ = 0;
+    job_metrics->target_worker_count_ = 1;
+    job_metrics->model_metrics_->metrics_history_.clear();
+  }
+
+  job_metadata_.insert_or_assign(job_id, job_metrics);
+
+  return Status::OK();
 }
 
 //Find a the job metric, delete it and add it to the dataset_key keyed metrics for persistence
@@ -734,6 +844,34 @@ Status MetadataStore::IsJobScaling(int64 job_id, bool& is_scaling) {
   return Status::OK();
 }
 
+Status MetadataStore::GetJobScalingState(int64 job_id, JobScalingState& scaling_state) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  scaling_state = jobMetrics->scaling_state_;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobScalingState(int64 job_id, JobScalingState scaling_state) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->scaling_state_ = scaling_state;
+  return Status::OK();
+}
+
+Status MetadataStore::GetJobStateInitialWorkerCount(int64 job_id, int64_t& worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  worker_count = jobMetrics->state_initial_worker_count_;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobStateInitialWorkerCount(int64 job_id, int64_t worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->state_initial_worker_count_ = worker_count;
+  return Status::OK();
+}
+
 Status MetadataStore::GetLastPerformance(int64 job_id,
                                          Performance& last_performance) {
   std::shared_ptr<JobMetrics> jobMetrics;
@@ -802,6 +940,20 @@ Status MetadataStore::ResetSameScaleCounter(int64 job_id) {
   return Status::OK();
 }
 
+Status MetadataStore::SetJobTargetRemoteWorkerCount(int64 job_id, int64 target_remote_worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->target_remote_worker_count_ = target_remote_worker_count;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobTargetLocalWorkerCount(int64 job_id, int64 target_local_worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->target_local_worker_count_ = target_local_worker_count;
+  return Status::OK();
+}
+
 Status MetadataStore::SetJobTargetWorkerCount(int64 job_id, int64 target_worker_count) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
@@ -813,6 +965,16 @@ Status MetadataStore::GetJobTargetWorkerCount(int64 job_id, int64& target_worker
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
   target_worker_count = jobMetrics->target_worker_count_;
+  return Status::OK();
+}
+
+Status MetadataStore::GetJobTargetWorkerCount(int64 job_id,
+                                              int64& target_remote_worker_count,
+                                              int64& target_local_worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  target_remote_worker_count = jobMetrics->target_remote_worker_count_;
+  target_local_worker_count = jobMetrics->target_local_worker_count_;
   return Status::OK();
 }
 

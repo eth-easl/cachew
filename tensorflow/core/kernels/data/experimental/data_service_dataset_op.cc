@@ -414,7 +414,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
             return dispatcher_->GetOrCreateJob(
                 dataset()->dataset_id_, dataset()->processing_mode_, key,
                 dataset()->num_consumers_, dataset()->target_workers_,
-                job_client_id_);
+                job_client_id_, LocalWorkers::GetList());
           },
           /*description=*/
           strings::StrCat("get or create job with dispatcher at ",
@@ -825,7 +825,25 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           req.set_last_x_batch_time_ms(last_x_batch_time_ms);
           req.set_relative_wait_fraction(relative_wait_fraction);
           req.set_result_queue_size(result_queue_size);
+
+          // This is total worker count
           req.set_worker_count(tasks_.size());
+          req.set_local_worker_count(local_tasks_.size());
+
+          VLOG(0) << "--> ClientHeartbeat: Normal Tasks";
+          for (auto task: tasks_) {
+            VLOG(0) << "Worker Address: " << task->info.worker_address()
+              << "; Task id: " << task->info.task_id()
+              << "; Job id: " << task->info.job_id();
+          }
+          VLOG(0) << "--> ClientHeartbeat: Local Tasks";
+          for (auto p: local_tasks_) {
+            auto task = p.second;
+            VLOG(0) << "Worker Address: " << task->info.worker_address()
+                    << "; Task id: " << task->info.task_id()
+                    << "; Job id: " << task->info.job_id();
+          }
+          VLOG(0) << "End Printing";
 
           ClearScalabilityMetrics();
 
@@ -1138,14 +1156,15 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       VLOG(4) << "Searching for the next task to process.";
-      if (ShouldProcessLocalTask()) {
-        std::shared_ptr<Task> task = GetLocalTaskToProcess();
-        if (task) {
-          VLOG(4) << "Selected a local task to process: "
-                  << task->info.ShortDebugString();
-          return task;
-        }
-      }
+//      if (ShouldProcessLocalTask()) {
+//        std::shared_ptr<Task> task = GetLocalTaskToProcess();
+//        if (task) {
+//          VLOG(4) << "Selected a local task to process: "
+//                  << task->info.ShortDebugString();
+//          return task;
+//        }
+//      }
+
 
       if (ShouldProcessAnyTask()) {
         std::shared_ptr<Task> task = GetAnyTaskToProcess();
@@ -1307,7 +1326,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       {
         // FIXME(DanGraur): In the original codebase there's no lock being used
         //  here; could this be redundant?
-//        mutex_lock l(mu_);
+        mutex_lock l(mu_);
         req.set_task_id(task.info.task_id());
         req.set_skipped_previous_round(task.skipped_previous_round);
         absl::optional<int64_t> round_index;
@@ -1343,11 +1362,25 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       if (enqueue_result && !result.end_of_sequence) {
+        uint64 current_micro_timestamp = Env::Default()->NowMicros();
+        std::string data_source = task.info.worker_address();
         if (local_tasks_.contains(task.info.worker_address())) {
           local_results_buffer_.push(std::move(result));
         } else {
           results_.push(std::move(result));
         }
+
+        const char* log_location = std::getenv("EASL_MUYU_FROM_WHICH_WORKER_METRICS");
+        if (log_location) {
+          std::ofstream file(log_location, std::ios_base::app);
+
+          file << current_micro_timestamp << ","
+               << data_source << "\n";
+
+          file.flush();
+          file.clear();
+        }
+
       }
       get_next_cv_.notify_all();
     }
@@ -1598,6 +1631,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     const uint32 BATCH_INTERVAL = 100;
     const uint32 RESCALE_BUFFER_INTERVAL = 150;
     const uint32 EPOCH_START_BUFFER_INTERVAL = 200;
+
 
     std::vector<uint64> batch_timestamps_us_ TF_GUARDED_BY(mu_);
     std::vector<double> wait_times_ms_ TF_GUARDED_BY(mu_);

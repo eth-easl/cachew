@@ -76,7 +76,9 @@ class DataServiceDispatcherClient : public DataServiceClientBase {
                         const ProcessingModeDef& processing_mode,
                         const absl::optional<JobKey>& job_key,
                         absl::optional<int64_t> num_consumers,
-                        TargetWorkers target_workers, int64_t& job_client_id);
+                        TargetWorkers target_workers, int64_t& job_client_id,
+                        std::vector<std::string> local_workers
+                        );
 
   // Releases a job client id, indicating that the id will no longer be used to
   // read from the job.

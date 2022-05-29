@@ -156,7 +156,9 @@ class DispatcherState {
                  absl::optional<int64_t> num_consumers,
                  const std::string& job_type,
                  int64_t target_worker_count,
-                  TargetWorkers target_workers)
+                int64_t target_remote_worker_count,
+                int64_t target_local_worker_count,
+                TargetWorkers target_workers)
         : job_id(job_id),
           dataset_id(dataset_id),
           processing_mode(processing_mode),
@@ -164,6 +166,8 @@ class DispatcherState {
           num_consumers(num_consumers),
           job_type(job_type),
           target_worker_count(target_worker_count),
+          target_remote_worker_count(target_remote_worker_count),
+          target_local_worker_count(target_local_worker_count),
           target_workers(target_workers) {
       if (IsDynamicShard(processing_mode)) {
         distributed_epoch_state = DistributedEpochState(num_split_providers);
@@ -171,6 +175,10 @@ class DispatcherState {
     }
 
     bool IsRoundRobin() const { return num_consumers.has_value(); }
+
+    bool is_local_worker(std::string address) {
+      return local_workers.count(address) > 0;
+    }
 
     std::string DebugString() const {
       if (named_job_key.has_value()) {
@@ -197,6 +205,10 @@ class DispatcherState {
     const std::string job_type;
     int64_t target_worker_count; // Non-constant, can be dynamically adjusted.
     int64_t current_worker_count = 0;
+
+    int64_t target_remote_worker_count, target_local_worker_count;
+    int64_t current_remote_worker_count = 0, current_local_worker_count = 0;
+    absl::flat_hash_set<std::string> local_workers;
   };
 
   struct Task {
@@ -254,6 +266,9 @@ class DispatcherState {
   // to all the available workers.
   std::vector<std::shared_ptr<const Worker>> ReserveWorkers(int64 job_id,
     int64 num_workers = 0);
+  // only called in policy 3
+  std::vector<std::shared_ptr<const Worker>> ReserveWorkers(
+          int64 job_id, int64 remote_worker_count, int64 local_worker_count);
 
   // Returns the next available job id.
   int64_t NextAvailableJobId() const;
@@ -302,6 +317,9 @@ class DispatcherState {
   // deterministically sharding a dataset among a fixed set of workers.
   StatusOr<int64_t> GetWorkerIndex(absl::string_view worker_address) const;
 
+  // EASL (MUYU)
+  void AssignWorkersToJob(int64_t job_id, absl::flat_hash_map<std::string, std::shared_ptr<Worker>>& candidate_workers);
+
  private:
   void RegisterDataset(const RegisterDatasetUpdate& register_dataset);
   void RegisterWorker(const RegisterWorkerUpdate& register_worker);
@@ -320,6 +338,7 @@ class DispatcherState {
   // EASL
   void ReassignFreeWorkers();
   void UpdateJobTargetWorkerCount(const JobTargetWorkerCountUpdate job_target_worker_count_update);
+  void UpdateJobTargetWorkerCountRemoteAndLocal(const JobTargetWorkerCountUpdateRemoteAndLocal job_target_worker_count_update);
 
   int64_t next_available_dataset_id_ = 1000;
   // Registered datasets, keyed by dataset ids.

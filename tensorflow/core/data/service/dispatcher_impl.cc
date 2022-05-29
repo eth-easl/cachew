@@ -45,6 +45,7 @@ limitations under the License.
 #include "tensorflow/core/data/service/easl/cache_utils.h"
 #include "tensorflow/core/data/service/easl/scaling_utils.h"
 #include "tensorflow/core/data/service/easl/metadata_store.h"
+#include "tensorflow/core/data/service/easl/local_worker_decision_utils.h"
 #include "tensorflow/core/data/standalone.h"
 #include "tensorflow/core/framework/dataset.h"
 #include "tensorflow/core/framework/graph.pb.h"
@@ -410,7 +411,7 @@ Status DataServiceDispatcherImpl::ReassignFreeWorkersAndCreateTasks() TF_LOCKS_E
 Status DataServiceDispatcherImpl::WorkerHeartbeat(
     const WorkerHeartbeatRequest* request, WorkerHeartbeatResponse* response) {
   TF_RETURN_IF_ERROR(CheckStarted());
-  VLOG(4) << "Received worker heartbeat request from worker "
+  VLOG(0) << "Received worker heartbeat request from worker "
           << request->worker_address();
   mutex_lock l(mu_);
   const std::string& worker_address = request->worker_address();
@@ -538,7 +539,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
     }
   }
 
-  VLOG(4) << "Finished worker heartbeat for worker at address "
+  VLOG(0) << "Finished worker heartbeat for worker at address "
           << request->worker_address();
   return Status::OK();
 }
@@ -1033,6 +1034,11 @@ Status DataServiceDispatcherImpl::CreateJob(
   VLOG(0) << "(CreateJob) Caching decision for dataset_key "
                << compute_dataset_key << ": " << job_type;
 
+  // Check Local Workers from Client
+  absl::flat_hash_set<std::string> local_workers;
+  local_workers.insert(request.local_workers().cbegin(),
+    request.local_workers().cend());
+
   // EASL: Logging stuff
   if (kEnableEventLogging) {
     RecordEvent(dataset_fingerprint, dataset_id, job_name, job_id,
@@ -1053,12 +1059,29 @@ Status DataServiceDispatcherImpl::CreateJob(
   // EASL add job entry to metadata store
   std::string dataset_key = service::easl::cache_utils::DatasetKey(
     dataset->dataset_id, dataset->fingerprint, job_type);
-  TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
-      dataset->dataset_id, dataset->fingerprint, dataset_key, trigger_scaling));
+  if (config_.scaling_policy() == 3 || config_.scaling_policy() == 4) {
+    TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
+                                                     dataset->dataset_id,
+                                                     dataset->fingerprint,
+                                                     dataset_key, trigger_scaling,
+                                                     config_.scaling_policy()));
+  } else {
+    TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
+                                                     dataset->dataset_id,
+                                                     dataset->fingerprint,
+                                                     dataset_key, trigger_scaling));
+  }
+
 
   std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
   worker_count = job_metrics->target_worker_count_;
+
+  int64_t remote_worker_count = job_metrics->target_remote_worker_count_;
+  int64_t local_worker_count = job_metrics->target_local_worker_count_;
+  VLOG(0) << "EASL-MUYU (GetOrCreateJob): "
+    << "remote_worker_count: " << remote_worker_count
+    << "; local_worker_count: " << local_worker_count;
 
   if (config_.scaling_policy() == 2) {
     worker_count = 100;
@@ -1091,6 +1114,7 @@ Status DataServiceDispatcherImpl::CreateJob(
     num_split_providers = split_providers_[job_id].size();
   }
 
+  // TODO: is the second job going to inherit the previous epoch job metrics?
   Update update;
   CreateJobUpdate* create_job = update.mutable_create_job();
   create_job->set_job_id(job_id);
@@ -1099,6 +1123,15 @@ Status DataServiceDispatcherImpl::CreateJob(
   create_job->set_job_type(job_type);
   create_job->set_num_split_providers(num_split_providers);
   create_job->set_target_worker_count(worker_count);
+  // only used by policy 3, 4
+  create_job->set_target_remote_worker_count(remote_worker_count);
+  create_job->set_target_local_worker_count(local_worker_count);
+  *create_job->mutable_local_workers() = {local_workers.begin(), local_workers.end()};
+
+  for (auto worker: local_workers) {
+    VLOG(0) << "EASL-MUYU (CreateJob) local_workers: " << worker;
+  }
+
   if (request.has_job_key()) {
     NamedJobKeyDef* key = create_job->mutable_named_job_key();
     key->set_name(request.job_key().job_name());
@@ -1163,8 +1196,18 @@ Status DataServiceDispatcherImpl::CreateTasksForJob(
     std::shared_ptr<const Job> job,
     std::vector<std::shared_ptr<const Task>>& tasks)
     TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
-  std::vector<std::shared_ptr<const Worker>> workers = state_.ReserveWorkers(
-    job->job_id, job->target_worker_count);
+
+  std::vector<std::shared_ptr<const Worker>> workers;
+  if (config_.scaling_policy() == 3 || config_.scaling_policy() == 4) {
+    workers = state_.ReserveWorkers(job->job_id,
+                                    job->target_remote_worker_count,
+                                    job->target_local_worker_count);
+  }
+  else {
+    // original branch
+    workers = state_.ReserveWorkers(job->job_id, job->target_worker_count);
+  }
+
   if (workers.size() < job->target_worker_count){
     VLOG(0)
     << "EASL - Not enough workers for job. Elasticity policy requires "
@@ -1388,13 +1431,74 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     if (job->target_worker_count != target_worker_count) {
       Update update;
       JobTargetWorkerCountUpdate *job_target_worker_count_update =
-          update.mutable_job_target_worker_count_update();
+              update.mutable_job_target_worker_count_update();
       job_target_worker_count_update->set_job_id(job->job_id);
       job_target_worker_count_update->set_target_worker_count(
-          target_worker_count);
+              target_worker_count);
       state_.Apply(update);
     }
-  }
+  } else if ((config_.scaling_policy() == 3 || config_.scaling_policy() == 4) &&
+              request->has_scalability_metrics() &&
+              job->distributed_epoch_state.value().repetitions[0] == 0) {
+      easl::ModelMetrics::Metrics metrics(
+              request->worker_count(),
+              request->local_worker_count(),
+              request->last_x_batch_time_ms(),
+              request->relative_wait_fraction(),
+              request->result_queue_size());
+
+//      VLOG(0) << "EASL-MUYU: ClientHeartbeat: "
+//              << "remote_worker_count: " << metrics.remote_worker_count()
+//              << "; local_worker_count: " << metrics.local_worker_count();
+
+      s = metadata_store_.UpdateModelMetrics(
+              job->job_id, request->job_client_id(), metrics);
+      if(!s.ok()){
+        VLOG(0) << "EASL (ClientHeartbeat) - metadatastore error code " << s.code();
+        VLOG(0) << s.ToString();
+        VLOG(0) << errors::IsNotFound(s);
+      }
+      if (!s.ok() && !errors::IsNotFound(s)) { return s; }
+
+      int64 target_remote_worker_count, target_local_worker_count;
+      if (config_.scaling_policy() == 3) {
+        TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCDEC(
+                job->job_type, job->job_id, config_, metadata_store_,
+                target_remote_worker_count, target_local_worker_count));
+      }
+//      else if (config_.scaling_policy() == 4){
+//        TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCINC(
+//                job->job_type, job->job_id, config_, metadata_store_,
+//                target_remote_worker_count, target_local_worker_count));
+//      }
+
+
+      if (target_remote_worker_count != metrics.remote_worker_count() ||
+        target_local_worker_count != metrics.local_worker_count()) {
+        Update update;
+        JobTargetWorkerCountUpdateRemoteAndLocal *job_target_worker_count_update =
+                update.mutable_job_target_worker_count_update_remote_and_local();
+        job_target_worker_count_update->set_job_id(job->job_id);
+        job_target_worker_count_update->set_target_remote_worker_count(target_remote_worker_count);
+        job_target_worker_count_update->set_target_local_worker_count(target_local_worker_count);
+        state_.Apply(update);
+
+        // state_.Apply only sets the job attributes, still need to directly create tasks
+        // assign new workers
+        absl::flat_hash_map<std::string, std::shared_ptr<Worker>> candidate_workers;
+        state_.AssignWorkersToJob(job->job_id, candidate_workers);
+
+        std::vector<std::shared_ptr<const Task>> tasks;
+        for (auto it = candidate_workers.begin(); it != candidate_workers.end(); it++) {
+          std::shared_ptr<const Task> task;
+          TF_RETURN_IF_ERROR(CreateTask(job, it->first, task));
+          tasks.push_back(task);
+        }
+        l.mutex()->unlock();
+        TF_RETURN_IF_ERROR(AssignTasks(tasks));
+        l.mutex()->lock();
+      }
+    }
 
   if (job->garbage_collected) {
     return errors::FailedPrecondition(

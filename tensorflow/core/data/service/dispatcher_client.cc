@@ -136,7 +136,9 @@ Status DataServiceDispatcherClient::GetOrCreateJob(
     int64_t dataset_id, const ProcessingModeDef& processing_mode,
     const absl::optional<JobKey>& job_key,
     absl::optional<int64_t> num_consumers, TargetWorkers target_workers,
-    int64_t& job_client_id) {
+    int64_t& job_client_id,
+    std::vector<std::string> local_workers
+    ) {
   TF_RETURN_IF_ERROR(EnsureInitialized());
   GetOrCreateJobRequest req;
   req.set_dataset_id(dataset_id);
@@ -148,6 +150,12 @@ Status DataServiceDispatcherClient::GetOrCreateJob(
     req.set_num_consumers(num_consumers.value());
   }
   req.set_target_workers(target_workers);
+
+  *req.mutable_local_workers() = {local_workers.begin(), local_workers.end()};
+  for (auto worker: local_workers) {
+    VLOG(0) << "EASL-MUYU (Client: GetOrCreateJob) local_workers: " << worker;
+  }
+
   GetOrCreateJobResponse resp;
   grpc::ClientContext client_ctx;
   grpc::Status status = stub_->GetOrCreateJob(&client_ctx, req, &resp);

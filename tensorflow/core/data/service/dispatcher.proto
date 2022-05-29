@@ -136,7 +136,7 @@ message JobKey {
   int64 job_name_index = 2;
 }
 
-// Next tag: 10
+// Next tag: 11
 message GetOrCreateJobRequest {
   reserved 2, 3, 4;
   // The id of the dataset to create a job for.
@@ -153,6 +153,7 @@ message GetOrCreateJobRequest {
   }
   // Specifies which workers the client of this job reads from.
   TargetWorkers target_workers = 9;
+  repeated string local_workers = 10;
 }
 
 // Next tag: 2
@@ -182,7 +183,7 @@ message ReleaseJobClientRequest {
 // Next tag: 1
 message ReleaseJobClientResponse {}
 
-// Next tag: 10, 5 unused.
+// Next tag: 11
 message ClientHeartbeatRequest {
   reserved 3;
   // The job client id to heartbeat for.
@@ -201,6 +202,7 @@ message ClientHeartbeatRequest {
 
   // EASL - Metrics for scalability; only present after specific intervals
   uint32 worker_count = 6;
+  uint32 local_worker_count = 5;
   bool has_scalability_metrics = 7;
   double last_x_batch_time_ms = 8;
   double relative_wait_fraction = 9;

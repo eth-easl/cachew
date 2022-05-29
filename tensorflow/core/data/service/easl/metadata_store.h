@@ -28,6 +28,8 @@ namespace easl {
 
 // This enum is used to register the last change in metrics
 enum Performance { UP, DOWN, NA };
+// for tracking local workers
+enum JobScalingState { ONLY_REMOTE, DECREASING_REMOTE, INCREASING_LOCAL, STABLE};
 
 class ModelMetrics {
   public:
@@ -37,6 +39,8 @@ class ModelMetrics {
         Metrics(Metrics& other);
         Metrics(int64 worker_count, double last_x_batch_time_ms,
           double relative_wait_fraction, double result_queue_size);
+        Metrics(int64 worker_count, int64 local_worker_count, double last_x_batch_time_ms,
+                double relative_wait_fraction, double result_queue_size);
 
         void set_last_x_batch_time_ms(double x) { last_x_batch_time_ms_ = x; }
         void set_relative_wait_fraction(double x) { relative_wait_fraction_ = x; }
@@ -45,12 +49,16 @@ class ModelMetrics {
 
         bool has_scalability_metrics() { return has_scalability_metrics_; }
         int64 worker_count() { return worker_count_; }
+        int64 remote_worker_count() { return remote_worker_count_; }
+        int64 local_worker_count() { return local_worker_count_; }
         double last_x_batch_time_ms() { return last_x_batch_time_ms_; }
         double relative_wait_fraction() { return relative_wait_fraction_; }
         double result_queue_size() { return result_queue_size_; }
 
       private:
         bool has_scalability_metrics_;
+        int64 remote_worker_count_;
+        int64 local_worker_count_;
         int64 worker_count_;
         double last_x_batch_time_ms_;
         double relative_wait_fraction_;
@@ -218,15 +226,35 @@ class JobMetrics {
                bool is_scaling = true,
                const string& name = string());
 
+    JobMetrics(int64 job_id,
+               std::string& job_type,
+               int64 dataset_id,
+               uint64 dataset_fingerprint,
+               std::string& dataset_key,
+               bool is_scaling,
+               const string& name,
+               int64 target_remote_worker_count,
+               int64 target_local_worker_count,
+               JobScalingState scaling_state);
+
     void DumpToFile(const std::string& path);
     void DumpToStream(std::stringstream& ss);
 
     bool is_scaling_;
+
+    /* When scaling_state_ is DECREASING_REMOTE: worker_count_ is remote
+     * When scaling_state_ is INCREASING_LOCAL: worker_count_ is local
+     * */
+    JobScalingState scaling_state_;
+    int64_t state_initial_worker_count_;
+
     Performance last_performance_;
     string job_type_;
     string name_;
     uint64 same_scale_counter_;
     int64 target_worker_count_;
+    int64 target_remote_worker_count_;
+    int64 target_local_worker_count_;
     int64 job_id_;
     int64 dataset_id_;
     int64 dataset_fingerprint_;
@@ -256,7 +284,18 @@ class MetadataStore {
                        int64 dataset_id,
                        uint64 dataset_fingerprint,
                        std::string& dataset_key,
-                       bool trigger_rescale = false);
+                       bool trigger_rescale);
+
+  // overloading for scaling policy 3 & 4
+  Status CreateJobName(int64 job_id,
+                       string& job_name,
+                       string& job_type,
+                       int64 dataset_id,
+                       uint64 dataset_fingerprint,
+                       std::string& dataset_key,
+                       bool trigger_rescale,
+                       int64 policy
+                       );
 
   // Remove job
   Status RemoveJob(int64 job_id);
@@ -264,10 +303,10 @@ class MetadataStore {
   // Get metrics
   Status GetJobMetrics(int64 job_id, std::shared_ptr<JobMetrics>& metrics) const;
 
-  Status GetModelMetrics(int64 job_id, 
+  Status GetModelMetrics(int64 job_id,
     std::shared_ptr<ModelMetrics>& metrics) const;
 
-  Status GetInputPipelineMetrics(int64 job_id, 
+  Status GetInputPipelineMetrics(int64 job_id,
     std::shared_ptr<InputPipelineMetrics>& metrics) const;
 
   Status GetJobMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
@@ -281,12 +320,12 @@ class MetadataStore {
 
   Status GetInputPipelineMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<InputPipelineMetrics>& metrics) const;
-  
-  Status GetLastNodeMetrics(int64 job_id, 
+
+  Status GetLastNodeMetrics(int64 job_id,
     std::shared_ptr<NodeMetrics>& metrics) const;
-  Status GetLastTFNodeMetrics(int64 job_id, 
+  Status GetLastTFNodeMetrics(int64 job_id,
     std::shared_ptr<NodeMetrics>& metrics) const;
-  Status GetMarkerNodeMetrics(int64 job_id, 
+  Status GetMarkerNodeMetrics(int64 job_id,
     std::shared_ptr<NodeMetrics>& metrics) const;
 
   Status GetLastNodeMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
@@ -301,10 +340,10 @@ class MetadataStore {
     ModelMetrics::Metrics& metrics);
 
   // Update or create the metrics for a client
-  Status UpdateInputPipelineMetrics(int64 job_id, string node_long_name, 
+  Status UpdateInputPipelineMetrics(int64 job_id, string node_long_name,
     string worker_address, NodeMetrics::Metrics& metrics);
-  
-  Status UpdateNodeNames(int64 job_id, string last_node_name, 
+
+  Status UpdateNodeNames(int64 job_id, string last_node_name,
     string last_tf_node_name, string marker_node_name);
 
   string CreateFingerprintNameKey(uint64 fingerprint, const string& job_name) const;
@@ -319,6 +358,12 @@ class MetadataStore {
   Status SetJobIsScaling(int64 job_id);
   Status UnsetJobIsScaling(int64 job_id);
   Status IsJobScaling(int64 job_id, bool& is_scaling);
+
+  Status GetJobScalingState(int64 job_id, JobScalingState& scaling_state);
+  Status SetJobScalingState(int64 job_id, JobScalingState scaling_state);
+
+  Status GetJobStateInitialWorkerCount(int64 job_id, int64_t& worker_count);
+  Status SetJobStateInitialWorkerCount(int64 job_id, int64_t worker_count);
 
   Status GetLastPerformance(int64 job_id, Performance& last_performance);
   Status SetLastPerformance(int64 job_id, Performance last_performance);
@@ -336,8 +381,12 @@ class MetadataStore {
 
   Status SetJobTargetWorkerCount(int64 job_id, int64 target_worker_count);
   Status GetJobTargetWorkerCount(int64 job_id, int64& target_worker_count);
+  Status GetJobTargetWorkerCount(int64 job_id, int64& target_remote_worker_count, int64& target_local_worker_count);
 
-  // Update or create the metrics for the dataset key from the given job.
+  Status SetJobTargetRemoteWorkerCount(int64 job_id, int64 target_remote_worker_count);
+  Status SetJobTargetLocalWorkerCount(int64 job_id, int64 target_local_worker_count);
+
+    // Update or create the metrics for the dataset key from the given job.
   Status UpdateFingerprintKeyJobMetrics(int64 job_id);
   Status UpdateFingerprintNameKeyJobMetrics(int64 job_id);
 
