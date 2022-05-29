@@ -28,6 +28,8 @@ namespace easl {
 
 // This enum is used to register the last change in metrics
 enum Performance { UP, DOWN, NA };
+// for tracking local workers
+enum JobScalingState { ONLY_REMOTE_SCALING, REDUCING_REMOTE, INCREASING_LOCAL, STABLE};
 
 class ModelMetrics {
   public:
@@ -51,6 +53,8 @@ class ModelMetrics {
 
       private:
         bool has_scalability_metrics_;
+        int64 remote_worker_count_;
+        int64 local_worker_count_;
         int64 worker_count_;
         double last_x_batch_time_ms_;
         double relative_wait_fraction_;
@@ -222,11 +226,13 @@ class JobMetrics {
     void DumpToStream(std::stringstream& ss);
 
     bool is_scaling_;
+    JobScalingState scaling_state_;
     Performance last_performance_;
     string job_type_;
     string name_;
     uint64 same_scale_counter_;
-    int64 target_worker_count_;
+    int64 target_remote_worker_count_;
+    int64 target_local_worker_count_;
     int64 job_id_;
     int64 dataset_id_;
     int64 dataset_fingerprint_;

@@ -323,7 +323,8 @@ JobMetrics::JobMetrics(int64 job_id,
         model_metrics_(), 
         input_pipeline_metrics_(),
         is_scaling_(is_scaling),
-        target_worker_count_(1),
+        target_local_worker_count_(1),
+        target_remote_worker_count_(0),
         same_scale_counter_(0),
         last_performance_(Performance::NA) {
           model_metrics_ = std::make_shared<ModelMetrics>();
@@ -734,6 +735,20 @@ Status MetadataStore::IsJobScaling(int64 job_id, bool& is_scaling) {
   return Status::OK();
 }
 
+Status MetadataStore::GetJobScalingState(int64 job_id, JobScalingState& scaling_state) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  scaling_state = jobMetrics->scaling_state_;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobScalingState(int64 job_id, JobScalingState scaling_state) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->scaling_state_ = scaling_state;
+  return Status::OK();
+}
+
 Status MetadataStore::GetLastPerformance(int64 job_id,
                                          Performance& last_performance) {
   std::shared_ptr<JobMetrics> jobMetrics;
@@ -802,10 +817,17 @@ Status MetadataStore::ResetSameScaleCounter(int64 job_id) {
   return Status::OK();
 }
 
-Status MetadataStore::SetJobTargetWorkerCount(int64 job_id, int64 target_worker_count) {
+Status MetadataStore::SetJobTargetRemoteWorkerCount(int64 job_id, int64 target_remote_worker_count) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
-  jobMetrics->target_worker_count_ = target_worker_count;
+  jobMetrics->target_remote_worker_count_ = target_remote_worker_count;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobTargetLocalWorkerCount(int64 job_id, int64 target_local_worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->target_local_worker_count_ = target_worker_count;
   return Status::OK();
 }
 
