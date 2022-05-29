@@ -177,6 +177,9 @@ class LocalWorkers {
   // at the address.
   static void Remove(absl::string_view worker_address);
 
+  // Return a list of local workers available in the program
+  static std::vector<std::string> GetList();
+
  private:
   using AddressToWorkerMap =
       absl::flat_hash_map<std::string, std::shared_ptr<DataServiceWorkerImpl>>;

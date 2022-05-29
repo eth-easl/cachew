@@ -69,8 +69,9 @@ message CreateJobUpdate {
 
   // EASL
   string job_type = 13; // i.e read, write, cache
-  int64 target_worker_count = 14; // determined by elasticity policy
-
+  int64 target_remote_worker_count = 14; // determined by elasticity policy
+  int64 target_local_worker_count = 15; // determined by elasticity policy
+  repeated string local_workers = 16;
 }
 
 // Next tag: 5

@@ -414,7 +414,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
             return dispatcher_->GetOrCreateJob(
                 dataset()->dataset_id_, dataset()->processing_mode_, key,
                 dataset()->num_consumers_, dataset()->target_workers_,
-                job_client_id_);
+                job_client_id_, LocalWorkers::GetList());
           },
           /*description=*/
           strings::StrCat("get or create job with dispatcher at ",
@@ -1307,7 +1307,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       {
         // FIXME(DanGraur): In the original codebase there's no lock being used
         //  here; could this be redundant?
-//        mutex_lock l(mu_);
+        mutex_lock l(mu_);
         req.set_task_id(task.info.task_id());
         req.set_skipped_previous_round(task.skipped_previous_round);
         absl::optional<int64_t> round_index;
@@ -1348,6 +1348,20 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         } else {
           results_.push(std::move(result));
         }
+
+        const char* log_location = std::getenv("EASL_MUYU_FROM_WHICH_WORKER_METRICS");
+        if (log_location) {
+          std::ofstream file(log_location, std::ios_base::app);
+
+          file << current_micro_timestamp << ","
+               << data_source << ","
+               << if_local << ","
+               << result_size << "\n";
+
+          file.flush();
+          file.clear();
+        }
+
       }
       get_next_cv_.notify_all();
     }

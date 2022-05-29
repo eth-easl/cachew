@@ -136,7 +136,7 @@ message JobKey {
   int64 job_name_index = 2;
 }
 
-// Next tag: 10
+// Next tag: 11
 message GetOrCreateJobRequest {
   reserved 2, 3, 4;
   // The id of the dataset to create a job for.
@@ -153,6 +153,7 @@ message GetOrCreateJobRequest {
   }
   // Specifies which workers the client of this job reads from.
   TargetWorkers target_workers = 9;
+  repeated string local_workers = 10;
 }
 
 // Next tag: 2
@@ -207,7 +208,7 @@ message ClientHeartbeatRequest {
   double result_queue_size = 10;
 }
 
-// Next tag: 5
+// Next tag: 6
 message ClientHeartbeatResponse {
   // A list of all tasks that the client should read from.
   repeated TaskInfo task_info = 1;
@@ -220,6 +221,9 @@ message ClientHeartbeatResponse {
   // tf.data service deployment mode. Supported values are "REMOTE",
   // "COLOCATED", and "HYBRID". If unspecified, it is assumed to be "REMOTE".
   DeploymentMode deployment_mode = 4;
+
+  // EASL: to check whether we should use local workers (based on last epoch's metrics)
+  bool num_worker_local_target = 5;
 }
 
 // Next tag: 3

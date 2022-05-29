@@ -653,5 +653,18 @@ void LocalWorkers::Remove(absl::string_view worker_address) {
   local_workers_->erase(worker_address);
 }
 
+std::vector<std::string> LocalWorkers::GetList() {
+  string local_workers_string = "";
+  std::vector<std::string> local_workers;
+  for (auto it = local_workers_->begin(); it != local_workers_->end(); ++it) {
+    local_workers.push_back(it->first);
+    local_workers_string += it->first + "; ";
+  }
+
+  VLOG(1) << "EASL-MUYU: Check List of Local Workers: " << local_workers_string;
+
+  return local_workers;
+}
+
 }  // namespace data
 }  // namespace tensorflow

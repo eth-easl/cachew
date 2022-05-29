@@ -312,6 +312,7 @@ cc_library(
     ],
     deps = [
         ":cache_utils",
+        ":local_decision_utils",
         ":scaling_utils",
         ":common",
         ":common_proto_cc",
@@ -989,6 +990,22 @@ cc_library(
     hdrs = ["easl/cache_model.h"],
     deps = ["//tensorflow/core:lib"],
 )
+
+cc_library(
+    name = "local_decision_utils",
+    srcs = ["easl/local_decision_utils.cc"],
+    hdrs = [
+        "easl/local_decision_utils.h",
+    ],
+    deps = [
+        ":common_proto_cc",
+        ":dispatcher_state",
+        ":metadata_store",
+        "//tensorflow/core:lib",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 
 # EASL
 # -------------------------------------------------------------------------------

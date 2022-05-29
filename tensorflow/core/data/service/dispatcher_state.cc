@@ -139,6 +139,12 @@ void DispatcherState::CreateJob(const CreateJobUpdate& create_job) {
       create_job.num_split_providers(), named_job_key, num_consumers,
       create_job.job_type(), create_job.target_worker_count(),
       create_job.target_workers());
+
+  for (auto worker: create_job.local_workers()) {
+    VLOG(0) << "EASL-MUYU (DispatcherState::CreateJob): worker " << worker;
+    job->local_workers.insert(worker);
+  }
+
   DCHECK(!jobs_.contains(job_id));
   jobs_[job_id] = job;
   tasks_by_job_[job_id] = TasksById();

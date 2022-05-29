@@ -45,6 +45,7 @@ limitations under the License.
 #include "tensorflow/core/data/service/easl/cache_utils.h"
 #include "tensorflow/core/data/service/easl/scaling_utils.h"
 #include "tensorflow/core/data/service/easl/metadata_store.h"
+#include "tensorflow/core/data/service/easl/local_decision_utils.h"
 #include "tensorflow/core/data/standalone.h"
 #include "tensorflow/core/framework/dataset.h"
 #include "tensorflow/core/framework/graph.pb.h"
@@ -1033,6 +1034,11 @@ Status DataServiceDispatcherImpl::CreateJob(
   VLOG(0) << "(CreateJob) Caching decision for dataset_key "
                << compute_dataset_key << ": " << job_type;
 
+  // Check Local Worker Count from Client
+  absl::flat_hash_set<std::string> local_workers;
+  local_workers.insert(request.local_workers().cbegin(),
+    request.local_workers().cend());
+
   // EASL: Logging stuff
   if (kEnableEventLogging) {
     RecordEvent(dataset_fingerprint, dataset_id, job_name, job_id,
@@ -1099,6 +1105,12 @@ Status DataServiceDispatcherImpl::CreateJob(
   create_job->set_job_type(job_type);
   create_job->set_num_split_providers(num_split_providers);
   create_job->set_target_worker_count(worker_count);
+  *create_job->mutable_local_workers() = {local_workers.begin(), local_workers.end()};
+
+  for (auto worker: local_workers) {
+    VLOG(0) << "EASL-MUYU (CreateJob) local_workers: " << worker;
+  }
+
   if (request.has_job_key()) {
     NamedJobKeyDef* key = create_job->mutable_named_job_key();
     key->set_name(request.job_key().job_name());
