@@ -1505,4 +1505,13 @@ REGISTER_OP("MarkerDataset")
         .SetDoNotOptimize()
         .SetShapeFn(shape_inference::ScalarShape);
 
+
+REGISTER_OP("SplitSecondHalf")
+  .Input("input_dataset: variant")
+  .Output("handle: variant")
+  .Attr("output_types: list(type) >= 1")
+  .Attr("output_shapes: list(shape) >= 1")
+  .SetDoNotOptimize()
+  .SetShapeFn(shape_inference::ScalarShape);
+
 }  // namespace tensorflow

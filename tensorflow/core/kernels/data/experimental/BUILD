@@ -897,6 +897,19 @@ tf_kernel_library(
     ],
 )
 
+tf_kernel_library(
+    name = "split_second_half_op",
+    srcs = ["split/split_second_half.cpp"],
+    hdrs = ["split/split_second_half.h"],
+    deps = [
+        "//tensorflow/core/data:name_utils",
+        "//tensorflow/core:dataset_ops_op_lib",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:lib_internal",
+    ],
+)
+
 # --- simonsom ---
 
 cc_library(
@@ -1016,3 +1029,4 @@ tf_kernel_library(
         ":compute_batch_size_op",
     ]),
 )
+
