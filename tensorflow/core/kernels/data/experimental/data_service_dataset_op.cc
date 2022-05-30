@@ -826,6 +826,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           req.set_relative_wait_fraction(relative_wait_fraction);
           req.set_result_queue_size(result_queue_size);
           req.set_worker_count(tasks_.size());
+          req.set_local_worker_count(local_tasks_.size());
 
           ClearScalabilityMetrics();
 

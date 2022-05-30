@@ -28,6 +28,17 @@ ModelMetrics::Metrics::Metrics(int64 worker_count,
       relative_wait_fraction_(relative_wait_fraction),
       result_queue_size_(result_queue_size){}
 
+ModelMetrics::Metrics::Metrics(int64 worker_count,
+                               int64 local_worker_count,
+                               double last_x_batch_time_ms, double relative_wait_fraction,
+                               double result_queue_size):
+        worker_count_(worker_count),
+        remote_worker_count_(worker_count),
+        local_worker_count_(local_worker_count),
+        last_x_batch_time_ms_(last_x_batch_time_ms),
+        relative_wait_fraction_(relative_wait_fraction),
+        result_queue_size_(result_queue_size){}
+
 ModelMetrics::Metrics::Metrics(ModelMetrics::Metrics& other) :
     worker_count_(other.worker_count_),
     last_x_batch_time_ms_(other.last_x_batch_time_ms_),

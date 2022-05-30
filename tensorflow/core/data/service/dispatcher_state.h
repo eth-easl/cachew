@@ -164,6 +164,7 @@ class DispatcherState {
           num_consumers(num_consumers),
           job_type(job_type),
           target_worker_count(target_worker_count),
+          target_remote_worker_count(target_worker_count),
           target_workers(target_workers) {
       if (IsDynamicShard(processing_mode)) {
         distributed_epoch_state = DistributedEpochState(num_split_providers);
@@ -197,6 +198,9 @@ class DispatcherState {
     const std::string job_type;
     int64_t target_worker_count; // Non-constant, can be dynamically adjusted.
     int64_t current_worker_count = 0;
+
+    int64_t target_remote_worker_count, target_local_worker_count;
+    int64_t current_remote_worker_count = 0, current_local_worker_count = 0;
   };
 
   struct Task {

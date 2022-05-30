@@ -87,6 +87,9 @@ Status DispatcherState::Apply(const Update& update) {
     case Update::kJobTargetWorkerCountUpdate:
       UpdateJobTargetWorkerCount(update.job_target_worker_count_update());
       break;
+    case: Update::kJobTargetWorkerCountUpdateRemoteAndLocal:
+      UpdateJobTargetWorkerCountRemoteAndLocal(update.job_target_worker_count_update());
+      break;
     case Update::UPDATE_TYPE_NOT_SET:
       return errors::Internal("Update type not set.");
   }
@@ -478,7 +481,8 @@ void DispatcherState::UpdateJobTargetWorkerCount(
   if (job->target_worker_count < job_target_worker_count_update.target_worker_count()){
     VLOG(0) << "EASL (UpdateJobTargetWorkerCount) - Increased worker count from "
     << job->target_worker_count << " to target " << job_target_worker_count_update.target_worker_count();
-  } else if (job->current_worker_count > job_target_worker_count_update.target_worker_count()){
+  }
+  else if (job->current_worker_count > job_target_worker_count_update.target_worker_count()){
     // Remove only created tasks..
     VLOG(0) << "EASL (UpdateJobTargetWorkerCount) - Decreased worker count from "
             << job->current_worker_count << " to target " << job_target_worker_count_update.target_worker_count();
@@ -516,6 +520,93 @@ void DispatcherState::UpdateJobTargetWorkerCount(
     }
   }
   job->target_worker_count = job_target_worker_count_update.target_worker_count();
+}
+
+void DispatcherState::UpdateJobTargetWorkerCountRemoteAndLocal(
+        const JobTargetWorkerCountUpdateRemoteAndLocal job_target_worker_count_update) {
+  // TODO: do we need mutex lock here?
+  const int64 job_id = job_target_worker_count_update.job_id();
+  DCHECK(jobs_.contains(job_id));
+  std::shared_ptr<Job> job = jobs_[job_id];
+
+  VLOG(0) << "Got request for worker count change (muyu's version):\n"
+          << " > job_target: " << job->target_remote_worker_count << ", " << job->target_local_worker_count <<  "\n"
+          << " > current: " << job->current_remote_worker_count << ", " << job->current_local_worker_count << "\n"
+          << " > request: " << job_target_worker_count_update.target_remote_worker_count() << ", "
+          << job_target_worker_count_update.target_local_worker_count();
+
+
+  job->target_remote_worker_count = job_target_worker_count_update.target_remote_worker_count();
+  job->target_local_worker_count = job_target_worker_count_update.target_local_worker_count();
+
+  int64_t needed_remote_worker_count = job->target_remote_worker_count - job->current_remote_worker_count;
+  int64_t needed_local_worker_count = job->target_local_worker_count - job->current_local_worker_count;
+
+  absl::flat_hash_map<std::string, std::shared_ptr<Worker>> candidate_workers;
+  // assign new workers
+  for (auto it = avail_workers_.begin();
+        it != avail_workers_.end() &&
+        (needed_remote_worker_count > 0 || needed_local_worker_count > 0); it++) {
+    // if this available worker is local to the job
+    if (job->is_local_worker(it->first)) {
+      if (needed_local_worker_count > 0) {
+        job->current_local_worker_count++;
+        needed_local_worker_count--;
+        candidate_workers[it->first] = it->second;
+        avail_workers_.erase(it);
+      }
+    }
+    else {
+      if (needed_remote_worker_count > 0) {
+        job->current_remote_worker_count++;
+        needed_remote_worker_count--;
+        candidate_workers[it->first] = it->second;
+        avail_workers_.erase(it);
+      }
+    }
+  }
+
+  std::vector<std::shared_ptr<const Task>> tasks;
+  for (auto it = candidate_workers.begin(); it != candidate_workers.end(); it++) {
+    workers_by_job_[job->job_id][it->second->address] = it->second;
+    jobs_by_worker_[it->second->address][job->job_id] = jobs_[job->job_id];
+    std::shared_ptr<const Task> task;
+    TF_RETURN_IF_ERROR(CreateTask(new_job, worker->address, task));
+  }
+  TF_RETURN_IF_ERROR(AssignTasks(tasks));
+
+  // remove tasks
+  // TODO: currently we don't need to decrease Local Workers
+  int64 remote_tasks_currently_being_ended = 0;
+  for (auto p: tasks_by_job_[job_id]) {
+    if (ending_tasks_by_job_[job_id].contains(p.second->task_id)) {
+      if (!job->is_local_worker(p.second->worker_address)) {
+        remote_tasks_currently_being_ended++;
+      }
+    }
+  }
+
+  int64 num_tasks_to_end = std::max(
+          (int64) 0, (int64) -needed_remote_worker_count - remote_tasks_currently_being_ended
+          );
+  TasksById current_tasks = tasks_by_job_[job_id];
+  auto it = current_tasks.begin();
+  for (int i=0; it != current_tasks.end() && num_tasks_to_end > 0; i++){
+    auto task = it->second;
+    // Only add to list if not already there.
+    if (!ending_tasks_by_job_[job_id].contains(task->task_id)){
+      ending_tasks_by_job_[job_id][task->task_id] = task;
+      num_tasks_to_end--;
+
+      // TODO: we may have some delay here when updating the workers
+      job->current_remote_worker_count--;
+      VLOG(0) << "EASL - (UpdateJobTargetWorkerCountRemoteAndLocal) - ending task " << task->task_id;
+    }
+    it++;
+  }
+  if(num_tasks_to_end > 0){
+    VLOG(0) << "EASL (UpdateJobTargetWorkerCountRemoteAndLocal) - not able to end enough tasks.";
+  }
 }
 
 std::vector<std::shared_ptr<const DispatcherState::Job>>

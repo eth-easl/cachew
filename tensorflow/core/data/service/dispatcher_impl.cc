@@ -1400,11 +1400,45 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     if (job->target_worker_count != target_worker_count) {
       Update update;
       JobTargetWorkerCountUpdate *job_target_worker_count_update =
-          update.mutable_job_target_worker_count_update();
+              update.mutable_job_target_worker_count_update();
       job_target_worker_count_update->set_job_id(job->job_id);
       job_target_worker_count_update->set_target_worker_count(
-          target_worker_count);
+              target_worker_count);
       state_.Apply(update);
+    }
+  } else if (config_.scaling_policy() == 3 &&
+              request->has_scalability_metrics() &&
+              job->distributed_epoch_state.value().repetitions[0] == 0) {
+      easl::ModelMetrics::Metrics metrics(
+              request->worker_count(),
+              request->local_worker_count(),
+              request->last_x_batch_time_ms(),
+              request->relative_wait_fraction(),
+              request->result_queue_size());
+      s = metadata_store_.UpdateModelMetrics(
+              job->job_id, request->job_client_id(), metrics);
+      if(!s.ok()){
+        VLOG(0) << "EASL (ClientHeartbeat) - metadatastore error code " << s.code();
+        VLOG(0) << s.ToString();
+        VLOG(0) << errors::IsNotFound(s);
+      }
+      if (!s.ok() && !errors::IsNotFound(s)) { return s; }
+
+      int64 target_remote_worker_count, target_local_worker_count;
+      TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdate(
+                      job->job_type, job->job_id, config_, metadata_store_,
+                      target_remote_worker_count, target_local_worker_count));
+
+      if (target_remote_worker_count != metrics.remote_worker_count() ||
+        target_local_worker_count != metrics.local_worker_count()) {
+        Update update;
+        JobTargetWorkerCountUpdateRemoteAndLocal *job_target_worker_count_update =
+                update.mutable_job_target_worker_count_update_remote_and_local();
+        job_target_worker_count_update->set_job_id(job->job_id);
+        job_target_worker_count_update->set_target_remote_worker_count(target_remote_worker_count);
+        job_target_worker_count_update->set_target_local_worker_count(target_local_worker_count);
+        state_.Apply(update);
+      }
     }
   }
 

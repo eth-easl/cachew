@@ -146,6 +146,17 @@ namespace {
     uint32 kInStabilityBeforeScaling = 20;
     double kMinQueueSizeRelativeGrowth = 1.5; // +50%
     double kMinBatchTimeRelativeGrowth = 1.5; // +50%
+
+    int MAX_LOCAL_WORKERS_PER_JOB = 3;
+    double kPerformanceErrorBar = 0.03;
+    // combine with costs
+    double kPerformanceDecreaseTolerance = 0.1;
+}
+
+void debug_print_local_remote(std::string debug_string, int64 remote_worker_count, int64 local_worker_count) {
+  VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal)::" << debug_string
+          << "; Current Remote: " << remote_worker_count
+          << "; Current Local: " << local_worker_count;
 }
 
 Status DynamicWorkerCountUpdateWithLocal(
@@ -191,64 +202,144 @@ Status DynamicWorkerCountUpdateWithLocal(
   }
 
   JobScalingState scaling_state;
-  TF_RETURN_IF_ERROR(metadata_store.IsJobScaling(job_id, scaling_state));
+  TF_RETURN_IF_ERROR(metadata_store.(job_id, scaling_state));
+
+  if (metrics_history.size() == 1) { // Cannot be smaller than 1
+    VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal) - no metrics_history -> increasing worker count";
+    worker_count = metrics_history.back()->worker_count() + 1;
+    metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
+    return Status::OK();
+  }
+
+  int second_to_last_index = metrics_history.size() - 2;
+  std::shared_ptr<ModelMetrics::Metrics> second_to_last_metrics =
+          metrics_history[second_to_last_index];
+  while(second_to_last_metrics->remote_worker_count() == last_metrics->remote_worker_count() &&
+          second_to_last_metrics->local_worker_count() == last_metrics->local_worker_count()
+  ) {
+    // TODO: MUYU understand the logic here????
+    if (second_to_last_index == 0) {
+      VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal) - Should not enter here!"
+              << "This leads to an infinite loop!\n"
+              << " > Converging here since scaling is not justified.";
+
+      worker_count = last_metrics->worker_count();
+      model_metrics->converged_metrics_ = last_metrics;
+      metadata_store.UnsetJobIsScaling(job_id);
+      metadata_store.ResetSameScaleCounter(job_id);
+
+      metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
+      return Status::OK();
+    }
+    second_to_last_metrics = metrics_history[--second_to_last_index];
+  }
+
+  double stl_batch_time = second_to_last_metrics->last_x_batch_time_ms();
+  double l_batch_time = last_metrics->last_x_batch_time_ms();
+  double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
+
+  // TODO: check the possibility of entering this branch
+//  if (relative_improvement > 1.2 || relative_improvement < -1.2) {
+//    VLOG(0) << "(EASL::DynamicWorkerCountUpdate) Relative improvement "
+//            << "was unstable: " << relative_improvement
+//            << "; discarding it...";
+//    worker_count = current_target_worker_count;
+//    return Status::OK();
+//  }
 
   switch (scaling_state) {
     case JobScalingState::ONLY_REMOTE: {
-      VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal) - only remote mode";
-      if (metrics_history.size() == 1) { // Cannot be smaller than 1
-        VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal) - no metrics_history -> increasing worker count";
-        worker_count = metrics_history.back()->worker_count() + 1;
-        metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
-        return Status::OK();
+      if (second_to_last_metrics->remote_worker_count > last_metrics->remote_worker_count
+      ) {
+        VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal)::ONLY_REMOTE"
+                << "We are scaling down, which is a weird behavior!";
       }
-
-
-
+      else {
+        // we're scaling up, which is a normal behavior
+        if (relative_improvement > dispatcher_config.scaling_threshold_up()) {
+          remote_worker_count = last_metrics->remote_worker_count() + 1;
+          VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal::ONLY_REMOTE) "
+                  << "Improvement large enough:\n"
+                  << " > improvement: " << relative_improvement << "\n"
+                  << " > next remote worker count: " << remote_worker_count;
+        } else {
+          remote_worker_count = second_to_last_metrics->remote_worker_count();
+          model_metrics->converged_metrics_ = second_to_last_metrics;
+          metadata_store.SetJobScalingState(job_id, JobScalingState::INCREASING_LOCAL);
+          metadata_store.ResetSameScaleCounter(job_id);
+          VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal::ONLY_REMOTE) "
+                  << "Improvement NOT large enough:\n"
+                  << " > improvement: " << relative_improvement << "\n"
+                  << " > next remote worker count: " << remote_worker_count;
+        }
+      }
     } break;
-    case JobScalingState::HYBRID: {
+    case JobScalingState::DECREASING_REMOTE: {
+      int64_t state_initial_worker_count = metadata_store.GetJobStateInitialWorkerCount(job_id);
+      if (last_metrics->remote_worker_count == state_initial_worker_count) {
+        // first time enter
+        // TODO: consider remote worker count == 0
+        remote_worker_count = last_metrics->remote_worker_count - 1;
+        local_worker_count = last_metrics->local_worker_count;
+      } else {
+        if (relative_improvement < -kPerformanceDecreaseTolerance ||
+          last_metrics->remote_worker_count == 0
+        ) {
+          // jump out
+          remote_worker_count = last_metrics->remote_worker_count;
+          local_worker_count = last_metrics->local_worker_count;
 
+          if (remote_worker_count == state_initial_worker_count) {
+            metadata_store.SetJobScalingState(job_id, JobScalingState::STABLE);
+          } else {
+            metadata_store.SetJobScalingState(job_id, JobScalingState::INCREASING_LOCAL);
+            metadata_store.SetJobStateInitialWorkerCount(job_id, local_worker_count);
+          }
+        }
+      }
     } break;
-    default:
+    // TODO: think of how to jump out of the loop
+    case JobScalingState::INCREASING_LOCAL: {
+      if (last_metrics->local_worker_count >= MAX_LOCAL_WORKERS_PER_JOB) {
+        remote_worker_count = last_metrics->remote_worker_count;
+        local_worker_count = last_metrics->local_worker_count;
+        metadata_store.SetJobScalingState(job_id, JobScalingState::DECREASING_REMOTE);
+        metadata_store.SetJobStateInitialWorkerCount(job_id, remote_worker_count);
+      }
+      if (second_to_last_metrics->local_worker_count < last_metrics->local_worker_count
+              ) {
+        // we're already in the process of increasing local workers
+        VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal)::INCREASING_LOCAL"
+                << "We are already scaling up local workers";
+        // if the performance decreases (or it already reaches the largest local worker count)
+        // TODO: check unit!
+        if (relative_improvement < -kPerformanceErrorBar)
+
+      }
+      else {
+        VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal)::INCREASING_LOCAL"
+                << "It's our first time to scale up local workers";
+        // set local worker count to plus 1
+        remote_worker_count = last_metrics->remote_worker_count;
+        local_worker_count = last_metrics->local_worker_count + 1;
+        debug_print_local_remote("INCREASING_LOCAL", remote_worker_count, local_worker_count);
+      }
+    } break;
+    case JobScalingState::STABLE: {
+      // TODO: change this branch!!
+      remote_worker_count = last_metrics->remote_worker_count;
+      local_worker_count = last_metrics->local_worker_count;
+    }
+    default: {
+      VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal): Something wrong happening, entering default branch";
+      remote_worker_count = last_metrics->remote_worker_count;
+      local_worker_count = last_metrics->local_worker_count;
+    }
       break;
   }
 
+  /*
   if(is_scaling) {
-
-
-    // Find the last scale metrics if possible
-    int second_to_last_index = metrics_history.size() - 2;
-    std::shared_ptr<ModelMetrics::Metrics> second_to_last_metrics =
-            metrics_history[second_to_last_index];
-    while(second_to_last_metrics->worker_count() == last_metrics->worker_count()) {
-      if (second_to_last_index == 0) {
-        VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal) - Should not enter here!"
-                << "This leads to an infinite loop!\n"
-                << " > Converging here since scaling is not justified.";
-
-        worker_count = last_metrics->worker_count();
-        model_metrics->converged_metrics_ = last_metrics;
-        metadata_store.UnsetJobIsScaling(job_id);
-        metadata_store.ResetSameScaleCounter(job_id);
-
-        metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
-        return Status::OK();
-      }
-      second_to_last_metrics = metrics_history[--second_to_last_index];
-    }
-
-    double stl_batch_time = second_to_last_metrics->last_x_batch_time_ms();
-    double l_batch_time = last_metrics->last_x_batch_time_ms();
-    double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
-
-    if (relative_improvement > 1.2 || relative_improvement < -1.2) {
-      VLOG(0) << "(EASL::DynamicWorkerCountUpdate) Relative improvement "
-              << "was unstable: " << relative_improvement
-              << "; discarding it...";
-      worker_count = current_target_worker_count;
-      return Status::OK();
-    }
-
     if (second_to_last_metrics->worker_count() < last_metrics->worker_count()) {
       // We are scaling up
       if (relative_improvement > dispatcher_config.scaling_threshold_up()) {
@@ -349,7 +440,7 @@ Status DynamicWorkerCountUpdateWithLocal(
       worker_count = last_metrics->worker_count();
       return Status::OK();
     }
-  }
+  } */
 
   // TODO: Consider setting the reference metrics for the next scale when moving
   //       up or down. This ensures the analysis is uniform.
@@ -358,7 +449,7 @@ Status DynamicWorkerCountUpdateWithLocal(
   //       when it's highly likely that the metrics pertain to the scale prior
   //       to convergence. You also end up here when in stability without trying
   //       to rescale.
-  metadata_store.GetJobTargetWorkerCount(job_id, worker_count);
+//  metadata_store.GetJobTargetWorkerCount(job_id, worker_count);
   return Status::OK();
 }
 

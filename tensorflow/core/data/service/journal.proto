@@ -8,7 +8,7 @@ import "tensorflow/core/protobuf/data_service.proto";
 // Message representing journaled dispatcher metadata updates. When we apply
 // one of these changes to the dispatcher's in-memory state, we also write an
 // Update message to the journal.
-// Next tag: 16
+// Next tag: 17
 message Update {
   oneof update_type {
     RegisterDatasetUpdate register_dataset = 1;
@@ -26,6 +26,7 @@ message Update {
     SetElementSpecUpdate set_element_spec = 13;
     ReassignFreeWorkers reassign_free_workers = 14;
     JobTargetWorkerCountUpdate job_target_worker_count_update = 15;
+    JobTargetWorkerCountUpdateRemoteAndLocal job_target_worker_count_update_remote_and_local = 16;
   }
 }
 
@@ -167,4 +168,11 @@ message ReassignFreeWorkers {
 message JobTargetWorkerCountUpdate {
   int64 job_id = 1;
   int64 target_worker_count = 2;
+}
+
+// Next tag: 4
+message JobTargetWorkerCountUpdateRemoteAndLocal {
+  int64 job_id = 1;
+  int64 target_remote_worker_count = 2;
+  int64 target_local_worker_count = 3;
 }

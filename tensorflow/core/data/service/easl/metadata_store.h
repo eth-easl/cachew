@@ -226,7 +226,13 @@ class JobMetrics {
     void DumpToStream(std::stringstream& ss);
 
     bool is_scaling_;
+
+    /* When scaling_state_ is DECREASING_REMOTE: worker_count_ is remote
+     * When scaling_state_ is INCREASING_LOCAL: worker_count_ is local
+     * */
     JobScalingState scaling_state_;
+    int64_t state_initial_worker_count_;
+
     Performance last_performance_;
     string job_type_;
     string name_;
@@ -270,10 +276,10 @@ class MetadataStore {
   // Get metrics
   Status GetJobMetrics(int64 job_id, std::shared_ptr<JobMetrics>& metrics) const;
 
-  Status GetModelMetrics(int64 job_id, 
+  Status GetModelMetrics(int64 job_id,
     std::shared_ptr<ModelMetrics>& metrics) const;
 
-  Status GetInputPipelineMetrics(int64 job_id, 
+  Status GetInputPipelineMetrics(int64 job_id,
     std::shared_ptr<InputPipelineMetrics>& metrics) const;
 
   Status GetJobMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
@@ -287,12 +293,12 @@ class MetadataStore {
 
   Status GetInputPipelineMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
     std::shared_ptr<InputPipelineMetrics>& metrics) const;
-  
-  Status GetLastNodeMetrics(int64 job_id, 
+
+  Status GetLastNodeMetrics(int64 job_id,
     std::shared_ptr<NodeMetrics>& metrics) const;
-  Status GetLastTFNodeMetrics(int64 job_id, 
+  Status GetLastTFNodeMetrics(int64 job_id,
     std::shared_ptr<NodeMetrics>& metrics) const;
-  Status GetMarkerNodeMetrics(int64 job_id, 
+  Status GetMarkerNodeMetrics(int64 job_id,
     std::shared_ptr<NodeMetrics>& metrics) const;
 
   Status GetLastNodeMetricsByDatasetFingerprint(const uint64 dataset_fingerprint,
@@ -307,10 +313,10 @@ class MetadataStore {
     ModelMetrics::Metrics& metrics);
 
   // Update or create the metrics for a client
-  Status UpdateInputPipelineMetrics(int64 job_id, string node_long_name, 
+  Status UpdateInputPipelineMetrics(int64 job_id, string node_long_name,
     string worker_address, NodeMetrics::Metrics& metrics);
-  
-  Status UpdateNodeNames(int64 job_id, string last_node_name, 
+
+  Status UpdateNodeNames(int64 job_id, string last_node_name,
     string last_tf_node_name, string marker_node_name);
 
   string CreateFingerprintNameKey(uint64 fingerprint, const string& job_name) const;

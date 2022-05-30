@@ -183,7 +183,7 @@ message ReleaseJobClientRequest {
 // Next tag: 1
 message ReleaseJobClientResponse {}
 
-// Next tag: 10, 5 unused.
+// Next tag: 11
 message ClientHeartbeatRequest {
   reserved 3;
   // The job client id to heartbeat for.
@@ -202,6 +202,7 @@ message ClientHeartbeatRequest {
 
   // EASL - Metrics for scalability; only present after specific intervals
   uint32 worker_count = 6;
+  uint32 local_worker_count = 5;
   bool has_scalability_metrics = 7;
   double last_x_batch_time_ms = 8;
   double relative_wait_fraction = 9;
