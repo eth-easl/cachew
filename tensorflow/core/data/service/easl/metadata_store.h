@@ -332,6 +332,10 @@ class MetadataStore {
   Status UnsetJobIsScaling(int64 job_id);
   Status IsJobScaling(int64 job_id, bool& is_scaling);
 
+  Status MetadataStore::GetJobScalingState(int64 job_id, JobScalingState& scaling_state);
+  Status MetadataStore::SetJobScalingState(int64 job_id, JobScalingState scaling_state);
+
+
   Status GetLastPerformance(int64 job_id, Performance& last_performance);
   Status SetLastPerformance(int64 job_id, Performance last_performance);
 

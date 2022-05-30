@@ -45,7 +45,7 @@ limitations under the License.
 #include "tensorflow/core/data/service/easl/cache_utils.h"
 #include "tensorflow/core/data/service/easl/scaling_utils.h"
 #include "tensorflow/core/data/service/easl/metadata_store.h"
-#include "tensorflow/core/data/service/easl/local_decision_utils.h"
+#include "tensorflow/core/data/service/easl/local_worker_decision_utils.h"
 #include "tensorflow/core/data/standalone.h"
 #include "tensorflow/core/framework/dataset.h"
 #include "tensorflow/core/framework/graph.pb.h"
@@ -1034,7 +1034,7 @@ Status DataServiceDispatcherImpl::CreateJob(
   VLOG(0) << "(CreateJob) Caching decision for dataset_key "
                << compute_dataset_key << ": " << job_type;
 
-  // Check Local Worker Count from Client
+  // Check Local Workers from Client
   absl::flat_hash_set<std::string> local_workers;
   local_workers.insert(request.local_workers().cbegin(),
     request.local_workers().cend());
@@ -1065,6 +1065,12 @@ Status DataServiceDispatcherImpl::CreateJob(
   std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
   worker_count = job_metrics->target_worker_count_;
+
+  remote_worker_count = job_metrics->target_remote_worker_count_;
+  local_worker_count = job_metrics->target_local_worker_count_;
+  VLOG(0) << "EASL-MUYU (GetOrCreateJob): "
+    << "remote_worker_count: " << remote_worker_count
+    << "; local_worker_count: " << local_worker_count;
 
   if (config_.scaling_policy() == 2) {
     worker_count = 100;
@@ -1097,6 +1103,7 @@ Status DataServiceDispatcherImpl::CreateJob(
     num_split_providers = split_providers_[job_id].size();
   }
 
+  // TODO: is the second job going to inherit the previous epoch job metrics?
   Update update;
   CreateJobUpdate* create_job = update.mutable_create_job();
   create_job->set_job_id(job_id);
@@ -1105,6 +1112,9 @@ Status DataServiceDispatcherImpl::CreateJob(
   create_job->set_job_type(job_type);
   create_job->set_num_split_providers(num_split_providers);
   create_job->set_target_worker_count(worker_count);
+  // only used by policy 3
+  create_job->set_target_remote_worker_count(remote_worker_count);
+  create_job->set_target_local_worker_count(local_worker_count);
   *create_job->mutable_local_workers() = {local_workers.begin(), local_workers.end()};
 
   for (auto worker: local_workers) {
@@ -1175,8 +1185,18 @@ Status DataServiceDispatcherImpl::CreateTasksForJob(
     std::shared_ptr<const Job> job,
     std::vector<std::shared_ptr<const Task>>& tasks)
     TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
-  std::vector<std::shared_ptr<const Worker>> workers = state_.ReserveWorkers(
-    job->job_id, job->target_worker_count);
+
+  std::vector<std::shared_ptr<const Worker>> workers;
+  if (config_.scaling_policy() == 3) {
+    workers = state_.ReserveWorkers(job->job_id,
+                                    job->target_remote_worker_count,
+                                    job->target_local_worker_count);
+  }
+  else {
+    // original branch
+    workers = state_.ReserveWorkers(job->job_id, job->target_worker_count);
+  }
+
   if (workers.size() < job->target_worker_count){
     VLOG(0)
     << "EASL - Not enough workers for job. Elasticity policy requires "
@@ -1425,7 +1445,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
       if (!s.ok() && !errors::IsNotFound(s)) { return s; }
 
       int64 target_remote_worker_count, target_local_worker_count;
-      TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdate(
+      TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal(
                       job->job_type, job->job_id, config_, metadata_store_,
                       target_remote_worker_count, target_local_worker_count));
 

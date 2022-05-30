@@ -141,6 +141,7 @@ void DispatcherState::CreateJob(const CreateJobUpdate& create_job) {
       job_id, create_job.dataset_id(), create_job.processing_mode_def(),
       create_job.num_split_providers(), named_job_key, num_consumers,
       create_job.job_type(), create_job.target_worker_count(),
+      create_job.target_local_worker_count(),
       create_job.target_workers());
 
   for (auto worker: create_job.local_workers()) {
@@ -425,12 +426,63 @@ DispatcherState::ReserveWorkers(
             << it->second->address << " to job " << job_id;
     workers_by_job_[job_id][it->second->address] = it->second;
     jobs_by_worker_[it->second->address][job_id] = jobs_[job_id];
+    // TODO: is this a bug?
     avail_workers_.erase(it++);
     if (num_workers == 0)
       break;
   }
   VLOG(0) << "(ReserveWorkers) Number of workers for job " << job_id << " is: "
           << workers_by_job_[job_id].size();
+  return workers;
+}
+
+std::vector<std::shared_ptr<const DispatcherState::Worker>>
+DispatcherState::ReserveWorkers(
+        int64 job_id, int64 target_remote_worker_count, int64 target_local_worker_count) {
+  // DCHECK(num_workers <= avail_workers_.size());
+  jobs_[job_id]->target_remote_worker_count = target_remote_worker_count;
+  jobs_[job_id]->target_local_worker_count = target_local_worker_count;
+
+  std::vector<std::shared_ptr<const Worker>> workers;
+  for (auto it = avail_workers_.begin(); it != avail_workers_.end() 
+      && (target_local_worker_count > 0 || target_remote_worker_count > 0); ) {
+    if (jobs_[job_id]->is_local_worker(it->first())) {
+      if (target_local_worker_count > 0) {
+        target_local_worker_count--;
+        workers.push_back(it->second);
+        VLOG(0) << "(ReserveWorkers) Assigning local worker at address "
+          << it->second->address << " to job " << job_id;
+        workers_by_job_[job_id][it->second->address] = it->second;
+        jobs_by_worker_[it->second->address][job_id] = jobs_[job_id];
+        it = avail_workers_.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+    else {
+      if (target_remote_worker_count > 0) {
+        target_remote_worker_count--;
+        workers.push_back(it->second);
+        VLOG(0) << "(ReserveWorkers) Assigning remote worker at address "
+                << it->second->address << " to job " << job_id;
+        workers_by_job_[job_id][it->second->address] = it->second;
+        jobs_by_worker_[it->second->address][job_id] = jobs_[job_id];
+        it = avail_workers_.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+  }
+  VLOG(0) << "(ReserveWorkers) Number of workers for job " << job_id << " is: "
+          << workers_by_job_[job_id].size()
+          << " And Respectively, "
+          << jobs_[job_id]->target_remote_worker_count - target_remote_worker_count
+          << " remote workers; "
+          << jobs_[job_id]->target_local_worker_count - target_local_worker_count
+          << " local workers!"
+
   return workers;
 }
 
@@ -546,14 +598,17 @@ void DispatcherState::UpdateJobTargetWorkerCountRemoteAndLocal(
   // assign new workers
   for (auto it = avail_workers_.begin();
         it != avail_workers_.end() &&
-        (needed_remote_worker_count > 0 || needed_local_worker_count > 0); it++) {
+        (needed_remote_worker_count > 0 || needed_local_worker_count > 0); ) {
     // if this available worker is local to the job
     if (job->is_local_worker(it->first)) {
       if (needed_local_worker_count > 0) {
         job->current_local_worker_count++;
         needed_local_worker_count--;
         candidate_workers[it->first] = it->second;
-        avail_workers_.erase(it);
+        it = avail_workers_.erase(it);
+      }
+      else {
+        ++it;
       }
     }
     else {
@@ -561,7 +616,10 @@ void DispatcherState::UpdateJobTargetWorkerCountRemoteAndLocal(
         job->current_remote_worker_count++;
         needed_remote_worker_count--;
         candidate_workers[it->first] = it->second;
-        avail_workers_.erase(it);
+        it = avail_workers_.erase(it);
+      }
+      else {
+        ++it;
       }
     }
   }

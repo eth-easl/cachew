@@ -209,7 +209,7 @@ message ClientHeartbeatRequest {
   double result_queue_size = 10;
 }
 
-// Next tag: 6
+// Next tag: 5
 message ClientHeartbeatResponse {
   // A list of all tasks that the client should read from.
   repeated TaskInfo task_info = 1;
@@ -222,9 +222,6 @@ message ClientHeartbeatResponse {
   // tf.data service deployment mode. Supported values are "REMOTE",
   // "COLOCATED", and "HYBRID". If unspecified, it is assumed to be "REMOTE".
   DeploymentMode deployment_mode = 4;
-
-  // EASL: to check whether we should use local workers (based on last epoch's metrics)
-  bool num_worker_local_target = 5;
 }
 
 // Next tag: 3

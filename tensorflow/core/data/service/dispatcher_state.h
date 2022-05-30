@@ -156,6 +156,7 @@ class DispatcherState {
                  absl::optional<int64_t> num_consumers,
                  const std::string& job_type,
                  int64_t target_worker_count,
+                int64_t target_local_worker_count,
                   TargetWorkers target_workers)
         : job_id(job_id),
           dataset_id(dataset_id),
@@ -165,6 +166,7 @@ class DispatcherState {
           job_type(job_type),
           target_worker_count(target_worker_count),
           target_remote_worker_count(target_worker_count),
+          target_local_worker_count(target_local_worker_count),
           target_workers(target_workers) {
       if (IsDynamicShard(processing_mode)) {
         distributed_epoch_state = DistributedEpochState(num_split_providers);
@@ -172,6 +174,10 @@ class DispatcherState {
     }
 
     bool IsRoundRobin() const { return num_consumers.has_value(); }
+
+    bool is_local_worker(std::string address) {
+      return local_workers.count(address) > 0;
+    }
 
     std::string DebugString() const {
       if (named_job_key.has_value()) {
@@ -201,6 +207,7 @@ class DispatcherState {
 
     int64_t target_remote_worker_count, target_local_worker_count;
     int64_t current_remote_worker_count = 0, current_local_worker_count = 0;
+    absl::flat_hash_set<std::string> local_workers;
   };
 
   struct Task {
@@ -258,6 +265,9 @@ class DispatcherState {
   // to all the available workers.
   std::vector<std::shared_ptr<const Worker>> ReserveWorkers(int64 job_id,
     int64 num_workers = 0);
+  // only called in policy 3
+  std::vector<std::shared_ptr<const Worker>> ReserveWorkers(
+          int64 job_id, int64 remote_worker_count, int64 local_worker_count);
 
   // Returns the next available job id.
   int64_t NextAvailableJobId() const;

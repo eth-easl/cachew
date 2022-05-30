@@ -334,6 +334,8 @@ JobMetrics::JobMetrics(int64 job_id,
         model_metrics_(), 
         input_pipeline_metrics_(),
         is_scaling_(is_scaling),
+        scaling_state_(JobScalingState::ONLY_REMOTE_SCALING),
+        target_worker_count_(1),
         target_local_worker_count_(1),
         target_remote_worker_count_(0),
         same_scale_counter_(0),
@@ -760,6 +762,20 @@ Status MetadataStore::SetJobScalingState(int64 job_id, JobScalingState scaling_s
   return Status::OK();
 }
 
+Status MetadataStore::GetJobStateInitialWorkerCount(int64 job_id, int64_t& worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  worker_count = jobMetrics->state_initial_worker_count_;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobStateInitialWorkerCount(int64 job_id, int64_t worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->state_initial_worker_count_ = worker_count;
+  return Status::OK();
+}
+
 Status MetadataStore::GetLastPerformance(int64 job_id,
                                          Performance& last_performance) {
   std::shared_ptr<JobMetrics> jobMetrics;
@@ -846,6 +862,16 @@ Status MetadataStore::GetJobTargetWorkerCount(int64 job_id, int64& target_worker
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
   target_worker_count = jobMetrics->target_worker_count_;
+  return Status::OK();
+}
+
+Status MetadataStore::GetJobTargetWorkerCount(int64 job_id,
+                                              int64& target_remote_worker_count,
+                                              int64& target_local_worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  target_remote_worker_count = jobMetrics->target_remote_worker_count_;
+  target_local_worker_count = jobMetrics->target_local_worker_count_;
   return Status::OK();
 }
 

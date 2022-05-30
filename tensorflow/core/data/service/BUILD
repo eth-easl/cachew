@@ -991,6 +991,7 @@ cc_library(
     deps = ["//tensorflow/core:lib"],
 )
 
+# TODO: not exactly same as scaling_utils
 cc_library(
     name = "local_decision_utils",
     srcs = ["easl/local_decision_utils.cc"],
@@ -998,10 +999,15 @@ cc_library(
         "easl/local_decision_utils.h",
     ],
     deps = [
+#        ":cache_model",
+#        ":dispatcher_cache_state",
         ":common_proto_cc",
         ":dispatcher_state",
         ":metadata_store",
         "//tensorflow/core:lib",
+        "//tensorflow/core:framework",
+        "//tensorflow/core/platform:errors",
+        "//tensorflow/core/platform:status",
         "@com_google_absl//absl/strings",
     ],
 )
