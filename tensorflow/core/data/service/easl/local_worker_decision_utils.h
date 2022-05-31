@@ -18,7 +18,7 @@ namespace data {
 namespace service {
 namespace easl {
 namespace local_worker_decision {
-
+/*
 Status DecideIfLocal(
         const experimental::DispatcherConfig& dispatcher_config,
         const ::tensorflow::data::easl::MetadataStore& metadata_store,
@@ -42,6 +42,7 @@ Status DecideTargetWorkersAutoscaling(
         int64 num_worker_local_avail,
         int64& num_worker_remote_target,
         int64& num_worker_local_target);
+*/
 
 Status DynamicWorkerCountUpdateWithLocal(
         const std::string& job_type,
@@ -49,7 +50,7 @@ Status DynamicWorkerCountUpdateWithLocal(
         const experimental::DispatcherConfig& dispatcher_config,
         ::tensorflow::data::easl::MetadataStore& metadata_store,
         int64& remote_worker_count,
-        int64& local_worker_count)
+        int64& local_worker_count);
 
 } // namespace local_worker_decision
 } // namespace easl

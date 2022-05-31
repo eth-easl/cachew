@@ -41,6 +41,8 @@ ModelMetrics::Metrics::Metrics(int64 worker_count,
 
 ModelMetrics::Metrics::Metrics(ModelMetrics::Metrics& other) :
     worker_count_(other.worker_count_),
+    remote_worker_count_(other.remote_worker_count_),
+    local_worker_count_(other.local_worker_count_),
     last_x_batch_time_ms_(other.last_x_batch_time_ms_),
     relative_wait_fraction_(other.relative_wait_fraction_),
     result_queue_size_(other.result_queue_size_){}
@@ -52,6 +54,11 @@ Status ModelMetrics::UpdateClientMetrics(
   //  absl::flat_hash_map<int64, std::deque<std::shared_ptr<ModelMetrics::Metrics>>>;
 
   auto metrics_ptr = std::make_shared<Metrics>(metrics);
+
+//  VLOG(0) << "EASL-MUYU: UpdateClientMetrics: "
+//    << "remote_worker_count: " << metrics_ptr->remote_worker_count()
+//    << "; local_worker_count: " << metrics_ptr->local_worker_count();
+
   int64 worker_count = metrics.worker_count();
   // Level 1 - worker_count
   auto worker_count_it = metrics_.find(worker_count);
@@ -334,10 +341,10 @@ JobMetrics::JobMetrics(int64 job_id,
         model_metrics_(), 
         input_pipeline_metrics_(),
         is_scaling_(is_scaling),
-        scaling_state_(JobScalingState::ONLY_REMOTE_SCALING),
+        scaling_state_(JobScalingState::ONLY_REMOTE),
         target_worker_count_(1),
-        target_local_worker_count_(1),
-        target_remote_worker_count_(0),
+        target_remote_worker_count_(1),
+        target_local_worker_count_(0),
         same_scale_counter_(0),
         last_performance_(Performance::NA) {
           model_metrics_ = std::make_shared<ModelMetrics>();
@@ -854,7 +861,14 @@ Status MetadataStore::SetJobTargetRemoteWorkerCount(int64 job_id, int64 target_r
 Status MetadataStore::SetJobTargetLocalWorkerCount(int64 job_id, int64 target_local_worker_count) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
-  jobMetrics->target_local_worker_count_ = target_worker_count;
+  jobMetrics->target_local_worker_count_ = target_local_worker_count;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobTargetWorkerCount(int64 job_id, int64 target_worker_count) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->target_worker_count_ = target_worker_count;
   return Status::OK();
 }
 

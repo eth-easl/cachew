@@ -29,7 +29,7 @@ namespace easl {
 // This enum is used to register the last change in metrics
 enum Performance { UP, DOWN, NA };
 // for tracking local workers
-enum JobScalingState { ONLY_REMOTE_SCALING, REDUCING_REMOTE, INCREASING_LOCAL, STABLE};
+enum JobScalingState { ONLY_REMOTE, DECREASING_REMOTE, INCREASING_LOCAL, STABLE};
 
 class ModelMetrics {
   public:
@@ -39,6 +39,8 @@ class ModelMetrics {
         Metrics(Metrics& other);
         Metrics(int64 worker_count, double last_x_batch_time_ms,
           double relative_wait_fraction, double result_queue_size);
+        Metrics(int64 worker_count, int64 local_worker_count, double last_x_batch_time_ms,
+                double relative_wait_fraction, double result_queue_size);
 
         void set_last_x_batch_time_ms(double x) { last_x_batch_time_ms_ = x; }
         void set_relative_wait_fraction(double x) { relative_wait_fraction_ = x; }
@@ -47,6 +49,8 @@ class ModelMetrics {
 
         bool has_scalability_metrics() { return has_scalability_metrics_; }
         int64 worker_count() { return worker_count_; }
+        int64 remote_worker_count() { return remote_worker_count_; }
+        int64 local_worker_count() { return local_worker_count_; }
         double last_x_batch_time_ms() { return last_x_batch_time_ms_; }
         double relative_wait_fraction() { return relative_wait_fraction_; }
         double result_queue_size() { return result_queue_size_; }
@@ -237,6 +241,7 @@ class JobMetrics {
     string job_type_;
     string name_;
     uint64 same_scale_counter_;
+    int64 target_worker_count_;
     int64 target_remote_worker_count_;
     int64 target_local_worker_count_;
     int64 job_id_;
@@ -332,9 +337,11 @@ class MetadataStore {
   Status UnsetJobIsScaling(int64 job_id);
   Status IsJobScaling(int64 job_id, bool& is_scaling);
 
-  Status MetadataStore::GetJobScalingState(int64 job_id, JobScalingState& scaling_state);
-  Status MetadataStore::SetJobScalingState(int64 job_id, JobScalingState scaling_state);
+  Status GetJobScalingState(int64 job_id, JobScalingState& scaling_state);
+  Status SetJobScalingState(int64 job_id, JobScalingState scaling_state);
 
+  Status GetJobStateInitialWorkerCount(int64 job_id, int64_t& worker_count);
+  Status SetJobStateInitialWorkerCount(int64 job_id, int64_t worker_count);
 
   Status GetLastPerformance(int64 job_id, Performance& last_performance);
   Status SetLastPerformance(int64 job_id, Performance last_performance);
@@ -352,8 +359,12 @@ class MetadataStore {
 
   Status SetJobTargetWorkerCount(int64 job_id, int64 target_worker_count);
   Status GetJobTargetWorkerCount(int64 job_id, int64& target_worker_count);
+  Status GetJobTargetWorkerCount(int64 job_id, int64& target_remote_worker_count, int64& target_local_worker_count);
 
-  // Update or create the metrics for the dataset key from the given job.
+  Status SetJobTargetRemoteWorkerCount(int64 job_id, int64 target_remote_worker_count);
+  Status SetJobTargetLocalWorkerCount(int64 job_id, int64 target_local_worker_count);
+
+    // Update or create the metrics for the dataset key from the given job.
   Status UpdateFingerprintKeyJobMetrics(int64 job_id);
   Status UpdateFingerprintNameKeyJobMetrics(int64 job_id);
 

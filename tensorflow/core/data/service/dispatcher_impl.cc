@@ -1066,8 +1066,8 @@ Status DataServiceDispatcherImpl::CreateJob(
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
   worker_count = job_metrics->target_worker_count_;
 
-  remote_worker_count = job_metrics->target_remote_worker_count_;
-  local_worker_count = job_metrics->target_local_worker_count_;
+  int64_t remote_worker_count = job_metrics->target_remote_worker_count_;
+  int64_t local_worker_count = job_metrics->target_local_worker_count_;
   VLOG(0) << "EASL-MUYU (GetOrCreateJob): "
     << "remote_worker_count: " << remote_worker_count
     << "; local_worker_count: " << local_worker_count;
@@ -1435,6 +1435,11 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
               request->last_x_batch_time_ms(),
               request->relative_wait_fraction(),
               request->result_queue_size());
+
+//      VLOG(0) << "EASL-MUYU: ClientHeartbeat: "
+//              << "remote_worker_count: " << metrics.remote_worker_count()
+//              << "; local_worker_count: " << metrics.local_worker_count();
+
       s = metadata_store_.UpdateModelMetrics(
               job->job_id, request->job_client_id(), metrics);
       if(!s.ok()){
@@ -1458,9 +1463,23 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
         job_target_worker_count_update->set_target_remote_worker_count(target_remote_worker_count);
         job_target_worker_count_update->set_target_local_worker_count(target_local_worker_count);
         state_.Apply(update);
+
+        // state_.Apply only sets the job attributes, still need to directly create tasks
+        // assign new workers
+        absl::flat_hash_map<std::string, std::shared_ptr<Worker>> candidate_workers;
+        state_.AssignWorkersToJob(job->job_id, candidate_workers);
+
+        std::vector<std::shared_ptr<const Task>> tasks;
+        for (auto it = candidate_workers.begin(); it != candidate_workers.end(); it++) {
+          std::shared_ptr<const Task> task;
+          TF_RETURN_IF_ERROR(CreateTask(job, it->first, task));
+          tasks.push_back(task);
+        }
+        l.mutex()->unlock();
+        TF_RETURN_IF_ERROR(AssignTasks(tasks));
+        l.mutex()->lock();
       }
     }
-  }
 
   if (job->garbage_collected) {
     return errors::FailedPrecondition(

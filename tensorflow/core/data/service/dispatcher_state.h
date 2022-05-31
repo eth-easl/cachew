@@ -316,6 +316,9 @@ class DispatcherState {
   // deterministically sharding a dataset among a fixed set of workers.
   StatusOr<int64_t> GetWorkerIndex(absl::string_view worker_address) const;
 
+  // EASL (MUYU)
+  void AssignWorkersToJob(int64_t job_id, absl::flat_hash_map<std::string, std::shared_ptr<Worker>>& candidate_workers);
+
  private:
   void RegisterDataset(const RegisterDatasetUpdate& register_dataset);
   void RegisterWorker(const RegisterWorkerUpdate& register_worker);
@@ -334,6 +337,7 @@ class DispatcherState {
   // EASL
   void ReassignFreeWorkers();
   void UpdateJobTargetWorkerCount(const JobTargetWorkerCountUpdate job_target_worker_count_update);
+  void UpdateJobTargetWorkerCountRemoteAndLocal(const JobTargetWorkerCountUpdateRemoteAndLocal job_target_worker_count_update);
 
   int64_t next_available_dataset_id_ = 1000;
   // Registered datasets, keyed by dataset ids.

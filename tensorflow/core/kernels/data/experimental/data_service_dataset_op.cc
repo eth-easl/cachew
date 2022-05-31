@@ -1344,6 +1344,8 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       if (enqueue_result && !result.end_of_sequence) {
+        uint64 current_micro_timestamp = Env::Default()->NowMicros();
+        std::string data_source = task.info.worker_address();
         if (local_tasks_.contains(task.info.worker_address())) {
           local_results_buffer_.push(std::move(result));
         } else {
@@ -1355,9 +1357,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           std::ofstream file(log_location, std::ios_base::app);
 
           file << current_micro_timestamp << ","
-               << data_source << ","
-               << if_local << ","
-               << result_size << "\n";
+               << data_source << "\n";
 
           file.flush();
           file.clear();

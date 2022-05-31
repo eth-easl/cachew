@@ -312,7 +312,7 @@ cc_library(
     ],
     deps = [
         ":cache_utils",
-        ":local_decision_utils",
+        ":local_worker_decision_utils",
         ":scaling_utils",
         ":common",
         ":common_proto_cc",
@@ -993,14 +993,14 @@ cc_library(
 
 # TODO: not exactly same as scaling_utils
 cc_library(
-    name = "local_decision_utils",
-    srcs = ["easl/local_decision_utils.cc"],
+    name = "local_worker_decision_utils",
+    srcs = ["easl/local_worker_decision_utils.cc"],
     hdrs = [
-        "easl/local_decision_utils.h",
+        "easl/local_worker_decision_utils.h",
     ],
     deps = [
-#        ":cache_model",
-#        ":dispatcher_cache_state",
+        ":cache_model",
+        ":dispatcher_cache_state",
         ":common_proto_cc",
         ":dispatcher_state",
         ":metadata_store",
