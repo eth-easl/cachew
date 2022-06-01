@@ -825,8 +825,25 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           req.set_last_x_batch_time_ms(last_x_batch_time_ms);
           req.set_relative_wait_fraction(relative_wait_fraction);
           req.set_result_queue_size(result_queue_size);
+
+          // This is total worker count
           req.set_worker_count(tasks_.size());
           req.set_local_worker_count(local_tasks_.size());
+
+          VLOG(0) << "--> ClientHeartbeat: Normal Tasks";
+          for (auto task: tasks_) {
+            VLOG(0) << "Worker Address: " << task->info.worker_address()
+              << "; Task id: " << task->info.task_id()
+              << "; Job id: " << task->info.job_id();
+          }
+          VLOG(0) << "--> ClientHeartbeat: Local Tasks";
+          for (auto p: local_tasks_) {
+            auto task = p.second;
+            VLOG(0) << "Worker Address: " << task->info.worker_address()
+                    << "; Task id: " << task->info.task_id()
+                    << "; Job id: " << task->info.job_id();
+          }
+          VLOG(0) << "End Printing";
 
           ClearScalabilityMetrics();
 

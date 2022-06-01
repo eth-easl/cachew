@@ -411,7 +411,7 @@ Status DataServiceDispatcherImpl::ReassignFreeWorkersAndCreateTasks() TF_LOCKS_E
 Status DataServiceDispatcherImpl::WorkerHeartbeat(
     const WorkerHeartbeatRequest* request, WorkerHeartbeatResponse* response) {
   TF_RETURN_IF_ERROR(CheckStarted());
-  VLOG(4) << "Received worker heartbeat request from worker "
+  VLOG(0) << "Received worker heartbeat request from worker "
           << request->worker_address();
   mutex_lock l(mu_);
   const std::string& worker_address = request->worker_address();
@@ -539,7 +539,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
     }
   }
 
-  VLOG(4) << "Finished worker heartbeat for worker at address "
+  VLOG(0) << "Finished worker heartbeat for worker at address "
           << request->worker_address();
   return Status::OK();
 }
@@ -1059,8 +1059,19 @@ Status DataServiceDispatcherImpl::CreateJob(
   // EASL add job entry to metadata store
   std::string dataset_key = service::easl::cache_utils::DatasetKey(
     dataset->dataset_id, dataset->fingerprint, job_type);
-  TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
-      dataset->dataset_id, dataset->fingerprint, dataset_key, trigger_scaling));
+  if (config_.scaling_policy() == 3 || config_.scaling_policy() == 4) {
+    TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
+                                                     dataset->dataset_id,
+                                                     dataset->fingerprint,
+                                                     dataset_key, trigger_scaling,
+                                                     config_.scaling_policy()));
+  } else {
+    TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
+                                                     dataset->dataset_id,
+                                                     dataset->fingerprint,
+                                                     dataset_key, trigger_scaling));
+  }
+
 
   std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
@@ -1112,7 +1123,7 @@ Status DataServiceDispatcherImpl::CreateJob(
   create_job->set_job_type(job_type);
   create_job->set_num_split_providers(num_split_providers);
   create_job->set_target_worker_count(worker_count);
-  // only used by policy 3
+  // only used by policy 3, 4
   create_job->set_target_remote_worker_count(remote_worker_count);
   create_job->set_target_local_worker_count(local_worker_count);
   *create_job->mutable_local_workers() = {local_workers.begin(), local_workers.end()};
@@ -1187,7 +1198,7 @@ Status DataServiceDispatcherImpl::CreateTasksForJob(
     TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
 
   std::vector<std::shared_ptr<const Worker>> workers;
-  if (config_.scaling_policy() == 3) {
+  if (config_.scaling_policy() == 3 || config_.scaling_policy() == 4) {
     workers = state_.ReserveWorkers(job->job_id,
                                     job->target_remote_worker_count,
                                     job->target_local_worker_count);
@@ -1426,7 +1437,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
               target_worker_count);
       state_.Apply(update);
     }
-  } else if (config_.scaling_policy() == 3 &&
+  } else if ((config_.scaling_policy() == 3 || config_.scaling_policy() == 4) &&
               request->has_scalability_metrics() &&
               job->distributed_epoch_state.value().repetitions[0] == 0) {
       easl::ModelMetrics::Metrics metrics(
@@ -1450,9 +1461,16 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
       if (!s.ok() && !errors::IsNotFound(s)) { return s; }
 
       int64 target_remote_worker_count, target_local_worker_count;
-      TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal(
-                      job->job_type, job->job_id, config_, metadata_store_,
-                      target_remote_worker_count, target_local_worker_count));
+      if (config_.scaling_policy() == 3) {
+        TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCDEC(
+                job->job_type, job->job_id, config_, metadata_store_,
+                target_remote_worker_count, target_local_worker_count));
+      } else if (config_.scaling_policy() == 4){
+        TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCINC(
+                job->job_type, job->job_id, config_, metadata_store_,
+                target_remote_worker_count, target_local_worker_count));
+      }
+
 
       if (target_remote_worker_count != metrics.remote_worker_count() ||
         target_local_worker_count != metrics.local_worker_count()) {

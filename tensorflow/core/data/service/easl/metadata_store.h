@@ -226,6 +226,17 @@ class JobMetrics {
                bool is_scaling = true,
                const string& name = string());
 
+    JobMetrics(int64 job_id,
+               std::string& job_type,
+               int64 dataset_id,
+               uint64 dataset_fingerprint,
+               std::string& dataset_key,
+               bool is_scaling,
+               const string& name,
+               int64 target_remote_worker_count,
+               int64 target_local_worker_count,
+               JobScalingState scaling_state);
+
     void DumpToFile(const std::string& path);
     void DumpToStream(std::stringstream& ss);
 
@@ -274,6 +285,17 @@ class MetadataStore {
                        uint64 dataset_fingerprint,
                        std::string& dataset_key,
                        bool trigger_rescale = false);
+
+  // overloading for scaling policy 3 & 4
+  Status CreateJobName(int64 job_id,
+                       string& job_name,
+                       string& job_type,
+                       int64 dataset_id,
+                       uint64 dataset_fingerprint,
+                       std::string& dataset_key,
+                       bool trigger_rescale,
+                       int64 policy
+                       );
 
   // Remove job
   Status RemoveJob(int64 job_id);

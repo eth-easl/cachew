@@ -141,6 +141,7 @@ void DispatcherState::CreateJob(const CreateJobUpdate& create_job) {
       job_id, create_job.dataset_id(), create_job.processing_mode_def(),
       create_job.num_split_providers(), named_job_key, num_consumers,
       create_job.job_type(), create_job.target_worker_count(),
+      create_job.target_remote_worker_count(),
       create_job.target_local_worker_count(),
       create_job.target_workers());
 

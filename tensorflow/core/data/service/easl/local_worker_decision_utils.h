@@ -44,7 +44,17 @@ Status DecideTargetWorkersAutoscaling(
         int64& num_worker_local_target);
 */
 
-Status DynamicWorkerCountUpdateWithLocal(
+// First increase remote and then increase local and decrease remote
+Status DynamicWorkerCountUpdateWithLocal_INCDEC(
+        const std::string& job_type,
+        const int64 job_id,
+        const experimental::DispatcherConfig& dispatcher_config,
+        ::tensorflow::data::easl::MetadataStore& metadata_store,
+        int64& remote_worker_count,
+        int64& local_worker_count);
+
+// First increase local and then increase remote
+Status DynamicWorkerCountUpdateWithLocal_INCINC(
         const std::string& job_type,
         const int64 job_id,
         const experimental::DispatcherConfig& dispatcher_config,

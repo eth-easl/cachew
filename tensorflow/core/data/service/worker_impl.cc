@@ -229,7 +229,7 @@ Status DataServiceWorkerImpl::GetElementResult(
             "it repeatedly inside a loop.");
       }
       if (finished_tasks_.contains(request->task_id())) {
-        VLOG(3) << "Task is already finished";
+        VLOG(0) << "Task is already finished";
         result->end_of_sequence = true;
         result->skip = false;
         return Status::OK();
@@ -254,7 +254,13 @@ Status DataServiceWorkerImpl::GetElementResult(
   });
   TF_RETURN_IF_ERROR(task->task_runner->GetNext(*request, *result));
 
+  VLOG(0) << "(GetElementResult): for task id: "
+      << request->task_id()
+      << "; element_index: " << result->element_index
+      << "; end_of_sequence: " << result->end_of_sequence;
+
   if (result->end_of_sequence) {
+    VLOG(0) << "Received end_of_sequence for task (before lock)" << request->task_id();
     mutex_lock l(mu_);
     VLOG(0) << "Reached end_of_sequence for task " << request->task_id();
     VLOG(0) << "Outstanding tasks for this task" << task->outstanding_requests;
@@ -403,7 +409,7 @@ Status DataServiceWorkerImpl::GetElement(const GetElementRequest* request,
   if (!response->end_of_sequence() && !response->skip_task()) {
     TF_RETURN_IF_ERROR(
         MoveElementToResponse(std::move(result.components), *response));
-    VLOG(3) << "Producing an element for task " << request->task_id();
+    VLOG(0) << "Producing an element for task " << request->task_id();
   }
   return Status::OK();
 }
@@ -587,7 +593,7 @@ Status DataServiceWorkerImpl::Heartbeat() TF_LOCKS_EXCLUDED(mu_) {
     }
     tasks_to_delete.reserve(response.tasks_to_delete_size());
     for (int64_t task_id : response.tasks_to_delete()) {
-      VLOG(3) << "Deleting task " << task_id
+      VLOG(0) << "Deleting task " << task_id
               << " at the request of the dispatcher";
       if (!tasks_.contains(task_id)) {
         continue;

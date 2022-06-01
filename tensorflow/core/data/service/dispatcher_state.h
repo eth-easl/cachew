@@ -156,6 +156,7 @@ class DispatcherState {
                  absl::optional<int64_t> num_consumers,
                  const std::string& job_type,
                  int64_t target_worker_count,
+                int64_t target_remote_worker_count,
                 int64_t target_local_worker_count,
                   TargetWorkers target_workers)
         : job_id(job_id),
@@ -165,7 +166,7 @@ class DispatcherState {
           num_consumers(num_consumers),
           job_type(job_type),
           target_worker_count(target_worker_count),
-          target_remote_worker_count(target_worker_count),
+          target_remote_worker_count(target_remote_worker_count),
           target_local_worker_count(target_local_worker_count),
           target_workers(target_workers) {
       if (IsDynamicShard(processing_mode)) {
