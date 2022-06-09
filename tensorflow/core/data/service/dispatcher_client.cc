@@ -115,10 +115,13 @@ Status DataServiceDispatcherClient::GetSplit(int64_t job_id, int64_t task_id,
 }
 
 Status DataServiceDispatcherClient::RegisterDataset(
-    const DatasetDef& dataset, const DataServiceMetadata& metadata,
+    const DatasetDef& dataset,
+    const int64 split_node_index,
+    const DataServiceMetadata& metadata,
     int64_t& dataset_id) {
   TF_RETURN_IF_ERROR(EnsureInitialized());
   GetOrRegisterDatasetRequest req;
+  req.set_split_node_index(split_node_index);
   *req.mutable_dataset() = dataset;
   *req.mutable_metadata() = metadata;
 

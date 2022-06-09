@@ -68,6 +68,10 @@ void RegisterDatasetOp::Compute(OpKernelContext* ctx) {
   OP_REQUIRES(ctx, !address.empty(),
               errors::InvalidArgument(kAddress, " must be non-empty."));
 
+  int64 split_node_index;
+  OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kSplitNodeIndex, &split_node_index));
+  VLOG(0) << "RegisterDatasetOp::Compute split_node_index: " << split_node_index;
+
   tstring protocol;
   OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kProtocol, &protocol));
   OP_REQUIRES(ctx, !protocol.empty(),
@@ -112,7 +116,9 @@ void RegisterDatasetOp::Compute(OpKernelContext* ctx) {
   OP_REQUIRES_OK(
       ctx, grpc_util::Retry(
                [&]() {
-                 return client.RegisterDataset(dataset_def, metadata,
+                 return client.RegisterDataset(dataset_def,
+                                               split_node_index,
+                                               metadata,
                                                dataset_id);
                },
                /*description=*/

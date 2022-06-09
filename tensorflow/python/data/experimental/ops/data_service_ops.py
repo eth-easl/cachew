@@ -420,6 +420,7 @@ def _distribute(processing_mode,
                 max_request_pipelining_per_worker=1, # EASL original behaviour.
                 task_refresh_interval_hint_ms=None,
                 data_transfer_protocol=None,
+                split_node_index=0,
                 compression="AUTO",
                 target_workers="AUTO"):
   """A transformation that moves dataset processing to the tf.data service.
@@ -488,7 +489,9 @@ def _distribute(processing_mode,
   compression = _decide_compression(compression, data_transfer_protocol)
 
   def _apply_fn(dataset):  # pylint: disable=missing-docstring
-    dataset_id = _register_dataset(service, dataset, compression=compression)
+    dataset_id = _register_dataset(service, dataset,
+                                   split_node_index=split_node_index,
+                                   compression=compression)
     return _from_dataset_id(
         processing_mode,
         service,
@@ -755,7 +758,7 @@ def distribute(processing_mode,
       target_workers=target_workers)
 
 
-def _register_dataset(service, dataset, compression):
+def _register_dataset(service, dataset, split_node_index, compression):
   """Registers a dataset with the tf.data service.
 
   This transformation is similar to `register_dataset`, but supports additional
@@ -810,6 +813,7 @@ def _register_dataset(service, dataset, compression):
         dataset._variant_tensor,  # pylint: disable=protected-access
         address=address,
         protocol=protocol,
+        split_node_index=split_node_index,
         external_state_policy=external_state_policy.value,
         metadata=metadata.SerializeToString())
   else:

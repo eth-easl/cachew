@@ -43,6 +43,7 @@ limitations under the License.
 #include "tensorflow/core/data/service/journal.h"
 #include "tensorflow/core/data/service/worker.grpc.pb.h"
 #include "tensorflow/core/data/service/easl/cache_utils.h"
+#include "tensorflow/core/data/service/easl/split_pipeline_utils.h"
 #include "tensorflow/core/data/service/easl/scaling_utils.h"
 #include "tensorflow/core/data/service/easl/metadata_store.h"
 #include "tensorflow/core/data/standalone.h"
@@ -756,7 +757,8 @@ Status DataServiceDispatcherImpl::GetOrRegisterDataset(
 
   int64_t id;
   TF_RETURN_IF_ERROR(
-      RegisterDataset(fingerprint, dataset_def, request->metadata(), id));
+      RegisterDataset(fingerprint, dataset_def,
+                      request->split_node_index(), request->metadata(), id));
   if (!request->metadata().element_spec().empty()) {
     TF_RETURN_IF_ERROR(SetElementSpec(id, request->metadata().element_spec()));
   }
@@ -769,6 +771,7 @@ Status DataServiceDispatcherImpl::GetOrRegisterDataset(
 
 Status DataServiceDispatcherImpl::RegisterDataset(
     uint64 fingerprint, const DatasetDef& dataset,
+    int64 split_node_index,
     const DataServiceMetadata& metadata, int64_t& dataset_id)
     TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
   dataset_id = state_.NextAvailableDatasetId();
@@ -777,8 +780,14 @@ Status DataServiceDispatcherImpl::RegisterDataset(
   register_dataset->set_dataset_id(dataset_id);
   register_dataset->set_fingerprint(fingerprint);
   *register_dataset->mutable_metadata() = metadata;
+
+  // MUYU, directly modifying dataset by default
+  DatasetDef split_dataset;
+  TF_RETURN_IF_ERROR(service::easl::split_utils::DeleteAfterNode(
+                  dataset, config_, split_node_index, split_dataset));
+
   TF_RETURN_IF_ERROR(
-      dataset_store_->Put(DatasetKey(dataset_id, fingerprint), dataset));
+      dataset_store_->Put(DatasetKey(dataset_id, fingerprint), split_dataset));
 
   // EASL - Create and store put/get versions of this dataset def.
   DatasetDef put_dataset;

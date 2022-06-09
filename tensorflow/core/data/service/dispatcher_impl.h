@@ -189,6 +189,7 @@ class DataServiceDispatcherImpl {
   // Registers a dataset with the given fingerprint, storing the new dataset's
   // id in `dataset_id`.
   Status RegisterDataset(uint64 fingerprint, const DatasetDef& dataset,
+                         int64 split_node_index,
                          const DataServiceMetadata& metadata,
                          int64_t& dataset_id) TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
   // Sets the element spec of the dataset for the specified `dataset_id`.

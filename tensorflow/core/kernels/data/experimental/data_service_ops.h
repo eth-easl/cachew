@@ -33,6 +33,7 @@ class RegisterDatasetOp : public OpKernel {
  public:
   static constexpr const char* const kAddress = "address";
   static constexpr const char* const kProtocol = "protocol";
+  static constexpr const char* const kSplitNodeIndex = "split_node_index";
   static constexpr const char* const kExternalStatePolicy =
       "external_state_policy";
   static constexpr const char* const kElementSpec = "element_spec";

@@ -66,6 +66,7 @@ class DataServiceDispatcherClient : public DataServiceClientBase {
   // Registers a dataset with the tf.data service, and stores the generated
   // dataset id in `dataset_id`.
   Status RegisterDataset(const DatasetDef& dataset,
+                         const int64 split_node_index,
                          const DataServiceMetadata& metadata,
                          int64_t& dataset_id);
 
