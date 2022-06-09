@@ -88,6 +88,7 @@ constexpr char kAutotuneOpt[] = "autotune";
 constexpr char kSlackOpt[] = "slack";
 constexpr char kSlackPeriodOpt[] = "slack_period";
 constexpr char kMakeDeterministicOpt[] = "make_deterministic";
+constexpr char kAppendNodesAfterDsdoOpt[] = "append_nodes_after_dsdo";
 
 void DefaultOptimizationGraphRewrites(
     const Options& options, absl::flat_hash_set<tstring>* optimization_enabled,
@@ -116,6 +117,11 @@ void DefaultOptimizationGraphRewrites(
     if (optimization_options.optional_parallel_batch_case() !=
         OptimizationOptions::kParallelBatch) {
       optimization_default->insert(kParallelBatchOpt);
+    }
+    if (optimization_options.optional_append_nodes_after_dsdo_case() !=
+        OptimizationOptions::kAppendNodesAfterDsdo) {
+      VLOG(0) << "DEBUG: OptimizationOptions::kAppendNodesAfterDsdo - 1";
+      optimization_default->insert(kAppendNodesAfterDsdoOpt);
     }
   }
   if (OpDeterminismRequired()) {
@@ -183,6 +189,15 @@ void DefaultOptimizationGraphRewrites(
       optimization_enabled->insert(kShuffleAndRepeatFusionOpt);
     } else {
       optimization_disabled->insert(kShuffleAndRepeatFusionOpt);
+    }
+  }
+  if (optimization_options.optional_append_nodes_after_dsdo_case() ==
+      OptimizationOptions::kAppendNodesAfterDsdo) {
+    VLOG(0) << "DEBUG: OptimizationOptions::kAppendNodesAfterDsdo - 2";
+    if (optimization_options.append_nodes_after_dsdo()) {
+      optimization_enabled->insert(kAppendNodesAfterDsdoOpt);
+    } else {
+      optimization_disabled->insert(kAppendNodesAfterDsdoOpt);
     }
   }
 }

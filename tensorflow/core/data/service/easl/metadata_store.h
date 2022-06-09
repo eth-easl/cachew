@@ -145,7 +145,7 @@ class NodeMetrics {
 
     // Get or update the metrics of a worker
     Status UpdateWorkerMetrics(string worker_address, Metrics& metrics);
-    Status GetWorkerMetrics(string worker_address, 
+    Status GetWorkerMetrics(string worker_address,
       std::shared_ptr<Metrics>& metrics);
 
     // Dump metrics to string stream
@@ -174,6 +174,7 @@ class InputPipelineMetrics {
     // Get the metrics for a single node
     Status GetNodeMetrics(string long_name, 
       std::shared_ptr<NodeMetrics>& metrics);
+
     Status GetLastNodeMetrics(std::shared_ptr<NodeMetrics>& metrics);
     Status GetLastTFNodeMetrics(std::shared_ptr<NodeMetrics>& metrics);
     Status GetMarkerNodeMetrics(std::shared_ptr<NodeMetrics>& metrics);
@@ -181,6 +182,18 @@ class InputPipelineMetrics {
     // Get the metrics from the same worker for each node in the graph 
     Status GetWorkerMetrics(string worker_address, 
       NodeMetrics::MetricsCollection& metrics);
+
+    Status GetWorkerMetricsSplitLocal(
+            string worker_address,
+            double& active_time_after_marker_node,
+            int64& bytes_produced_marker_node,
+            int64& bytes_produced_last_node
+    );
+    Status GetWorkerMetricsSplitRemote(
+            string worker_address,
+            double& active_time_marker_node,
+            double& active_time_last_node
+    );
 
     // Methods for setting data
     Status UpdateNodeMetrics(string long_name, string worker_address, 
@@ -222,6 +235,7 @@ class JobMetrics {
     void DumpToStream(std::stringstream& ss);
 
     bool is_scaling_;
+    int64 split_node_index_;
     Performance last_performance_;
     string job_type_;
     string name_;
@@ -319,6 +333,11 @@ class MetadataStore {
   Status SetJobIsScaling(int64 job_id);
   Status UnsetJobIsScaling(int64 job_id);
   Status IsJobScaling(int64 job_id, bool& is_scaling);
+
+  Status SetJobSplitNodeIndex(int64 job_id, int64 split_node_index);
+  Status GetJobSplitNodeIndex(int64 job_id, int64& split_node_index);
+  Status GetJobSplitNodeIndex(uint64 fingerprint, string job_name,
+                              int64& split_node_index);
 
   Status GetLastPerformance(int64 job_id, Performance& last_performance);
   Status SetLastPerformance(int64 job_id, Performance last_performance);

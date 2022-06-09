@@ -897,6 +897,50 @@ tf_kernel_library(
     ],
 )
 
+tf_kernel_library(
+    name = "split_marker_op",
+    srcs = ["split/split_marker_op.cc"],
+    hdrs = ["split/split_marker_op.h"],
+    deps = [
+        "//tensorflow/core:core_cpu_internal",
+        "//tensorflow/core:dataset_ops_op_lib",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:lib_internal",
+        "//tensorflow/core:protos_all_cc",
+        "//tensorflow/core/framework:op_requires",
+        "//tensorflow/core/data:name_utils",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+tf_kernel_library(
+    name = "split_second_half_op",
+    srcs = ["split/split_second_half.cpp"],
+    hdrs = ["split/split_second_half.h"],
+    deps = [
+        "//tensorflow/core/data/service:split_pipeline_state",
+        "//tensorflow/core:core_cpu_internal",
+        "//tensorflow/core/framework:op_requires",
+        "//tensorflow/core:protos_all_cc",
+        "//tensorflow/core:dataset_ops_op_lib",
+        "//tensorflow/core/data:name_utils",
+        "//tensorflow/core/grappler/optimizers/data:graph_utils",
+        "//tensorflow/core/grappler/optimizers/data:optimizer_base",
+        "//tensorflow/core/data:serialization_utils",
+        "//tensorflow/core/grappler:mutable_graph_view",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:framework_internal",
+        "//tensorflow/core:lib",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler:op_types",
+        "//tensorflow/core/grappler:utils",
+        "//tensorflow/core/grappler/clusters:cluster",
+        "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "//tensorflow/core:lib_internal",
+    ],
+)
+
 # --- simonsom ---
 
 cc_library(
@@ -979,6 +1023,8 @@ tf_kernel_library(
         ":io_ops",
         ":map_and_batch_dataset_op",
         ":marker_op",
+        ":split_marker_op",
+        ":split_second_half_op",
         ":matching_files_dataset_op",
         ":non_serializable_dataset_op",
         ":lookup_ops",
@@ -1016,3 +1062,4 @@ tf_kernel_library(
         ":compute_batch_size_op",
     ]),
 )
+

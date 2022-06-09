@@ -112,6 +112,7 @@ bool IsMapIdentity(const NodeDef& map_node, const MutableGraphView& graph) {
     return false;
   }
 
+
   // We are looking only for map(lambda *x: x) nodes.
 
   // Don't eliminate map nodes with captured arguments.
@@ -119,8 +120,10 @@ bool IsMapIdentity(const NodeDef& map_node, const MutableGraphView& graph) {
 
   FunctionLibraryDefinition function_library(OpRegistry::Global(),
                                              graph.graph()->library());
+
   const FunctionDef* fdef =
       function_library.Find(map_node.attr().at("f").func().name());
+
 
   // Don't eliminate map nodes with stateful functions.
   if (function_utils::IsFunctionStateful(function_library, *fdef)) return false;
@@ -151,6 +154,12 @@ Status NoOpElimination::OptimizeAndCollectStats(Cluster* cluster,
                                                 GraphDef* output,
                                                 OptimizationStats* stats) {
   *output = item.graph;
+
+//  VLOG(0) << "NoOpElimination::Print all functions";
+//  for (const auto& func: output->library().function()) {
+//    VLOG(0) << func.signature().name();
+//  }
+
   MutableGraphView graph(output);
   absl::flat_hash_set<string> nodes_to_delete;
   for (const NodeDef& node : item.graph.node()) {

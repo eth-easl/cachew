@@ -138,7 +138,7 @@ void DispatcherState::CreateJob(const CreateJobUpdate& create_job) {
       job_id, create_job.dataset_id(), create_job.processing_mode_def(),
       create_job.num_split_providers(), named_job_key, num_consumers,
       create_job.job_type(), create_job.target_worker_count(),
-      create_job.target_workers());
+      create_job.target_workers(), create_job.split_node_index());
   DCHECK(!jobs_.contains(job_id));
   jobs_[job_id] = job;
   tasks_by_job_[job_id] = TasksById();

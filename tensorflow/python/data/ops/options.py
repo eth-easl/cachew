@@ -363,6 +363,15 @@ class OptimizationOptions(options_lib.OptionsBase):
       docstring="Whether to fuse shuffle and repeat transformations. If None, "
       "defaults to True.")
 
+  append_nodes_after_dsdo = options_lib.create_option(
+    name="append_nodes_after_dsdo",
+    ty=bool,
+    docstring="""
+      Graph Rewriting Options for pipeline splitting
+      Appends all ops after the split node to the DataServiceDatasetOp
+    """
+  )
+
   def _to_proto(self):
     pb = dataset_options_pb2.OptimizationOptions()
     if self.apply_default_optimizations is not None:
@@ -383,6 +392,8 @@ class OptimizationOptions(options_lib.OptionsBase):
       pb.parallel_batch = self.parallel_batch
     if self.shuffle_and_repeat_fusion is not None:
       pb.shuffle_and_repeat_fusion = self.shuffle_and_repeat_fusion
+    if self.append_nodes_after_dsdo is not None:
+      pb.append_nodes_after_dsdo = self.append_nodes_after_dsdo
     return pb
 
   def _from_proto(self, pb):
@@ -404,6 +415,8 @@ class OptimizationOptions(options_lib.OptionsBase):
       self.parallel_batch = pb.parallel_batch
     if pb.WhichOneof("optional_shuffle_and_repeat_fusion") is not None:
       self.shuffle_and_repeat_fusion = pb.shuffle_and_repeat_fusion
+    if pb.WhichOneof("optional_append_nodes_after_dsdo") is not None:
+      self.append_nodes_after_dsdo = pb.append_nodes_after_dsdo
 
   def _set_mutable(self, mutable):
     """Change the mutability value to `mutable` on this options and children."""
@@ -511,6 +524,7 @@ class Options(options_lib.OptionsBase):
       "The distribution strategy options associated with the dataset. See "
       "`tf.data.experimental.DistributeOptions` for more details.",
       default_factory=DistributeOptions)
+
 
   experimental_external_state_policy = options_lib.create_option(
       name="experimental_external_state_policy",

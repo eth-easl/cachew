@@ -210,6 +210,7 @@ void NodeMetrics::DumpToStream(std::stringstream &ss) {
   ss << "}";
 }
 
+
 // Input pipeline metrics
 Status InputPipelineMetrics::GetNodeMetrics(string long_name, 
   std::shared_ptr<NodeMetrics>& metrics) {
@@ -260,6 +261,50 @@ Status InputPipelineMetrics::GetWorkerMetrics(string worker_address,
   return Status::OK();
 }
 
+Status InputPipelineMetrics::GetWorkerMetricsSplitLocal(
+        string worker_address,
+        double& active_time_after_marker_node,
+        int64& bytes_produced_marker_node,
+        int64& bytes_produced_last_node
+        ) {
+  NodeMetrics::MetricsCollection metrics;
+  GetWorkerMetrics(worker_address, metrics);
+
+  double active_time_marker_node = 10000, active_time_last_node = 10000;
+  for(auto pair : metrics){
+    if (pair.first == maker_node_name_) {
+      active_time_marker_node = pair.second->active_time_ms();
+      bytes_produced_marker_node = pair.second->bytes_per_s();
+    }
+    if (pair.first == last_node_name_) {
+      active_time_last_node = pair.second->active_time_ms();
+      bytes_produced_last_node = pair.second->bytes_per_s();
+    }
+  }
+  active_time_after_marker_node = active_time_last_node - active_time_marker_node;
+  return Status::OK();
+}
+
+Status InputPipelineMetrics::GetWorkerMetricsSplitRemote(
+        string worker_address,
+        double& active_time_marker_node,
+        double& active_time_last_node
+        ) {
+
+  NodeMetrics::MetricsCollection metrics;
+  GetWorkerMetrics(worker_address, metrics);
+  for(auto pair : metrics){
+    if (pair.first == maker_node_name_) {
+      active_time_marker_node = pair.second->active_time_ms();
+    }
+    if (pair.first == last_node_name_) {
+      active_time_last_node = pair.second->active_time_ms();
+    }
+  }
+
+  return Status::OK();
+}
+
 Status InputPipelineMetrics::UpdateNodeMetrics(string long_name,
   string worker_address, NodeMetrics::Metrics& metrics) {
   auto it = metrics_.find(long_name); 
@@ -305,7 +350,6 @@ void InputPipelineMetrics::DumpToStream(std::stringstream& ss){
   ss << std::endl << "}";
 }
 
-
 // Job metrics
 JobMetrics::JobMetrics(int64 job_id,
                        std::string& job_type,
@@ -325,7 +369,8 @@ JobMetrics::JobMetrics(int64 job_id,
         is_scaling_(is_scaling),
         target_worker_count_(1),
         same_scale_counter_(0),
-        last_performance_(Performance::NA) {
+        last_performance_(Performance::NA),
+        split_node_index_(-1) {
           model_metrics_ = std::make_shared<ModelMetrics>();
           input_pipeline_metrics_ = std::make_shared<InputPipelineMetrics>();
         }
@@ -477,6 +522,9 @@ Status MetadataStore::GetInputPipelineMetrics(int64 job_id,
   if (s.ok()) {
     metrics = job_metrics->input_pipeline_metrics_;
   }
+  else {
+    metrics = NULL;
+  }
   return s;
 }
 
@@ -607,6 +655,7 @@ Status MetadataStore::UpdateInputPipelineMetrics(int64 job_id,
   return s;
 }
 
+
 Status MetadataStore::UpdateFingerprintKeyJobMetrics(int64 job_id) {
   auto it = job_metadata_.find(job_id);
   if (it == job_metadata_.end()) {
@@ -625,6 +674,8 @@ Status MetadataStore::UpdateFingerprintNameKeyJobMetrics(int64 job_id) {
   }
 
   auto job_metrics = it->second;
+  VLOG(0) << "UpdateFingerprintNameKeyJobMetrics: split_node_index "
+    << job_metrics->split_node_index_;
   if (job_metrics->name_ == "") {
     return errors::NotFound("Job with id ", job_id, " and name '",
       job_metrics->name_, "' has empty name.");
@@ -731,6 +782,28 @@ Status MetadataStore::IsJobScaling(int64 job_id, bool& is_scaling) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
   is_scaling = jobMetrics->is_scaling_;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobSplitNodeIndex(int64 job_id, int64 split_node_index) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->split_node_index_ = split_node_index;
+  return Status::OK();
+}
+
+Status MetadataStore::GetJobSplitNodeIndex(int64 job_id, int64& split_node_index) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  split_node_index = jobMetrics->split_node_index_;
+  return Status::OK();
+}
+
+Status MetadataStore::GetJobSplitNodeIndex(uint64 fingerprint, string job_name,
+                                           int64& split_node_index) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetricsByDatasetFingerprintAndName(fingerprint, job_name, jobMetrics));
+  split_node_index = jobMetrics->split_node_index_;
   return Status::OK();
 }
 

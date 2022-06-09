@@ -21,6 +21,8 @@ cc_library(
         ":add_put_op",
         ":add_put_op_at_marker",
         ":add_get_op_at_marker",
+        ":delete_nodes_after",
+        ":append_nodes_after_dsdo",
         ":append_forty_two",
         ":autotune_buffer_sizes",
         ":batch_parallelization",
@@ -1033,3 +1035,50 @@ cc_library(
 # ------------------------------------------------------------------------------
 # EASL 
 # ------------------------------------------------------------------------------
+
+# EASL Pipeline Split Optimizer
+cc_library(
+    name = "delete_nodes_after",
+    srcs = ["easl_optimizers/delete_nodes_after.cc"],
+    hdrs = ["easl_optimizers/delete_nodes_after.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":graph_utils",
+        ":optimizer_base",
+        "//tensorflow/core/grappler:mutable_graph_view",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:framework_internal",
+        "//tensorflow/core:lib",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler:op_types",
+        "//tensorflow/core/grappler:utils",
+        "//tensorflow/core/grappler/clusters:cluster",
+        "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "//tensorflow/core:lib_internal",
+    ] + tf_protos_all(),
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "append_nodes_after_dsdo",
+    srcs = ["easl_optimizers/append_nodes_after_dsdo.cc"],
+    hdrs = ["easl_optimizers/append_nodes_after_dsdo.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":graph_utils",
+        ":function_utils",
+        ":optimizer_base",
+        "//tensorflow/core/data/service:split_pipeline_state",
+        "//tensorflow/core/grappler:mutable_graph_view",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:framework_internal",
+        "//tensorflow/core:lib",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler:op_types",
+        "//tensorflow/core/grappler:utils",
+        "//tensorflow/core/grappler/clusters:cluster",
+        "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "//tensorflow/core:lib_internal",
+    ] + tf_protos_all(),
+    alwayslink = 1,
+)

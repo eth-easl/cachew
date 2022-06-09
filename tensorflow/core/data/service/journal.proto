@@ -70,6 +70,7 @@ message CreateJobUpdate {
   // EASL
   string job_type = 13; // i.e read, write, cache
   int64 target_worker_count = 14; // determined by elasticity policy
+  int64 split_node_index = 15; // split policy
 
 }
 

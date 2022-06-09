@@ -88,6 +88,7 @@ Status Dataset::FromGraph(Params params, const GraphDef& graph_def,
   // Instantiate enough of the TF runtime to run `graph` on a single CPU device.
   auto device_mgr = absl::make_unique<StaticDeviceMgr>(DeviceFactory::NewDevice(
       "CPU", params.session_options, "/job:localhost/replica:0/task:0"));
+
   Device* device = device_mgr->ListDevices()[0];
   // Create a copy of the `FunctionLibraryDefinition` to extend lifetime beyond
   // the lifetime of `graph`.

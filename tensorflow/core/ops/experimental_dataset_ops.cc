@@ -1447,6 +1447,7 @@ REGISTER_OP("RegisterDataset")
     .Input("dataset: variant")
     .Input("address: string")
     .Input("protocol: string")
+    .Input("split_node_index: int64")
     .Output("dataset_id: int64")
     .Attr("external_state_policy: int")
     .Attr("element_spec: string = ''")
@@ -1504,5 +1505,26 @@ REGISTER_OP("MarkerDataset")
         .Attr("output_shapes: list(shape) >= 1")
         .SetDoNotOptimize()
         .SetShapeFn(shape_inference::ScalarShape);
+
+REGISTER_OP("SplitMarkerDataset")
+      .Input("input_dataset: variant")
+      .Output("handle: variant")
+      .Attr("output_types: list(type) >= 1")
+      .Attr("output_shapes: list(shape) >= 1")
+      .SetDoNotOptimize()
+      .SetShapeFn(shape_inference::ScalarShape);
+
+
+REGISTER_OP("SplitSecondHalf")
+  .Input("input_dataset: variant")
+  .Input("split_node_index: int64")
+  .Input("variant_tensor: variant")
+  .Output("handle: variant")
+  .Attr("output_types: list(type) >= 1")
+  .Attr("output_shapes: list(shape) >= 1")
+  .SetDoNotOptimize()
+  .SetTypeConstructor(full_type::VariadicTensorContainer(TFT_DATASET,
+                                                       "output_types"))
+  .SetShapeFn(shape_inference::ScalarShape);
 
 }  // namespace tensorflow

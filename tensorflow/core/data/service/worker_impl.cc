@@ -317,9 +317,12 @@ Status DataServiceWorkerImpl::EnsureTaskInitialized(
 StatusOr<DatasetDef> DataServiceWorkerImpl::GetDatasetDef(
     const TaskDef& task_def) const {
   switch (task_def.dataset_case()) {
-    case TaskDef::kDatasetDef:
+    case TaskDef::kDatasetDef: {
+      VLOG(0) << "In branch kDatasetDef";
       return task_def.dataset_def();
+    }
     case TaskDef::kPath: {
+      VLOG(0) << "In branch kPath";
       DatasetDef def;
       Status s = ReadDatasetDef(task_def.path(), def);
       if (!s.ok()) {

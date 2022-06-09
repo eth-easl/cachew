@@ -420,6 +420,7 @@ def _distribute(processing_mode,
                 max_request_pipelining_per_worker=1, # EASL original behaviour.
                 task_refresh_interval_hint_ms=None,
                 data_transfer_protocol=None,
+                split_node_index=0,
                 compression="AUTO",
                 target_workers="AUTO"):
   """A transformation that moves dataset processing to the tf.data service.
@@ -488,12 +489,16 @@ def _distribute(processing_mode,
   compression = _decide_compression(compression, data_transfer_protocol)
 
   def _apply_fn(dataset):  # pylint: disable=missing-docstring
-    dataset_id = _register_dataset(service, dataset, compression=compression)
+    dataset_id = _register_dataset(service, dataset,
+                                   split_node_index=split_node_index,
+                                   compression=compression)
     return _from_dataset_id(
         processing_mode,
         service,
         dataset_id,
         dataset.element_spec,
+        split_node_index,
+        dataset._variant_tensor,
         job_name=job_name,
         consumer_index=consumer_index,
         num_consumers=num_consumers,
@@ -516,6 +521,7 @@ def distribute(processing_mode,
                max_outstanding_requests=None,
                max_request_pipelining_per_worker=1, # like default behaviour.
                data_transfer_protocol=None,
+               split_node_index=0,
                compression="AUTO",
                target_workers="AUTO"):
   """A transformation that moves dataset processing to the tf.data service.
@@ -750,12 +756,13 @@ def distribute(processing_mode,
       num_consumers=num_consumers,
       max_outstanding_requests=max_outstanding_requests,
       max_request_pipelining_per_worker=max_request_pipelining_per_worker,
+      split_node_index=split_node_index,
       data_transfer_protocol=data_transfer_protocol,
       compression=compression,
       target_workers=target_workers)
 
 
-def _register_dataset(service, dataset, compression):
+def _register_dataset(service, dataset, split_node_index, compression):
   """Registers a dataset with the tf.data service.
 
   This transformation is similar to `register_dataset`, but supports additional
@@ -810,6 +817,7 @@ def _register_dataset(service, dataset, compression):
         dataset._variant_tensor,  # pylint: disable=protected-access
         address=address,
         protocol=protocol,
+        split_node_index=split_node_index,
         external_state_policy=external_state_policy.value,
         metadata=metadata.SerializeToString())
   else:
@@ -876,6 +884,8 @@ def _from_dataset_id(processing_mode,
                      service,
                      dataset_id,
                      element_spec,
+                     split_node_index, # Split Dataset
+                     variant_tensor,
                      job_name=None,
                      consumer_index=None,
                      num_consumers=None,
@@ -1044,6 +1054,14 @@ def _from_dataset_id(processing_mode,
       task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
       compression=compression,
       target_workers=target_workers)
+
+  # dataset = gen_experimental_dataset_ops.split_second_half(
+  #   dataset,
+  #   split_node_index,
+  #   variant_tensor
+  # )
+  dataset = dataset_ops.SplitSecondHalfDataset(dataset, split_node_index, variant_tensor)
+
   if not compat.forward_compatible(2021, 12, 10):
     if compression == COMPRESSION_AUTO:
       dataset = dataset.map(
@@ -1054,7 +1072,9 @@ def _from_dataset_id(processing_mode,
   if job_name is not None:
     options = options_lib.Options()
     options.experimental_distribute.auto_shard_policy = AutoShardPolicy.OFF
+    options.experimental_optimization.append_nodes_after_dsdo = True
     dataset = dataset.with_options(options)
+
   return dataset
 
 

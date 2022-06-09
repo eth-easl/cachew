@@ -88,12 +88,13 @@ message GetVersionResponse {
   int64 version = 1;
 }
 
-// Next tag: 4
+// Next tag: 5
 message GetOrRegisterDatasetRequest {
   // The dataset to register.
   DatasetDef dataset = 1;
   // Metadata related to tf.data service.
   DataServiceMetadata metadata = 3;
+  int64 split_node_index = 4;
   reserved 2;
 }
 
@@ -155,11 +156,12 @@ message GetOrCreateJobRequest {
   TargetWorkers target_workers = 9;
 }
 
-// Next tag: 2
+// Next tag: 3
 message GetOrCreateJobResponse {
   // An id for the client that will read from the job. When the client is done
   // with the job, they should call ReleaseJobClient with this id.
   int64 job_client_id = 1;
+  int64 split_node_index = 2;
 }
 
 // Next tag: 4
@@ -207,7 +209,7 @@ message ClientHeartbeatRequest {
   double result_queue_size = 10;
 }
 
-// Next tag: 5
+// Next tag: 6
 message ClientHeartbeatResponse {
   // A list of all tasks that the client should read from.
   repeated TaskInfo task_info = 1;
@@ -220,6 +222,8 @@ message ClientHeartbeatResponse {
   // tf.data service deployment mode. Supported values are "REMOTE",
   // "COLOCATED", and "HYBRID". If unspecified, it is assumed to be "REMOTE".
   DeploymentMode deployment_mode = 4;
+
+  int64 split_node_index = 5;
 }
 
 // Next tag: 3

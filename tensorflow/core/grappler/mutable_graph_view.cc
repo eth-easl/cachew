@@ -1523,6 +1523,7 @@ Status MutableGraphView::CheckNodesCanBeDeleted(
         for (const auto& fanout : it->second) {
           // Check if fanouts are of nodes to be deleted, and if so, they can be
           // ignored, as they will be removed also.
+          VLOG(0) << "Node: " << node->name() << " has fanout node " << fanout.node->name();
           if (!nodes_to_delete.contains(fanout.node->name())) {
             // Removing node will leave graph in an invalid state.
             has_retained_fanout = true;

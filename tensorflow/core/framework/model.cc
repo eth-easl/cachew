@@ -1725,8 +1725,6 @@ Model::ModelMetrics Model::CollectMetrics() {
   Node::NodeValues node_times;
   Node::NodeValues final_times;
 
-  VLOG(3) << "EASL - Trying to collect metrics";
-
   FlushMetrics();
   {
     tf_shared_lock l(mu_);
@@ -1734,13 +1732,15 @@ Model::ModelMetrics Model::CollectMetrics() {
       queue.push_back(output_);
       output_->TotalProcessingTime(&node_times);
       final_times = Node::NodeValues(node_times);
-      last_node_name = output_->inputs().front()->inputs().front()->long_name();
+//      VLOG(0) << output_->long_name();
+//      VLOG(0) << output_->inputs().front()->long_name();
+//      last_node_name = output_->inputs().front()->inputs().front()->long_name();
+//      VLOG(0) << last_node_name;
       last_tf_node_name = output_->long_name();
+      last_node_name = output_->long_name();
+//      VLOG(0) << last_tf_node_name;
     }
   }
-
-  VLOG(3) << "(CollectMetrics) Last node name " << last_node_name;
-  VLOG(3) << "(CollectMetrics) Last TF node name " << last_tf_node_name;
 
   while (!queue.empty()) {
     auto node = queue.front();
@@ -1751,11 +1751,15 @@ Model::ModelMetrics Model::CollectMetrics() {
       queue.push_back(input);
     }
 
-    if (marker_node_name == "" && node->name() == "MarkerDataset:source_cache") {
+    // By muyu: this will make the cachew cache policy no longer working
+//    if (marker_node_name == "" && node->name() == "MarkerDataset:source_cache") {
+//      marker_node_name = node->long_name();
+//    }
+    if (marker_node_name == "" && node->name() == "SplitMarkerDataset") {
       marker_node_name = node->long_name();
     }
 
-    VLOG(3) << "BFS: current node " << node->long_name() << " short name " << node->name();
+//    VLOG(0) << "BFS: current node " << node->long_name() << " short name " << node->name();
 
     // prefix_times[node->long_name()] = node->TotalProcessingTime(nullptr);
     auto node_metrics = node->SnapshotCurrentMetrics();

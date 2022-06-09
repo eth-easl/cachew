@@ -35,8 +35,10 @@ namespace {
 using ConfigMap =
     std::map<string, tensorflow::RewriterConfig_CustomGraphOptimizer>;
 
+
 // tf.data optimizations, in the order we want to perform them.
-constexpr std::array<const char*, 24> kTFDataOptimizations = {
+constexpr std::array<const char*, 25> kTFDataOptimizations = {
+    "append_nodes_after_dsdo",
     "noop_elimination",
     "disable_intra_op_parallelism",
     "use_private_thread_pool",
@@ -61,6 +63,10 @@ constexpr std::array<const char*, 24> kTFDataOptimizations = {
     "add_put_op_at_marker",
     "add_get_op_at_marker",
     "make_deterministic"};
+
+//constexpr std::array<const char*, 1> kTFDataOptimizations = {
+//        "append_nodes_after_dsdo"
+//};
 
 // Parses a list of string optimizer configurations into a map from
 // optimizer name -> rewriter config for that optimizer.
@@ -171,8 +177,10 @@ Status TFDataMetaOptimizer::ApplyOptimization(const string& name,
 
   const auto* optimizer = gtl::FindOrNull(enabled_optimizers_, name);
   if (!optimizer) {
+//    VLOG(0) << "Optimizer: " << name << " not found";
     return Status::OK();
   }
+//  VLOG(0) << "Optimizer: " << name << " was found";
 
   GraphDef result;
   (*optimizer)->set_deadline_usec(this->deadline_usec());

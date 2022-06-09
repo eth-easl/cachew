@@ -215,6 +215,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
   std::unique_ptr<IteratorBase> MakeIteratorInternal(
       const string& prefix) const override {
+    VLOG(0) << "DataServiceDatasetOp::Dataset::MakeIteratorInternal::iteration_counter_"
+      << iteration_counter_;
+
     return absl::make_unique<Iterator>(
         Iterator::Params{this,
                          name_utils::IteratorPrefix(kDatasetType, prefix)},
@@ -409,6 +412,10 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         key.value().set_job_name(std::string(dataset()->job_name_));
         key.value().set_job_name_index(iterator_index_);
       }
+
+      VLOG(0) << "DataServiceDatasetOp::Dataset::Iterator:job_key: "
+        << key.value().job_name() << ", " << key.value().job_name_index();
+
       TF_RETURN_IF_ERROR(grpc_util::Retry(
           [&]() {
             return dispatcher_->GetOrCreateJob(
@@ -1138,14 +1145,14 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       VLOG(4) << "Searching for the next task to process.";
-      if (ShouldProcessLocalTask()) {
-        std::shared_ptr<Task> task = GetLocalTaskToProcess();
-        if (task) {
-          VLOG(4) << "Selected a local task to process: "
-                  << task->info.ShortDebugString();
-          return task;
-        }
-      }
+//      if (ShouldProcessLocalTask()) {
+//        std::shared_ptr<Task> task = GetLocalTaskToProcess();
+//        if (task) {
+//          VLOG(4) << "Selected a local task to process: "
+//                  << task->info.ShortDebugString();
+//          return task;
+//        }
+//      }
 
       if (ShouldProcessAnyTask()) {
         std::shared_ptr<Task> task = GetAnyTaskToProcess();
@@ -1343,10 +1350,22 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       if (enqueue_result && !result.end_of_sequence) {
+        uint64 current_micro_timestamp = Env::Default()->NowMicros();
+        std::string data_source = task.info.worker_address();
         if (local_tasks_.contains(task.info.worker_address())) {
           local_results_buffer_.push(std::move(result));
         } else {
           results_.push(std::move(result));
+        }
+        const char* log_location = std::getenv("EASL_MUYU_FROM_WHICH_WORKER_METRICS");
+        if (log_location) {
+          std::ofstream file(log_location, std::ios_base::app);
+
+          file << current_micro_timestamp << ","
+               << data_source << "\n";
+
+          file.flush();
+          file.clear();
         }
       }
       get_next_cv_.notify_all();
@@ -1413,7 +1432,15 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       GetElementResult get_element_result;
       for (int num_retries = 0;; ++num_retries) {
         Status s = TryGetElement(*task, get_element_result);
-        if (s.ok()) break;
+
+        if (s.ok()) {
+//          VLOG(0) << "Got Element ";
+//          auto res = get_element_result.components;
+//          for (const auto & tensor: res) {
+//            VLOG(0) << tensor.DebugString();
+//          }
+          break;
+        }
         // Retry all errors that could indicate preemption.
         if (!errors::IsUnavailable(s) && !errors::IsCancelled(s) &&
             !errors::IsAborted(s) && !errors::IsDeadlineExceeded(s)) {
@@ -1687,6 +1714,8 @@ DataServiceDatasetOp::DataServiceDatasetOp(OpKernelConstruction* ctx)
 
 void DataServiceDatasetOp::MakeDataset(OpKernelContext* ctx,
                                        DatasetBase** output) {
+  VLOG(0) << "DataServiceDatasetOp::Dataset::MakeDataset";
+
   int64_t dataset_id;
   OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kDatasetId, &dataset_id));
 

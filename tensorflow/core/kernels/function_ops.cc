@@ -52,6 +52,7 @@ void ArgOp::Compute(OpKernelContext* ctx) {
     if (val.dtype() == dtype_) {
       return Status::OK();
     } else {
+
       return errors::InvalidArgument("Type mismatch: actual ",
                                      DataTypeString(val.dtype()),
                                      " vs. expect ", DataTypeString(dtype_));

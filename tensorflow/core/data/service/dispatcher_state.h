@@ -156,7 +156,8 @@ class DispatcherState {
                  absl::optional<int64_t> num_consumers,
                  const std::string& job_type,
                  int64_t target_worker_count,
-                  TargetWorkers target_workers)
+                  TargetWorkers target_workers,
+                  int64_t split_node_index)
         : job_id(job_id),
           dataset_id(dataset_id),
           processing_mode(processing_mode),
@@ -164,7 +165,8 @@ class DispatcherState {
           num_consumers(num_consumers),
           job_type(job_type),
           target_worker_count(target_worker_count),
-          target_workers(target_workers) {
+          target_workers(target_workers),
+          split_node_index(split_node_index) {
       if (IsDynamicShard(processing_mode)) {
         distributed_epoch_state = DistributedEpochState(num_split_providers);
       }
@@ -195,6 +197,7 @@ class DispatcherState {
     bool garbage_collected = false;
     // EASL
     const std::string job_type;
+    int64_t split_node_index = 0; // for splitting
     int64_t target_worker_count; // Non-constant, can be dynamically adjusted.
     int64_t current_worker_count = 0;
   };
