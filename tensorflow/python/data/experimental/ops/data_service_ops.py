@@ -497,6 +497,8 @@ def _distribute(processing_mode,
         service,
         dataset_id,
         dataset.element_spec,
+        split_node_index,
+        dataset._variant_tensor,
         job_name=job_name,
         consumer_index=consumer_index,
         num_consumers=num_consumers,
@@ -880,6 +882,8 @@ def _from_dataset_id(processing_mode,
                      service,
                      dataset_id,
                      element_spec,
+                     split_node_index, # Split Dataset
+                     variant_tensor,
                      job_name=None,
                      consumer_index=None,
                      num_consumers=None,
@@ -1048,6 +1052,12 @@ def _from_dataset_id(processing_mode,
       task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
       compression=compression,
       target_workers=target_workers)
+
+  dataset = gen_experimental_dataset_ops.split_second_half(
+    dataset,
+    split_node_index,
+    variant_tensor
+  )
   if not compat.forward_compatible(2021, 12, 10):
     if compression == COMPRESSION_AUTO:
       dataset = dataset.map(

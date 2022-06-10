@@ -897,6 +897,31 @@ tf_kernel_library(
     ],
 )
 
+tf_kernel_library(
+    name = "split_second_half_op",
+    srcs = ["split/split_second_half.cpp"],
+    hdrs = ["split/split_second_half.h"],
+    deps = [
+        "//tensorflow/core/data:name_utils",
+        "//tensorflow/core:dataset_ops_op_lib",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:lib_internal",
+        ":graph_utils",
+        ":optimizer_base",
+        "//tensorflow/core/grappler:mutable_graph_view",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:framework_internal",
+        "//tensorflow/core:lib",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler:op_types",
+        "//tensorflow/core/grappler:utils",
+        "//tensorflow/core/grappler/clusters:cluster",
+        "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "//tensorflow/core:lib_internal",
+    ],
+)
+
 # --- simonsom ---
 
 cc_library(
@@ -1016,3 +1041,4 @@ tf_kernel_library(
         ":compute_batch_size_op",
     ]),
 )
+

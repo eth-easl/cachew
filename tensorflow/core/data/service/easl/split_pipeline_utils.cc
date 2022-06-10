@@ -6,8 +6,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/core/grappler/mutable_graph_view.h"
-#include "tensorflow/core/grappler/optimizers/data/easl_optimizers/add_put_op.h"
-#include "tensorflow/core/grappler/optimizers/data/easl_optimizers/add_get_op.h"
 #include "tensorflow/core/grappler/optimizers/data/graph_utils.h"
 #include "tensorflow/core/grappler/utils/graph_view.h"
 #include "tensorflow/core/platform/errors.h"

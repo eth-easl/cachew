@@ -1568,6 +1568,10 @@ class DatasetV2(collections_abc.Iterable, tracking_base.Trackable,
   def forty_two(self):
     return FortyTwoDataset(self)
 
+  def split_second_half(self):
+    return SplitSecondHalfDataset(self)
+
+
   def skip(self, count, name=None):
     """Creates a `Dataset` that skips `count` elements from this dataset.
 
@@ -4840,6 +4844,12 @@ class FortyTwoDataset(UnaryUnchangedStructureDataset):
     variant_tensor = gen_dataset_ops.forty_two_dataset(input_dataset._variant_tensor, **self._flat_structure)
     super(FortyTwoDataset, self).__init__(input_dataset, variant_tensor)
 
+
+class SplitSecondHalfDataset(UnaryUnchangedStructureDataset):
+  def __init__(self, input_dataset):
+      self._input_dataset = input_dataset
+      variant_tensor = ged_ops.split_second_half_dataset(input_dataset._variant_tensor, **self._flat_structure)
+      super(SplitSecondHalfDataset, self).__init__(input_dataset, variant_tensor)
 
 
 class SkipDataset(UnaryUnchangedStructureDataset):
