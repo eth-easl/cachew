@@ -521,6 +521,7 @@ def distribute(processing_mode,
                max_outstanding_requests=None,
                max_request_pipelining_per_worker=1, # like default behaviour.
                data_transfer_protocol=None,
+               split_node_index=0,
                compression="AUTO",
                target_workers="AUTO"):
   """A transformation that moves dataset processing to the tf.data service.
@@ -755,6 +756,7 @@ def distribute(processing_mode,
       num_consumers=num_consumers,
       max_outstanding_requests=max_outstanding_requests,
       max_request_pipelining_per_worker=max_request_pipelining_per_worker,
+      split_node_index=split_node_index,
       data_transfer_protocol=data_transfer_protocol,
       compression=compression,
       target_workers=target_workers)

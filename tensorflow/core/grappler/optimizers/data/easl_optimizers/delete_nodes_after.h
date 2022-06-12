@@ -8,6 +8,7 @@
 #include "tensorflow/core/grappler/mutable_graph_view.h"
 #include "tensorflow/core/grappler/optimizers/data/optimizer_base.h"
 
+
 namespace tensorflow {
 namespace grappler {
 namespace easl {
@@ -27,10 +28,13 @@ public:
       config_ = *config;
       return Status::OK();
     }
+// Deprecated
+//    void PrintChainOfGraph(NodeDef* sink_node,
+//                           GraphDef* output,
+//                           int64 split_node_index);
 
-    void PrintChainOfGraph(NodeDef* sink_node,
-                           GraphDef* output,
-                           int64 split_node_index);
+    void BFSGraph(NodeDef* sink_node,
+                 GraphDef* output);
 
     Status ApplyOptimization(MutableGraphView &graph,
                              NodeDef* sink_node,

@@ -24,30 +24,62 @@ namespace {
     constexpr char kSplitNodeIndex[] = "split_node_index";
 }
 
-void DeleteNodesAfter::PrintChainOfGraph(NodeDef* sink_node,
-                       GraphDef* output,
-                       int64 split_node_index) {
-  VLOG(0) << "(DeleteNodesAfter::PrintGraphChain) start ----";
-  NodeDef* current_node = sink_node;
-  int64 cur_pos_from_back = 0;
+void DeleteNodesAfter::BFSGraph(NodeDef* sink_node,
+                                GraphDef* output) {
+  VLOG(0) << "(DelteNodesAfter::BFSGraph) start from sink node";
+  std::queue<NodeDef*> q;
+  absl::flat_hash_set<NodeDef*> visited;
+  q.push(sink_node);
+  visited.insert(sink_node);
 
-  // reserve some space for printing
-  while (cur_pos_from_back < split_node_index + 5 &&
-         current_node->input_size() == 1 // more than one: branches; fewer than one: start point
-          ) {
-    if (cur_pos_from_back == split_node_index) {
-      VLOG(0) << " <- **(" << current_node->name() << ")**";
+  while (!q.empty()) {
+    NodeDef* current_node = q.front();
+    q.pop();
+
+    for (int i = 0; i < current_node->input_size(); ++i) {
+      int idx = graph_utils::FindGraphNodeWithName(current_node->input(i), *output);
+      NodeDef* next_node = output->mutable_node(idx);
+      VLOG(0) << "EDGE: [" << current_node->name()
+        << ", " << current_node->op() << "] -> ["
+        << next_node->name() << ", " << next_node->op() << "]";
+
+      if (!visited.contains(next_node)) {
+        visited.insert(next_node);
+        q.push(next_node);
+      }
     }
-    else {
-      VLOG(0) << " <- (" << current_node->name() << ")";
-    }
-    cur_pos_from_back++;
-    int idx = graph_utils::FindGraphNodeWithName(current_node->input(0), *output);
-    current_node = output->mutable_node(idx);
   }
 
-  VLOG(0) << "(PrintGraphChain) end ----";
+  VLOG(0) << "(DelteNodesAfter::BFSGraph) ends";
 }
+
+// Deprecated since graph nodes are accompanied by const inputs
+// even if logically it is a chain
+
+//void DeleteNodesAfter::PrintChainOfGraph(NodeDef* sink_node,
+//                       GraphDef* output,
+//                       int64 split_node_index) {
+//  VLOG(0) << "(DeleteNodesAfter::PrintGraphChain) start ----";
+//  NodeDef* current_node = sink_node;
+//  int64 cur_pos_from_back = 0;
+//
+//  // reserve some space for printing
+//  while (cur_pos_from_back < split_node_index + 5 &&
+//         current_node->input_size() == 1 // more than one: branches; fewer than one: start point
+//          ) {
+//    if (cur_pos_from_back == split_node_index) {
+//      VLOG(0) << " <- **(" << current_node->name() << ")**";
+//    }
+//    else {
+//      VLOG(0) << " <- (" << current_node->name() << ")";
+//    }
+//    cur_pos_from_back++;
+//    int idx = graph_utils::FindGraphNodeWithName(current_node->input(0), *output);
+//    current_node = output->mutable_node(idx);
+//  }
+//
+//  VLOG(0) << "(PrintGraphChain) end ----";
+//}
 
 Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
                                     NodeDef* sink_node,
@@ -58,7 +90,9 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
           .at(kSplitNodeIndex)
           .i();
 
-  PrintChainOfGraph(sink_node, output, split_node_index);
+//  PrintChainOfGraph(sink_node, output, split_node_index);
+
+  BFSGraph(sink_node, output);
 
   // iterate throught the graph from sink node
   absl::flat_hash_set<std::string> visited;
@@ -80,13 +114,30 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
    *
    * we iterate from sink to Node "E"
    */
-  while (cur_pos_from_back < split_node_index &&
-    current_node->input_size() == 1 // more than one: branches; fewer than one: start point
-  ) {
-    cur_pos_from_back++;
-    int idx = graph_utils::FindGraphNodeWithName(current_node->input(0), *output);
+  for (; cur_pos_from_back < split_node_index; cur_pos_from_back++) {
+    int non_const_prefix_count = 0;
+    NodeDef* next_node = NULL; // TODO: handle this edge case
+    for (int i = 0; i < current_node->input_size(); i++) {
+      int idx = graph_utils::FindGraphNodeWithName(current_node->input(i), *output);
+      NodeDef* tmp_node = output->mutable_node(idx);
+      if (tmp_node->op() != "Const") {
+        next_node = tmp_node;
+        non_const_prefix_count++;
+        if (non_const_prefix_count > 1) {
+          // we've seen another non-const prefix before
+          break;
+        }
+      }
+    }
+
+    if (non_const_prefix_count > 1) {
+      VLOG(0) << "(DeleteNodesAfter::ApplyOptimization) see multiple non-const nodes from ["
+        << current_node->name() << ", " << current_node->op() << "]";
+      break;
+    }
+
     prev_node = current_node;
-    current_node = output->mutable_node(idx);
+    current_node = next_node;
   }
 
   if (cur_pos_from_back < split_node_index) {
