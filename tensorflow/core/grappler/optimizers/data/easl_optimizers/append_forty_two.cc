@@ -48,7 +48,7 @@ Status AppendFortyTwo::OptimizeAndCollectStats(Cluster* cluster,
                                                const GrapplerItem& item,
                                                GraphDef* output,
                                                OptimizationStats* stats) {
-  VLOG(1) << "In AppendFortyTwo optimizer";
+  VLOG(0) << "In AppendFortyTwo optimizer";
   *output = item.graph;
   MutableGraphView graph(output);
 

@@ -14,7 +14,6 @@
 #include "tensorflow/core/grappler/mutable_graph_view.h"
 #include "tensorflow/core/grappler/op_types.h"
 #include "tensorflow/core/grappler/optimizers/custom_graph_optimizer_registry.h"
-#include "tensorflow/core/grappler/optimizers/data/easl_optimizers/append_forty_two.h"
 #include "tensorflow/core/grappler/optimizers/data/graph_utils.h"
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/platform/protobuf.h"
@@ -34,11 +33,11 @@ namespace {
     return graph->mutable_node(idx);
   }
 
-  std::string getNodeRepr(NodeDef* sink) {
+  std::string getNodeRepr(const NodeDef* sink) {
     return "[" + sink->name() + ", " + sink->op() + "]";
   }
 
-  void BFSFromSink(GraphDef* graph, NodeDef* sink, absl::flat_hash_set<const NodeDef*>& visited) {
+  void BFSFromSink(GraphDef* graph, const NodeDef* sink, absl::flat_hash_set<const NodeDef*>& visited) {
     VLOG(0) << "AppendNodesAfter::BFSFromSink from 'sink' node: " << getNodeRepr(sink);
 
     std::queue<const NodeDef*> q;
@@ -68,8 +67,8 @@ namespace {
 
     absl::flat_hash_set<const NodeDef*> visited;
 
-    for (const auto& node: output->node()) {
-      std::string node_name = node.name();
+    for (const auto& _node: graph->node()) {
+      std::string node_name = _node.name();
       NodeDef* node = getNodeDefFromName(graph, node_name);
       if (!visited.contains(node)) {
         BFSFromSink(graph, node, visited);
@@ -81,7 +80,7 @@ namespace {
 
 
 Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
-        Cluster* *cluster, const GrapplerItem& item,
+        Cluster *cluster, const GrapplerItem& item,
         GraphDef *output, OptimizationStats *stats) {
 
   VLOG(0) << "In AppendNodesAfterDSDO Optimizer";

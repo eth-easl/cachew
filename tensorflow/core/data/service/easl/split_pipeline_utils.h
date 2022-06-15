@@ -31,6 +31,28 @@ Status DeleteAfterNode(const DatasetDef& dataset,
                          DatasetDef& updated_dataset);
 
 
+/*
+ * Static variable used on the client side
+ * Updated after getting the get_or_create_job_request
+ *
+ */
+
+class SplitIndexes {
+public:
+    static void AddJob(std::string job_name);
+
+    static void Print();
+
+    static int64 GetSplitIndexFromJob(std::string job_name);
+
+private:
+    using JobToIndexMap = absl::flat_hash_map<std::string, int64>;
+    static mutex mu_;
+    static JobToIndexMap* split_index_ TF_GUARDED_BY(mu_);
+};
+
+
+
 } // split_utils
 } // easl
 } // service

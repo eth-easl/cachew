@@ -172,8 +172,10 @@ Status TFDataMetaOptimizer::ApplyOptimization(const string& name,
 
   const auto* optimizer = gtl::FindOrNull(enabled_optimizers_, name);
   if (!optimizer) {
+    VLOG(0) << "Optimizer: " << name << " not found";
     return Status::OK();
   }
+  VLOG(0) << "Optimizer: " << name << " was found";
 
   GraphDef result;
   (*optimizer)->set_deadline_usec(this->deadline_usec());

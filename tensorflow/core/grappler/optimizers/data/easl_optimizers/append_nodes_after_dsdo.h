@@ -30,7 +30,6 @@ public:
     Status OptimizeAndCollectStats(Cluster *cluster, const GrapplerItem &item,
                                    GraphDef *output,
                                    OptimizationStats *stats) override;
-}
 };
 
 } // namespace easl

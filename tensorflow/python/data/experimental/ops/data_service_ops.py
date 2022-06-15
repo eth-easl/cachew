@@ -1072,7 +1072,9 @@ def _from_dataset_id(processing_mode,
   if job_name is not None:
     options = options_lib.Options()
     options.experimental_distribute.auto_shard_policy = AutoShardPolicy.OFF
+    options.experimental_optimization.append_nodes_after_dsdo = True
     dataset = dataset.with_options(options)
+
   return dataset
 
 
