@@ -1055,11 +1055,13 @@ def _from_dataset_id(processing_mode,
       compression=compression,
       target_workers=target_workers)
 
-  dataset = gen_experimental_dataset_ops.split_second_half(
-    dataset,
-    split_node_index,
-    variant_tensor
-  )
+  # dataset = gen_experimental_dataset_ops.split_second_half(
+  #   dataset,
+  #   split_node_index,
+  #   variant_tensor
+  # )
+  dataset = dataset_ops.SplitSecondHalfDataset(dataset, split_node_index, variant_tensor)
+
   if not compat.forward_compatible(2021, 12, 10):
     if compression == COMPRESSION_AUTO:
       dataset = dataset.map(

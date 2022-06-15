@@ -4846,9 +4846,13 @@ class FortyTwoDataset(UnaryUnchangedStructureDataset):
 
 
 class SplitSecondHalfDataset(UnaryUnchangedStructureDataset):
-  def __init__(self, input_dataset):
+  def __init__(self, input_dataset, split_node_index, variant):
       self._input_dataset = input_dataset
-      variant_tensor = ged_ops.split_second_half_dataset(input_dataset._variant_tensor, **self._flat_structure)
+      variant_tensor = ged_ops.split_second_half(
+        input_dataset._variant_tensor,
+        split_node_index,
+        variant,
+        **self._flat_structure)
       super(SplitSecondHalfDataset, self).__init__(input_dataset, variant_tensor)
 
 

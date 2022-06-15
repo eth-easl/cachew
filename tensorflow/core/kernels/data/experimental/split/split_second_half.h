@@ -6,6 +6,7 @@
 #define ML_INPUT_DATA_SERVICE_SPLIT_SECOND_HALF_H
 
 #include "tensorflow/core/framework/dataset.h"
+#include "tensorflow/core/grappler/mutable_graph_view.h"
 
 namespace tensorflow {
 namespace data {
@@ -22,7 +23,19 @@ protected:
     void MakeDataset(OpKernelContext* ctx, DatasetBase* input, DatasetBase** output) override;
 
 //private:
-//    class Dataset;
+//    void rewrite(GraphDef* dsdo_graph, // data_service_dataset_op
+//                 std::string dsdo_sink_node_name,
+//                 GraphDef* second_half_graph,
+//                 std::string second_half_sink_node_name,
+//                 int64 split_node_index);
+//
+//    NodeDef* addNodeToGraph(NodeDef* node, MutableGraphView& graph_view);
+//
+//    NodeDef* getNodeDefFromName(std::string name, GraphDef* graph);
+//
+//    Status BFSGraph(std::string sink_node_name,
+//                    GraphDef* output,
+//                    std::string prefix);
 };
 
 //class SplitSecondHalfOp::Dataset: public DatasetBase {

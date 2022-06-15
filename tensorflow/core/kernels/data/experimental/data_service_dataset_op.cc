@@ -215,6 +215,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
   std::unique_ptr<IteratorBase> MakeIteratorInternal(
       const string& prefix) const override {
+    VLOG(0) << "DataServiceDatasetOp::Dataset::MakeIteratorInternal::iteration_counter_"
+      << iteration_counter_;
+
     return absl::make_unique<Iterator>(
         Iterator::Params{this,
                          name_utils::IteratorPrefix(kDatasetType, prefix)},
@@ -409,6 +412,10 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         key.value().set_job_name(std::string(dataset()->job_name_));
         key.value().set_job_name_index(iterator_index_);
       }
+
+      VLOG(0) << "DataServiceDatasetOp::Dataset::Iterator:job_key: "
+        << key.value().job_name() << ", " << key.value().job_name_index();
+
       TF_RETURN_IF_ERROR(grpc_util::Retry(
           [&]() {
             return dispatcher_->GetOrCreateJob(
@@ -1687,6 +1694,8 @@ DataServiceDatasetOp::DataServiceDatasetOp(OpKernelConstruction* ctx)
 
 void DataServiceDatasetOp::MakeDataset(OpKernelContext* ctx,
                                        DatasetBase** output) {
+  VLOG(0) << "DataServiceDatasetOp::Dataset::MakeDataset";
+
   int64_t dataset_id;
   OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kDatasetId, &dataset_id));
 

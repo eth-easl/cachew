@@ -1515,6 +1515,8 @@ REGISTER_OP("SplitSecondHalf")
   .Attr("output_types: list(type) >= 1")
   .Attr("output_shapes: list(shape) >= 1")
   .SetDoNotOptimize()
+  .SetTypeConstructor(full_type::VariadicTensorContainer(TFT_DATASET,
+                                                       "output_types"))
   .SetShapeFn(shape_inference::ScalarShape);
 
 }  // namespace tensorflow
