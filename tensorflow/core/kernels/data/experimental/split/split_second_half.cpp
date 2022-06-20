@@ -20,6 +20,8 @@
 #include "tensorflow/core/common_runtime/process_function_library_runtime.h"
 #include "tensorflow/core/data/dataset_utils.h"
 
+#include "tensorflow/core/data/service/easl/split_pipeline_state.h"
+
 namespace tensorflow {
 namespace data {
 namespace experimental {
@@ -228,25 +230,29 @@ NodeDef* rewrite(GraphDef* dsdo_graph, // data_service_dataset_op
 void SplitSecondHalfOp::MakeDataset(OpKernelContext* ctx, DatasetBase* input_first, DatasetBase** output) {
   VLOG(0) << "SplitSecondHalfOp::MakeDataset";
 
-//  DatasetBase* input_second;
-//  OP_REQUIRES_OK(ctx, GetDatasetFromVariantTensor(ctx->input(2), &input_second));
+  DatasetBase* input_second;
+  OP_REQUIRES_OK(ctx, GetDatasetFromVariantTensor(ctx->input(2), &input_second));
 //  int64 split_node_index;
 //  OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kSplitNodeIndex, &split_node_index));
 //
 //  // create graph_def from tensors
-//  std::vector<std::pair<string, Tensor>> input_list_first, input_list_second;
-//  GraphDef graph_def_first, graph_def_second;
-//  std::string output_node_first, output_node_second;
+  std::vector<std::pair<string, Tensor>> input_list_first, input_list_second;
+  GraphDef graph_def_first, graph_def_second;
+  std::string output_node_first, output_node_second;
 //
 //  AsGraphDefForRewrite(ctx, input_first, &input_list_first,
 //                                          &graph_def_first, &output_node_first);
-//  Status s = AsGraphDefForRewrite(ctx, input_second, &input_list_second,
-//                                          &graph_def_second, &output_node_second);
+  Status s = AsGraphDefForRewrite(ctx, input_second, &input_list_second,
+                                          &graph_def_second, &output_node_second);
 //
-//  if (!s.ok()) {
-//    VLOG(0) << "AsGraphDefForRewrite Fails: " << s.ToString();
-//  }
-//  VLOG(0) << "output_node_second: " << output_node_second;
+  if (!s.ok()) {
+    VLOG(0) << "AsGraphDefForRewrite Fails: " << s.ToString();
+  }
+  VLOG(0) << "output_node_second: " << output_node_second;
+
+  tensorflow::data::service::easl::split_state::SplitOriginalGraph::AddJob("job_nameAAA", graph_def_second);
+
+  VLOG(0) << "Create Second Graph Node";
 
 //  NodeDef *sink_node_dsdo = addSinkNodeToGraph(output_node_first, &graph_def_first);
 //  NodeDef *sink_node_second_half = addSinkNodeToGraph(output_node_second, &graph_def_second);

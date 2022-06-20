@@ -31,6 +31,10 @@ Status DeleteAfterNode(const DatasetDef& dataset,
                          DatasetDef& updated_dataset);
 
 
+std::string SplitDatasetKey(const int64 id, const uint64 fingerprint,
+                            const int64 split_node_index);
+
+
 /*
  * Static variable used on the client side
  * Updated after getting the get_or_create_job_request
@@ -39,11 +43,12 @@ Status DeleteAfterNode(const DatasetDef& dataset,
 
 class SplitIndexes {
 public:
-    static void AddJob(std::string job_name);
+    static void AddJob(std::string job_name, int64 split_node_index);
 
     static void Print();
 
     static int64 GetSplitIndexFromJob(std::string job_name);
+    static int64 GetSplitIndex();
 
 private:
     using JobToIndexMap = absl::flat_hash_map<std::string, int64>;

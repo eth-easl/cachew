@@ -18,11 +18,15 @@
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/platform/protobuf.h"
 
+#include "tensorflow/core/data/service/easl/split_pipeline_state.h"
+
 
 namespace tensorflow {
 namespace grappler {
 namespace easl {
 namespace {
+
+  constexpr char kDSDO[] = "DataServiceDatasetV3";
 
   NodeDef* getNodeDefFromName(GraphDef* graph, std::string name) {
     int idx = tensorflow::grappler::graph_utils::FindGraphNodeWithName(name, *graph);
@@ -61,8 +65,8 @@ namespace {
     }
   }
 
-  void BFSWholeGraph(GraphDef* graph) {
-    VLOG(0) << "AppendNodesAfter::BFSWholeGraph";
+  void BFSWholeGraph(GraphDef* graph, std::string prefix = "123") {
+    VLOG(0) << "AppendNodesAfter::BFSWholeGraph " << prefix;
 
 
     absl::flat_hash_set<const NodeDef*> visited;
@@ -76,6 +80,59 @@ namespace {
     }
   }
 
+  NodeDef* getGraphDSDO(GraphDef* graph) {
+    for (const auto& _node: graph->node()) {
+      if (_node.op() == kDSDO) {
+        return getNodeDefFromName(graph, _node.name());
+      }
+    }
+    return NULL;
+  }
+
+  NodeDef* getDownstreamNode(GraphDef* graph, NodeDef* node) {
+    for (const auto& _node: graph->node()) {
+      for (int i = 0; i < _node.input_size(); i++) {
+        if (_node.input(i) == node->name()) {
+          VLOG(0) << "Downstream Node of " << getNodeRepr(node) << " is "
+            << getNodeRepr(&_node);
+          return getNodeDefFromName(graph, _node.name());
+        }
+      }
+    }
+    return NULL;
+  }
+
+  NodeDef* getSinkNode(GraphDef* graph) {
+    absl::flat_hash_set<std::string> hset;
+
+    for (const auto& _node: graph->node()) {
+      for (int i = 0; i < _node.input_size(); i++) {
+        hset.insert(_node.input(i));
+      }
+    }
+
+    NodeDef* result = 0;
+
+    for (const auto& _node: graph->node()) {
+      if (!hset.contains(_node.name())) {
+        result = getNodeDefFromName(graph, _node.name());
+        VLOG(0) << "Possible Sink Node is: " << result->name();
+      }
+    }
+
+    return result;
+  }
+
+  NodeDef* addNodeToGraph(NodeDef* node, tensorflow::grappler::MutableGraphView& graph_view) {
+    VLOG(0) << "Add Node: " << getNodeRepr(node) << " to graph";
+    return tensorflow::grappler::graph_utils::AddNode(
+            node->name(),
+            node->op(),
+            {node->mutable_input()->begin(), node->mutable_input()->end()},
+            {node->mutable_attr()->begin(), node->mutable_attr()->end()},
+            &graph_view);
+  }
+
 }
 
 
@@ -84,8 +141,97 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
         GraphDef *output, OptimizationStats *stats) {
 
   VLOG(0) << "In AppendNodesAfterDSDO Optimizer";
-  BFSWholeGraph(output);
   *output = item.graph;
+  BFSWholeGraph(output);
+
+  int64 split_node_index =
+            tensorflow::data::service::easl::split_state::SplitIndexes::GetSplitIndex();
+
+  VLOG(0) << "ApplyNodesAfterDSDO: split_node_index: " << split_node_index;
+
+  if (split_node_index == 0) {
+    VLOG(0) << "ApplyNodesAfterDSDO: split_node_index is zero, do nothing";
+    return Status::OK();
+  }
+
+  tensorflow::data::service::easl::split_state::SplitIndexes::Print();
+  tensorflow::data::service::easl::split_state::SplitOriginalGraph::Print();
+
+  NodeDef* dsdo_node = getGraphDSDO(output);
+
+  if (dsdo_node == NULL) {
+    VLOG(0) << "ApplyNodesAfterDSDO: GraphNode DSDO doesn't exist";
+    return Status::OK();
+  }
+
+  GraphDef second_half_graph_ = tensorflow::data::service::easl::split_state::SplitOriginalGraph::GetGraph();
+  GraphDef* second_half_graph = &second_half_graph_;
+
+  tensorflow::grappler::MutableGraphView dsdo_graph_view(output);
+
+  // Apply Rewrite
+
+  NodeDef* sink_node_sh = getSinkNode(second_half_graph);
+  NodeDef* current_node_sh = sink_node_sh;
+  VLOG(0) << "Sink Node of Second Half Graph: " << getNodeRepr(current_node_sh);
+  NodeDef* current_node_dsdo = addNodeToGraph(current_node_sh, dsdo_graph_view);
+
+  // 0. join second half with dsdo downstream node
+  NodeDef* dsdo_next_node = getDownstreamNode(output, current_node_dsdo);
+  std::vector<std::string> vs;
+  for (int i = 0; i < dsdo_next_node->input_size(); i++) {
+    std::string up_node_name = dsdo_next_node->input(i);
+    NodeDef* up_node = getNodeDefFromName(output, up_node_name);
+    if (up_node->op() == "Const") {
+      vs.push_back(up_node_name);
+    }
+  }
+  *(dsdo_next_node->mutable_input()) = {vs.begin(), vs.end()};
+  dsdo_next_node->mutable_input()->Add(std::string(current_node_dsdo->name()));
+
+  BFSWholeGraph(output, "After Step 0");
+
+  // 1. append second half graph nodes to first half
+  int64 cur_pos_from_back = 0;
+  for (; cur_pos_from_back < split_node_index; cur_pos_from_back++) {
+    NodeDef* next_node_sh = NULL;
+
+    for (int i = 0; i < current_node_sh->input_size(); i++) {
+      NodeDef* tmp_node_sh = getNodeDefFromName(second_half_graph,
+                                                current_node_sh->input(i));
+      // Add this node to the dsdo_graph
+      NodeDef* added_node_dsdo = addNodeToGraph(tmp_node_sh, dsdo_graph_view);
+
+      if (!(tmp_node_sh->op() != "Const" && cur_pos_from_back == split_node_index - 1)) {
+        current_node_dsdo->mutable_input()->Add(std::string(added_node_dsdo->name()));
+      }
+      else if (tmp_node_sh->op() != "Const") {
+        VLOG(0) << "Skipping node: [" << current_node_sh->name() << ", "
+                << current_node_sh->op() << "]'s non_const upstream node: ["
+                << tmp_node_sh->name() << ", " << tmp_node_sh->op()
+                << "]";
+      }
+
+      if (tmp_node_sh->op() != "Const") {
+        // guaranteed to be only happening once
+        next_node_sh = tmp_node_sh;
+        if (cur_pos_from_back < split_node_index - 1) {
+          current_node_dsdo = added_node_dsdo;
+          /*
+           * A -> B -> C -> D, split_node_index = 2
+           * current_node_dsdo is going to stop at B, but we need to stop at C
+           */
+        }
+      }
+
+    }
+    current_node_sh = next_node_sh;
+  }
+  BFSWholeGraph(output, "After Step 1");
+
+  // 2. join two sub-graphs
+//  current_node_dsdo->mutable_input()->Add(std::string(dsdo_sink_node->name()));
+  BFSWholeGraph(output, "After Step 3");
 
   return Status::OK();
 

@@ -1067,6 +1067,7 @@ cc_library(
     deps = [
         ":graph_utils",
         ":optimizer_base",
+        "//tensorflow/core/data/service:split_pipeline_state",
         "//tensorflow/core/grappler:mutable_graph_view",
         "//tensorflow/core:framework",
         "//tensorflow/core:framework_internal",

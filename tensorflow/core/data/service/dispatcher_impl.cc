@@ -299,6 +299,7 @@ Status DataServiceDispatcherImpl::RestoreSplitProviders(
       job.distributed_epoch_state.value().indices;
   std::vector<std::unique_ptr<SplitProvider>> split_providers;
   TF_RETURN_IF_ERROR(MakeSplitProviders(job.dataset_id, job.job_type, split_providers));
+//  TF_RETURN_IF_ERROR(MakeSplitProviders(job.dataset_id, job.job_type, split_providers));
   for (int provider_index = 0; provider_index < indices.size();
        ++provider_index) {
     int index = indices[provider_index];
@@ -789,6 +790,17 @@ Status DataServiceDispatcherImpl::RegisterDataset(
   TF_RETURN_IF_ERROR(
       dataset_store_->Put(DatasetKey(dataset_id, fingerprint), split_dataset));
 
+  // this is hard coded...
+  for (int sni = 0; sni <= 3; sni++) {
+    VLOG(0) << "DispatcherImpl, generating dataset with SNI = " << sni;
+    DatasetDef split_dataset;
+    TF_RETURN_IF_ERROR(service::easl::split_utils::DeleteAfterNode(
+            dataset, config_, sni, split_dataset));
+    TF_RETURN_IF_ERROR(
+            dataset_store_->Put(service::easl::split_utils::SplitDatasetKey(
+                    dataset_id, fingerprint, sni), split_dataset));
+  }
+
   // EASL - Create and store put/get versions of this dataset def.
   DatasetDef put_dataset;
   TF_RETURN_IF_ERROR(
@@ -876,6 +888,15 @@ Status DataServiceDispatcherImpl::GetOrCreateJob(
     key.emplace(request->job_key().job_name(),
                 request->job_key().job_name_index());
   }
+
+  VLOG(0) << "DispatcherImpl:GetOrCreateJob: " << key.value().index;
+  if (key.value().index >= 2) {
+    response->set_split_node_index(2);
+  }
+  else {
+    response->set_split_node_index(0);
+  }
+
   std::shared_ptr<const Job> job;
   std::vector<std::shared_ptr<const Task>> tasks;
   {
@@ -1690,6 +1711,18 @@ Status DataServiceDispatcherImpl::GetDatasetDef(
   //return errors::PermissionDenied("Should not enter here for now...");
   return dataset_store_->Get(key, dataset_def);
 }
+
+//Status DataServiceDispatcherImpl::GetDatasetDef(
+//        const Dataset& dataset,
+//        const int64 split_node_index,
+//        std::shared_ptr<const DatasetDef>& dataset_def)
+//TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+//        std::string key = service::easl::split_utils::DatasetKey(
+//        dataset.dataset_id, dataset.fingerprint, split_node_index);
+//
+//        //return errors::PermissionDenied("Should not enter here for now...");
+//        return dataset_store_->Get(key, dataset_def);
+//}
 
 }  // namespace data
 }  // namespace tensorflow

@@ -274,6 +274,7 @@ cc_library(
         ":dispatcher_cc_grpc_proto",
         ":dispatcher_proto_cc",
         ":grpc_util",
+        ":split_pipeline_state",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "//tensorflow/core:framework",
@@ -997,6 +998,21 @@ cc_library(
         ":metadata_store",
         "//tensorflow/core:lib",
         "//tensorflow/core/grappler/optimizers/data:delete_nodes_after",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "split_pipeline_state",
+    srcs = ["easl/split_pipeline_state.cc"],
+    hdrs = [
+        "easl/split_pipeline_state.h",
+    ],
+    deps = [
+        ":common_proto_cc",
+        ":metadata_store",
+        "//tensorflow/core/grappler/optimizers/data:graph_utils",
+        "//tensorflow/core:lib",
         "@com_google_absl//absl/strings",
     ],
 )

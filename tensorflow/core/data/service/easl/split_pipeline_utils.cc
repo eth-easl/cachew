@@ -94,31 +94,9 @@ Status DeleteAfterNode(const DatasetDef& dataset,
   return Status::OK();
 }
 
-mutex SplitIndexes::mu_(LINKER_INITIALIZED);
-SplitIndexes::JobToIndexMap* SplitIndexes::split_index_ =
-        new JobToIndexMap();
-
-void SplitIndexes::Print() {
-  VLOG(0) << "SplitIndexes::Print";
-  tf_shared_lock l(mu_);
-  for (const auto& it: (*split_index_)) {
-    VLOG(0) << it.first << " " << it.second;
-  }
-  VLOG(0) << "SplitIndexes::Print End";
-}
-
-void SplitIndexes::AddJob(std::string job_name) {
-  mutex_lock l(mu_);
-  (*split_index_)[job_name] = 0;
-}
-
-int64 SplitIndexes::GetSplitIndexFromJob(std::string job_name) {
-  tf_shared_lock l(mu_);
-  JobToIndexMap::const_iterator it = split_index_->find(job_name);
-  if (it == split_index_->end()) {
-    return 0;
-  }
-  return it->second;
+std::string SplitDatasetKey(const int64 id, const uint64 fingerprint,
+                            const int64 split_node_index) {
+  return absl::StrCat("id_", id, "_fp_", fingerprint, "_sni_", split_node_index);
 }
 
 

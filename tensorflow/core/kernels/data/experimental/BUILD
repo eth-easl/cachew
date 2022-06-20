@@ -902,6 +902,7 @@ tf_kernel_library(
     srcs = ["split/split_second_half.cpp"],
     hdrs = ["split/split_second_half.h"],
     deps = [
+        "//tensorflow/core/data/service:split_pipeline_state",
         "//tensorflow/core:core_cpu_internal",
         "//tensorflow/core/framework:op_requires",
         "//tensorflow/core:protos_all_cc",

@@ -41,6 +41,8 @@ limitations under the License.
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/protobuf/data_service.pb.h"
 
+#include "tensorflow/core/data/service/easl/split_pipeline_state.h"
+
 namespace tensorflow {
 namespace data {
 
@@ -114,6 +116,7 @@ Status DataServiceDispatcherClient::GetSplit(int64_t job_id, int64_t task_id,
   return Status::OK();
 }
 
+
 Status DataServiceDispatcherClient::RegisterDataset(
     const DatasetDef& dataset,
     const int64 split_node_index,
@@ -152,6 +155,7 @@ Status DataServiceDispatcherClient::GetOrCreateJob(
   }
   req.set_target_workers(target_workers);
   GetOrCreateJobResponse resp;
+
   grpc::ClientContext client_ctx;
   grpc::Status status = stub_->GetOrCreateJob(&client_ctx, req, &resp);
   if (!status.ok()) {
@@ -161,6 +165,12 @@ Status DataServiceDispatcherClient::GetOrCreateJob(
         status);
   }
   job_client_id = resp.job_client_id();
+
+  VLOG(0) << "Dispatcher Client get or create job";
+
+  tensorflow::data::service::easl::split_state::SplitIndexes::AddJob(job_key.value().job_name(), resp.split_node_index());
+  tensorflow::data::service::easl::split_state::SplitIndexes::Print();
+
   return Status::OK();
 }
 

@@ -195,6 +195,7 @@ class DispatcherState {
     bool garbage_collected = false;
     // EASL
     const std::string job_type;
+    int64_t split_node_index = 0; // for splitting
     int64_t target_worker_count; // Non-constant, can be dynamically adjusted.
     int64_t current_worker_count = 0;
   };
