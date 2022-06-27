@@ -15,7 +15,7 @@ class _SplitMarkerDataset(dataset_ops.UnaryUnchangedStructureDataset):
 
     self._input_dataset = input_dataset
 
-    variant_tensor = ged_ops.marker_dataset(
+    variant_tensor = ged_ops.split_marker_dataset(
       self._input_dataset._variant_tensor,  # pylint: disable=protected-access
       **self._flat_structure)
 

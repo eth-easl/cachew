@@ -222,6 +222,7 @@ class JobMetrics {
     void DumpToStream(std::stringstream& ss);
 
     bool is_scaling_;
+    int64 split_node_index_;
     Performance last_performance_;
     string job_type_;
     string name_;
@@ -319,6 +320,11 @@ class MetadataStore {
   Status SetJobIsScaling(int64 job_id);
   Status UnsetJobIsScaling(int64 job_id);
   Status IsJobScaling(int64 job_id, bool& is_scaling);
+
+  Status SetJobSplitNodeIndex(int64 job_id, int64 split_node_index);
+  Status GetJobSplitNodeIndex(int64 job_id, int64& split_node_index);
+  Status GetJobSplitNodeIndex(uint64 fingerprint, string job_name,
+                              int64& split_node_index);
 
   Status GetLastPerformance(int64 job_id, Performance& last_performance);
   Status SetLastPerformance(int64 job_id, Performance last_performance);

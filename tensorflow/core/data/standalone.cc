@@ -82,17 +82,23 @@ Iterator::Iterator(IteratorBase* iterator, IteratorContext* ctx)
 
 Status Dataset::FromGraph(Params params, const GraphDef& graph_def,
                           std::unique_ptr<Dataset>* result) {
+  VLOG(0) << "Dataset::FromGraph";
   Graph graph(OpRegistry::Global());
   TF_RETURN_IF_ERROR(ImportGraphDef({}, graph_def, &graph, nullptr));
+
+  VLOG(0) << "Dataset::FromGraph 1";
 
   // Instantiate enough of the TF runtime to run `graph` on a single CPU device.
   auto device_mgr = absl::make_unique<StaticDeviceMgr>(DeviceFactory::NewDevice(
       "CPU", params.session_options, "/job:localhost/replica:0/task:0"));
+
+  VLOG(0) << "Dataset::FromGraph 2";
   Device* device = device_mgr->ListDevices()[0];
   // Create a copy of the `FunctionLibraryDefinition` to extend lifetime beyond
   // the lifetime of `graph`.
   auto flib_def = absl::make_unique<FunctionLibraryDefinition>(
       OpRegistry::Global(), graph_def.library());
+  VLOG(0) << "Dataset::FromGraph 3";
   auto pflr = absl::make_unique<ProcessFunctionLibraryRuntime>(
       device_mgr.get(), Env::Default(), /*config=*/nullptr,
       TF_GRAPH_DEF_VERSION, flib_def.get(), OptimizerOptions{},
@@ -103,6 +109,7 @@ Status Dataset::FromGraph(Params params, const GraphDef& graph_def,
             *r = new IntraProcessRendezvous(device_mgr);
             return Status::OK();
           }});
+  VLOG(0) << "Dataset::FromGraph 4";
 
   string fetch_node = "";
   for (const auto& node : graph_def.node()) {
@@ -113,6 +120,7 @@ Status Dataset::FromGraph(Params params, const GraphDef& graph_def,
   if (fetch_node.empty()) {
     return errors::NotFound("Failed to find a _Retval op in the given dataset");
   }
+  VLOG(0) << "Dataset::FromGraph 5";
 
   // Run graph up to `output_node` and extract the `DatasetBase` stored in the
   // DT_VARIANT output tensor.

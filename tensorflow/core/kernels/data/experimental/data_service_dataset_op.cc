@@ -1420,7 +1420,15 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       GetElementResult get_element_result;
       for (int num_retries = 0;; ++num_retries) {
         Status s = TryGetElement(*task, get_element_result);
-        if (s.ok()) break;
+
+        if (s.ok()) {
+          VLOG(0) << "Got Element ";
+          auto res = get_element_result.components;
+          for (const auto & tensor: res) {
+            VLOG(0) << tensor.DebugString();
+          }
+          break;
+        }
         // Retry all errors that could indicate preemption.
         if (!errors::IsUnavailable(s) && !errors::IsCancelled(s) &&
             !errors::IsAborted(s) && !errors::IsDeadlineExceeded(s)) {

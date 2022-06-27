@@ -166,10 +166,7 @@ Status DataServiceDispatcherClient::GetOrCreateJob(
   }
   job_client_id = resp.job_client_id();
 
-  VLOG(0) << "Dispatcher Client get or create job";
-
-  tensorflow::data::service::easl::split_state::SplitIndexes::AddJob(job_key.value().job_name(), resp.split_node_index());
-  tensorflow::data::service::easl::split_state::SplitIndexes::Print();
+//  VLOG(0) << "Dispatcher Client get or create job with SNI: " << resp.split_node_index();
 
   return Status::OK();
 }
@@ -213,6 +210,17 @@ Status DataServiceDispatcherClient::ClientHeartbeat(
   TF_RETURN_IF_ERROR(EnsureInitialized());
   grpc::ClientContext ctx;
   grpc::Status s = stub_->ClientHeartbeat(&ctx, req, &resp);
+
+//  tensorflow::data::service::easl::split_state::SplitIndexes::AddJob
+//    job_key.value().job_name(), resp.split_node_index());
+
+  if (resp.split_node_index() != -1) {
+    VLOG(0) << "Got Change SNI resp from dispatcher: " << resp.split_node_index();
+    tensorflow::data::service::easl::split_state::SplitIndexes::AddJob(std::to_string(req.job_client_id()), resp.split_node_index());
+    tensorflow::data::service::easl::split_state::SplitIndexes::Print();
+  }
+
+
   if (!s.ok()) {
     return grpc_util::WrapError("Failed to get tasks", s);
   }

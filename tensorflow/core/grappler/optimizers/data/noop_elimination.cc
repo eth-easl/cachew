@@ -112,15 +112,31 @@ bool IsMapIdentity(const NodeDef& map_node, const MutableGraphView& graph) {
     return false;
   }
 
+  VLOG(0) << "IsMapIdentity::Print attrs for node: " <<  map_node.name();
+  for (const auto& p: map_node.attr()) {
+    VLOG(0) << p.first;
+  }
+
+
   // We are looking only for map(lambda *x: x) nodes.
+
+  VLOG(0) << "Debug 0";
 
   // Don't eliminate map nodes with captured arguments.
   if (map_node.attr().at("Targuments").list().type_size() != 0) return false;
 
   FunctionLibraryDefinition function_library(OpRegistry::Global(),
                                              graph.graph()->library());
+
+  VLOG(0) << "Try to find function: " << map_node.attr().at("f").func().name();
   const FunctionDef* fdef =
       function_library.Find(map_node.attr().at("f").func().name());
+
+  // deep copy needed?
+//  VLOG(0) << "Print Function Def " << fdef->signature().name();
+//  for (const auto& p: fdef->attr()) {
+//    VLOG(0) << p.first;
+//  }
 
   // Don't eliminate map nodes with stateful functions.
   if (function_utils::IsFunctionStateful(function_library, *fdef)) return false;
@@ -151,6 +167,12 @@ Status NoOpElimination::OptimizeAndCollectStats(Cluster* cluster,
                                                 GraphDef* output,
                                                 OptimizationStats* stats) {
   *output = item.graph;
+
+//  VLOG(0) << "NoOpElimination::Print all functions";
+//  for (const auto& func: output->library().function()) {
+//    VLOG(0) << func.signature().name();
+//  }
+
   MutableGraphView graph(output);
   absl::flat_hash_set<string> nodes_to_delete;
   for (const NodeDef& node : item.graph.node()) {

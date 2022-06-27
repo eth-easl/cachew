@@ -18,6 +18,15 @@ namespace service {
 namespace easl{
 namespace split_utils {
 
+NodeDef* getNodeDefFromName(GraphDef* graph, std::string name) {
+  int idx = tensorflow::grappler::graph_utils::FindGraphNodeWithName(name, *graph);
+  if (idx == -1) {
+    VLOG(0) << "Node: " << name << " not found in graph";
+    return NULL;
+  }
+  return graph->mutable_node(idx);
+}
+
 void BFSGraph(NodeDef* sink_node,
               GraphDef* output,
               std::string prefix) {
@@ -72,9 +81,11 @@ Status DeleteAfterNode(const DatasetDef& dataset,
   GraphDef* graph_def = updated_dataset.mutable_graph();
   std::string output_node;
 
+  std::string retval_nodename = "";
   for (const auto& node : graph_def->node()) {
     if (node.op() == "_Retval") {
       output_node = node.input(0);
+      retval_nodename = node.name();
     }
   }
 
@@ -85,12 +96,18 @@ Status DeleteAfterNode(const DatasetDef& dataset,
   sink->add_input(output_node);
   (*sink->mutable_attr())["T"].set_type(DT_VARIANT);
 
+  NodeDef* retval_node = getNodeDefFromName(graph_def, retval_nodename);
+  retval_node->mutable_input()->Clear();
+  retval_node->add_input("Sink");
+
+  BFSGraph(retval_node, graph_def, "DeleteAfterNode: Before");
+
   tensorflow::grappler::MutableGraphView graph(graph_def);
   optimizer.ApplyOptimization(graph, sink, graph_def);
 
   VLOG(0) << "(SplitPipelineUtils::DeleteAfterNode): function ended";
 
-  BFSGraph(sink, graph_def, "DeleteAfterNode");
+  BFSGraph(retval_node, graph_def, "DeleteAfterNode");
   return Status::OK();
 }
 
@@ -146,6 +163,37 @@ Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
   LogNodeMetrics(local_worker_addr, local_worker_metrics);
 
   VLOG(0) << "LogSplitMetrics: ends";
+}
+
+Status GetSplitNodeIndex(::tensorflow::data::easl::MetadataStore& metadata_store,
+                         const int64 job_id,
+                         int64& split_node_index) {
+  int64 ret;
+  Status s = metadata_store.GetJobSplitNodeIndex(job_id, ret);
+  if (!s.ok()) {
+    split_node_index = 0;
+    VLOG(0) << "split_utils::GetSplitNodeIndex Error, Index is: " << split_node_index;
+    return Status::OK();
+  }
+  split_node_index = ret;
+  VLOG(0) << "split_utils::GetSplitNodeIndex Index is: " << split_node_index;
+  return Status::OK();
+}
+
+Status GetSplitNodeIndex(::tensorflow::data::easl::MetadataStore& metadata_store,
+                         const uint64 fingerprint,
+                         const string job_name,
+                         int64& split_node_index) {
+  int64 ret;
+  Status s = metadata_store.GetJobSplitNodeIndex(fingerprint, job_name, ret);
+  if (!s.ok()) {
+    split_node_index = 0;
+    VLOG(0) << "split_utils::GetSplitNodeIndex Error, Index is: " << split_node_index;
+    return Status::OK();
+  }
+  split_node_index = ret;
+  VLOG(0) << "split_utils::GetSplitNodeIndex Index is: " << split_node_index;
+  return Status::OK();
 }
 
 } // split_utils

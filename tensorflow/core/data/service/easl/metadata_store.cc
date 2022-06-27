@@ -306,7 +306,6 @@ void InputPipelineMetrics::DumpToStream(std::stringstream& ss){
   ss << std::endl << "}";
 }
 
-
 // Job metrics
 JobMetrics::JobMetrics(int64 job_id,
                        std::string& job_type,
@@ -326,7 +325,8 @@ JobMetrics::JobMetrics(int64 job_id,
         is_scaling_(is_scaling),
         target_worker_count_(1),
         same_scale_counter_(0),
-        last_performance_(Performance::NA) {
+        last_performance_(Performance::NA),
+        split_node_index_(-1) {
           model_metrics_ = std::make_shared<ModelMetrics>();
           input_pipeline_metrics_ = std::make_shared<InputPipelineMetrics>();
         }
@@ -608,6 +608,7 @@ Status MetadataStore::UpdateInputPipelineMetrics(int64 job_id,
   return s;
 }
 
+
 Status MetadataStore::UpdateFingerprintKeyJobMetrics(int64 job_id) {
   auto it = job_metadata_.find(job_id);
   if (it == job_metadata_.end()) {
@@ -626,6 +627,8 @@ Status MetadataStore::UpdateFingerprintNameKeyJobMetrics(int64 job_id) {
   }
 
   auto job_metrics = it->second;
+  VLOG(0) << "UpdateFingerprintNameKeyJobMetrics: split_node_index "
+    << job_metrics->split_node_index_;
   if (job_metrics->name_ == "") {
     return errors::NotFound("Job with id ", job_id, " and name '",
       job_metrics->name_, "' has empty name.");
@@ -732,6 +735,28 @@ Status MetadataStore::IsJobScaling(int64 job_id, bool& is_scaling) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
   is_scaling = jobMetrics->is_scaling_;
+  return Status::OK();
+}
+
+Status MetadataStore::SetJobSplitNodeIndex(int64 job_id, int64 split_node_index) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->split_node_index_ = split_node_index;
+  return Status::OK();
+}
+
+Status MetadataStore::GetJobSplitNodeIndex(int64 job_id, int64& split_node_index) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  split_node_index = jobMetrics->split_node_index_;
+  return Status::OK();
+}
+
+Status MetadataStore::GetJobSplitNodeIndex(uint64 fingerprint, string job_name,
+                                           int64& split_node_index) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetricsByDatasetFingerprintAndName(fingerprint, job_name, jobMetrics));
+  split_node_index = jobMetrics->split_node_index_;
   return Status::OK();
 }
 

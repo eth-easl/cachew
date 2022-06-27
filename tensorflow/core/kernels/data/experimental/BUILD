@@ -899,8 +899,8 @@ tf_kernel_library(
 
 tf_kernel_library(
     name = "split_marker_op",
-    srcs = ["easl_service/split_marker_op.cc"],
-    hdrs = ["easl_service/split_marker_op.h"],
+    srcs = ["split/split_marker_op.cc"],
+    hdrs = ["split/split_marker_op.h"],
     deps = [
         "//tensorflow/core:core_cpu_internal",
         "//tensorflow/core:dataset_ops_op_lib",

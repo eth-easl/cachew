@@ -40,6 +40,15 @@ Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
                        const std::vector<std::string> workers,
                        const int64 job_id);
 
+Status GetSplitNodeIndex(::tensorflow::data::easl::MetadataStore& metadata_store,
+                         const int64 job_id,
+                         int64& split_node_index);
+
+Status GetSplitNodeIndex(::tensorflow::data::easl::MetadataStore& metadata_store,
+                         const uint64 fingerprint,
+                         const string job_name,
+                         int64& split_node_index);
+
 
 /*
  * Static variable used on the client side

@@ -101,10 +101,12 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
   int64 cur_pos_from_back = 0; // sink node position
 
   // TODO: standard needs to be the same between client and dispatcher
-  if (split_node_index == 0) {
+  if (split_node_index <= 0) {
     VLOG(0) << "split node index equal to zero, no need to split";
     return Status::OK();
   }
+
+  absl::flat_hash_set<std::string> nodes_to_delete;
 
   // TODO: add more print_outs
   // to simplify, we only consider splitting the "tail" of the graph
@@ -114,7 +116,7 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
    *
    * we iterate from sink to Node "E"
    */
-  for (; cur_pos_from_back < split_node_index; cur_pos_from_back++) {
+  for (; cur_pos_from_back < split_node_index;) {
     int non_const_prefix_count = 0;
     NodeDef* next_node = NULL; // TODO: handle this edge case
     for (int i = 0; i < current_node->input_size(); i++) {
@@ -136,8 +138,24 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
       break;
     }
 
+    if (current_node->op() == "SplitMarkerDataset") {
+      VLOG(0) << "This node is SplitMarkerDataset";
+      cur_pos_from_back++;
+      if (cur_pos_from_back >= split_node_index) {
+        break;
+      }
+    }
     prev_node = current_node;
+    if (prev_node->name() != "Sink") {
+      VLOG(0) << "Going to delete Node: " << prev_node->name();
+      nodes_to_delete.insert(prev_node->name());
+    }
     current_node = next_node;
+  }
+
+  Status s = graph.DeleteNodes(nodes_to_delete);
+  if (!s.ok()) {
+    VLOG(0) << "Delete Nodes failed: " << s.error_message();
   }
 
   if (cur_pos_from_back < split_node_index) {
@@ -151,7 +169,6 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
   // current_node -> prev_node -> ... -> sink
 
   // whether this one is needed
-  prev_node->mutable_input()->Clear();
   sink_node->mutable_input()->Clear();
   sink_node->add_input(current_node->name());
 

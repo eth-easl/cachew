@@ -186,6 +186,12 @@ class DataServiceDispatcherImpl {
       const std::string& job_type,
       std::vector<std::unique_ptr<SplitProvider>>& split_providers)
       TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  Status MakeSplitProviders(
+          int64_t dataset_id,
+          const int64 split_node_index,
+          std::vector<std::unique_ptr<SplitProvider>>& split_providers)
+  TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
   // Registers a dataset with the given fingerprint, storing the new dataset's
   // id in `dataset_id`.
   Status RegisterDataset(uint64 fingerprint, const DatasetDef& dataset,
@@ -310,6 +316,11 @@ class DataServiceDispatcherImpl {
                        const std::string& job_type,
                        std::shared_ptr<const DatasetDef>& dataset_def)
       TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+
+  Status GetDatasetDef(const DispatcherState::Dataset& dataset,
+                       const int64 split_node_index,
+                       std::shared_ptr<const DatasetDef>& dataset_def)
+  TF_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   const experimental::DispatcherConfig config_;
   Env* env_;

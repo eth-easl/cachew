@@ -298,8 +298,9 @@ Status DataServiceDispatcherImpl::RestoreSplitProviders(
   const std::vector<int64_t>& indices =
       job.distributed_epoch_state.value().indices;
   std::vector<std::unique_ptr<SplitProvider>> split_providers;
-  TF_RETURN_IF_ERROR(MakeSplitProviders(job.dataset_id, job.job_type, split_providers));
+  VLOG(0) << "RestoreSplitProviders: split_node_index " << job.split_node_index;
 //  TF_RETURN_IF_ERROR(MakeSplitProviders(job.dataset_id, job.job_type, split_providers));
+  TF_RETURN_IF_ERROR(MakeSplitProviders(job.dataset_id, job.split_node_index, split_providers));
   for (int provider_index = 0; provider_index < indices.size();
        ++provider_index) {
     int index = indices[provider_index];
@@ -712,11 +713,41 @@ Status DataServiceDispatcherImpl::MakeSplitProviders(
   std::shared_ptr<const Dataset> dataset;
   TF_RETURN_IF_ERROR(state_.DatasetFromId(dataset_id, dataset));
   std::shared_ptr<const DatasetDef> dataset_def;
+  VLOG(0) << "DispatcherImpl: MakeSplitProviders...";
   TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, job_type, dataset_def));
   standalone::Dataset::Params params;
   std::unique_ptr<standalone::Dataset> standalone_dataset;
-  TF_RETURN_IF_ERROR(standalone::Dataset::FromGraph(
-      params, dataset_def->graph(), &standalone_dataset));
+//  TF_RETURN_IF_ERROR(standalone::Dataset::FromGraph(
+//      params, dataset_def->graph(), &standalone_dataset));
+  Status s = standalone::Dataset::FromGraph(
+      params, dataset_def->graph(), &standalone_dataset);
+  VLOG(0) << "From Graph";
+  TF_RETURN_IF_ERROR(standalone_dataset->MakeSplitProviders(&split_providers));
+  return Status::OK();
+}
+
+Status DataServiceDispatcherImpl::MakeSplitProviders(
+        int64_t dataset_id,
+        const int64 split_node_index,
+        std::vector<std::unique_ptr<SplitProvider>>& split_providers)
+TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+  std::shared_ptr<const Dataset> dataset;
+  TF_RETURN_IF_ERROR(state_.DatasetFromId(dataset_id, dataset));
+  std::shared_ptr<const DatasetDef> dataset_def;
+  VLOG(0) << "DispatcherImpl: MakeSplitProviders... new";
+  TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, split_node_index, dataset_def));
+  VLOG(0) << "DispatcherImpl: MakeSplitProviders:: GetDatasetDef";
+  standalone::Dataset::Params params;
+  std::unique_ptr<standalone::Dataset> standalone_dataset;
+//  TF_RETURN_IF_ERROR(standalone::Dataset::FromGraph(
+//  params, dataset_def->graph(), &standalone_dataset));
+  Status s = standalone::Dataset::FromGraph(
+  params, dataset_def->graph(), &standalone_dataset);
+  if (!s.ok()) {
+    VLOG(0) << "From Graph Failed";
+    VLOG(0) << s.error_message();
+  }
+  VLOG(0) << "DispatcherImpl: MakeSplitProviders:: FromGraph";
   TF_RETURN_IF_ERROR(standalone_dataset->MakeSplitProviders(&split_providers));
   return Status::OK();
 }
@@ -791,7 +822,7 @@ Status DataServiceDispatcherImpl::RegisterDataset(
       dataset_store_->Put(DatasetKey(dataset_id, fingerprint), split_dataset));
 
   // this is hard coded...
-  for (int sni = 0; sni <= 3; sni++) {
+  for (int sni = 0; sni <= 1; sni++) {
     VLOG(0) << "DispatcherImpl, generating dataset with SNI = " << sni;
     DatasetDef split_dataset;
     TF_RETURN_IF_ERROR(service::easl::split_utils::DeleteAfterNode(
@@ -891,9 +922,11 @@ Status DataServiceDispatcherImpl::GetOrCreateJob(
 
   VLOG(0) << "DispatcherImpl:GetOrCreateJob: " << key.value().index;
   if (key.value().index >= 2) {
-    response->set_split_node_index(2);
+    VLOG(0) << "Dispatcher::GetOrCreateJob setting split_node_index";
+    response->set_split_node_index(1);
   }
   else {
+    VLOG(0) << "Dispatcher::GetOrCreateJob skipping split_node_index";
     response->set_split_node_index(0);
   }
 
@@ -931,6 +964,7 @@ Status DataServiceDispatcherImpl::GetOrCreateJob(
           << request->DebugString() << ")";
   return Status::OK();
 }
+
 
 Status DataServiceDispatcherImpl::MaybeRemoveTask(
     const MaybeRemoveTaskRequest* request, MaybeRemoveTaskResponse* response) {
@@ -1061,7 +1095,16 @@ Status DataServiceDispatcherImpl::CreateJob(
   service::easl::cache_utils::DetermineJobType(config_, cache_state_,
     metadata_store_, dataset_fingerprint, job_name, job_type);
   VLOG(0) << "(CreateJob) Caching decision for dataset_key "
-               << compute_dataset_key << ": " << job_type;
+  << compute_dataset_key << ": " << job_type;
+
+  int64 split_node_index;
+  service::easl::split_utils::GetSplitNodeIndex(metadata_store_, dataset_fingerprint,
+                job_name, split_node_index);
+
+  VLOG(0) << "(CreateJob) Split Decision: " << split_node_index
+      << " by job id: " << job_id;
+  metadata_store_.SetJobSplitNodeIndex(job_id, -1); // to indicate changes during the epoch
+
 
   // EASL: Logging stuff
   if (kEnableEventLogging) {
@@ -1081,8 +1124,12 @@ Status DataServiceDispatcherImpl::CreateJob(
     job_type == "PUT" || job_type == "PUT_SOURCE");
 
   // EASL add job entry to metadata store
-  std::string dataset_key = service::easl::cache_utils::DatasetKey(
-    dataset->dataset_id, dataset->fingerprint, job_type);
+//  std::string dataset_key = service::easl::cache_utils::DatasetKey(
+//    dataset->dataset_id, dataset->fingerprint, job_type);
+
+  std::string dataset_key = service::easl::split_utils::SplitDatasetKey(
+    dataset->dataset_id, dataset->fingerprint, split_node_index);
+
   TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
       dataset->dataset_id, dataset->fingerprint, dataset_key, trigger_scaling));
 
@@ -1116,7 +1163,7 @@ Status DataServiceDispatcherImpl::CreateJob(
   int64 num_split_providers = 0;
   if (IsDynamicShard(request.processing_mode_def())) {
     TF_RETURN_IF_ERROR(
-        MakeSplitProviders(request.dataset_id(), job_type,
+        MakeSplitProviders(request.dataset_id(), split_node_index,
             split_providers_[job_id]));
     num_split_providers = split_providers_[job_id].size();
   }
@@ -1127,6 +1174,7 @@ Status DataServiceDispatcherImpl::CreateJob(
   create_job->set_dataset_id(dataset_id);
   *create_job->mutable_processing_mode_def() = request.processing_mode_def();
   create_job->set_job_type(job_type);
+  create_job->set_split_node_index(split_node_index);
   create_job->set_num_split_providers(num_split_providers);
   create_job->set_target_worker_count(worker_count);
   if (request.has_job_key()) {
@@ -1144,6 +1192,8 @@ Status DataServiceDispatcherImpl::CreateJob(
   TF_RETURN_IF_ERROR(state_.JobFromId(job_id, job));
   tensorflow::metrics::RecordTFDataServiceJobsCreated(
       request.processing_mode_def(), is_coordinated_read);
+
+  VLOG(0) << "At the end of create job, job's split node index is: " << job->split_node_index;
   return Status::OK();
 }
 
@@ -1213,6 +1263,8 @@ Status DataServiceDispatcherImpl::CreateTasksForJob(
 Status DataServiceDispatcherImpl::CreatePendingTask(
     std::shared_ptr<const Job> job, const std::string& worker_address)
     TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+
+  VLOG(0) << "In create pending task";
   int64_t task_id = state_.NextAvailableTaskId();
   Update update;
   CreatePendingTaskUpdate* create_task = update.mutable_create_pending_task();
@@ -1230,8 +1282,10 @@ Status DataServiceDispatcherImpl::CreatePendingTask(
   // TODO (damien-aymon) This is not entirely valid, we do not support cache with round-robin jobs yet.
   std::shared_ptr<const Dataset> dataset;
   TF_RETURN_IF_ERROR(state_.DatasetFromId(job->dataset_id, dataset));
+//  std::string dataset_key =
+//      service::easl::cache_utils::DatasetKey(dataset->dataset_id, dataset->fingerprint, job->job_type);
   std::string dataset_key =
-      service::easl::cache_utils::DatasetKey(dataset->dataset_id, dataset->fingerprint, job->job_type);
+      service::easl::split_utils::SplitDatasetKey(dataset->dataset_id, dataset->fingerprint, job->split_node_index);
   create_task->set_dataset_key(dataset_key);
 
   TF_RETURN_IF_ERROR(Apply(update));
@@ -1258,8 +1312,11 @@ Status DataServiceDispatcherImpl::CreateTask(std::shared_ptr<const Job> job,
   // EASL - Get the dataset_key depending on the job type:
   std::shared_ptr<const Dataset> dataset;
   TF_RETURN_IF_ERROR(state_.DatasetFromId(job->dataset_id, dataset));
+  // change this to job
+//  std::string dataset_key =
+//      service::easl::cache_utils::DatasetKey(dataset->dataset_id, dataset->fingerprint, job->job_type)
   std::string dataset_key =
-      service::easl::cache_utils::DatasetKey(dataset->dataset_id, dataset->fingerprint, job->job_type);
+      service::easl::split_utils::SplitDatasetKey(dataset->dataset_id, dataset->fingerprint, job->split_node_index);
   create_task->set_dataset_key(dataset_key);
 
   TF_RETURN_IF_ERROR(Apply(update));
@@ -1419,8 +1476,21 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     for (const auto& worker: workers) {
       worker_addrs.push_back(worker->address);
     }
-    tensorflow::data::service::easl::split_utils::LogSplitMetrics(
-            config_, metadata_store_, worker_addrs, job->job_id);
+
+    int64 current_sni;
+    metadata_store_.GetJobSplitNodeIndex(job->job_id, current_sni);
+    // should be set to -1 at getOrCreateJob
+    if (current_sni != -1) {
+      VLOG(0) << "Skip this round " << job->job_id << " " <<  current_sni;
+      response->set_split_node_index(-1);
+    }
+    else {
+//      tensorflow::data::service::easl::split_utils::LogSplitMetrics(
+//            config_, metadata_store_, worker_addrs, job->job_id);
+      VLOG(0) << "ClientHB: set next split node index to 1";
+      metadata_store_.SetJobSplitNodeIndex(job->job_id, 1);
+      response->set_split_node_index(1);
+    }
 
     metadata_store_.UnsetJobIsScaling(job->job_id);
     int64 target_worker_count = state_.ListWorkers().size();
@@ -1562,6 +1632,7 @@ Status DataServiceDispatcherImpl::PopulateTaskDef(
   //std::string dataset_key =
       //DatasetKey(dataset->dataset_id, dataset->fingerprint);
   if (config_.work_dir().empty()) {
+    VLOG(0) << "Get Dataset Position 1";
     std::shared_ptr<const DatasetDef> dataset_def;
     TF_RETURN_IF_ERROR(dataset_store_->Get(dataset_key, dataset_def));
     *task_def->mutable_dataset_def() = *dataset_def;
@@ -1718,7 +1789,20 @@ Status DataServiceDispatcherImpl::GetDatasetDef(
       dataset.dataset_id, dataset.fingerprint, job_type);
 
   //return errors::PermissionDenied("Should not enter here for now...");
+  VLOG(0) << "xxxGet Dataset Position 2";
   return dataset_store_->Get(key, dataset_def);
+}
+
+Status DataServiceDispatcherImpl::GetDatasetDef(
+        const Dataset& dataset,
+        const int64 split_node_index,
+        std::shared_ptr<const DatasetDef>& dataset_def)
+TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+        std::string key = service::easl::split_utils::SplitDatasetKey(
+        dataset.dataset_id, dataset.fingerprint, split_node_index);
+
+        VLOG(0) << "Get Dataset Position 2";
+        return dataset_store_->Get(key, dataset_def);
 }
 
 //Status DataServiceDispatcherImpl::GetDatasetDef(

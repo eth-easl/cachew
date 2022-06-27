@@ -17,6 +17,7 @@
 #include "tensorflow/core/grappler/optimizers/data/graph_utils.h"
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/grappler/optimizers/data/function_utils.h"
 
 #include "tensorflow/core/data/service/easl/split_pipeline_state.h"
 
@@ -90,6 +91,7 @@ namespace {
   }
 
   NodeDef* getDownstreamNode(GraphDef* graph, NodeDef* node) {
+    VLOG(0) << "In getDownstreamNode";
     for (const auto& _node: graph->node()) {
       for (int i = 0; i < _node.input_size(); i++) {
         if (_node.input(i) == node->name()) {
@@ -103,38 +105,83 @@ namespace {
   }
 
   NodeDef* getSinkNode(GraphDef* graph) {
-    absl::flat_hash_set<std::string> hset;
-
     for (const auto& _node: graph->node()) {
-      for (int i = 0; i < _node.input_size(); i++) {
-        hset.insert(_node.input(i));
-      }
-    }
-
-    NodeDef* result = 0;
-
-    for (const auto& _node: graph->node()) {
-      if (!hset.contains(_node.name())) {
-        result = getNodeDefFromName(graph, _node.name());
+      if (_node.op() == "_Retval") {
+        NodeDef* result = getNodeDefFromName(graph, _node.input(0));
         VLOG(0) << "Possible Sink Node is: " << result->name();
+        return result;
       }
     }
 
-    return result;
+    return NULL;
+  }
+
+
+//  NodeDef* getSinkNode(GraphDef*  ssgraph) {
+//    absl::flat_hash_set<std::string> hset;
+//
+//    for (const auto& _node: graph->node()) {
+//      for (int i = 0; i < _node.input_size(); i++) {
+//        hset.insert(_node.input(i));
+//      }
+//    }
+//
+//    NodeDef* result = 0;
+//
+//    for (const auto& _node: graph->node()) {
+//      if (!hset.contains(_node.name())) {
+//        result = getNodeDefFromName(graph, _node.name());
+//        VLOG(0) << "Possible Sink Node is: " << result->name();
+//      }
+//    }
+//
+//    return result;
+//  }
+
+  std::string shNodeName(std::string name) {
+    return "SH_" + name;
   }
 
   NodeDef* addNodeToGraph(NodeDef* node, tensorflow::grappler::MutableGraphView& graph_view) {
     VLOG(0) << "Add Node: " << getNodeRepr(node) << " to graph";
-    return tensorflow::grappler::graph_utils::AddNode(
-            node->name(),
+    std::vector<std::pair<std::string, AttrValue>> attrs(
+            {node->mutable_attr()->begin(), node->mutable_attr()->end()});
+    std::vector<std::string> inputs;
+
+//    VLOG(0) << "Print attrs: ";
+//    for (const auto& p: attrs) {
+//      VLOG(0) << p.first;
+//    }
+
+//    // Do i need to add functions into the library?
+//    FunctionLibraryDefinition function_library(OpRegistry::Global(),
+//                                               graph_view.graph()->library());
+//    const FunctionDef* fdef =
+//            function_library.Find(node->attr().at("f").func().name());
+//    // deep copy needed?
+//    VLOG(0) << "Print Function Def " << fdef->signature().name();
+//    for (const auto& p: fdef->attr()) {
+//      VLOG(0) << p.first;
+//    }
+
+    NodeDef* new_node =  tensorflow::grappler::graph_utils::AddNode(
+            shNodeName(node->name()),
             node->op(),
-            {node->mutable_input()->begin(), node->mutable_input()->end()},
-            {node->mutable_attr()->begin(), node->mutable_attr()->end()},
+//            {node->mutable_input()->begin(), node->mutable_input()->end()},
+//            {node->mutable_attr()->begin(), node->mutable_attr()->end()},
+            {},
+            {},
             &graph_view);
+
+    for (const auto& p: attrs) {
+//      VLOG(0) << "Copying attribute name: " << p.first;
+      graph_utils::CopyAttribute(p.first, *node, new_node);
+    }
+
+    return new_node;
+
   }
-
 }
-
 
 Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
         Cluster *cluster, const GrapplerItem& item,
@@ -149,8 +196,9 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
 
   VLOG(0) << "ApplyNodesAfterDSDO: split_node_index: " << split_node_index;
 
-  if (split_node_index == 0) {
-    VLOG(0) << "ApplyNodesAfterDSDO: split_node_index is zero, do nothing";
+  if (split_node_index <= 0) {
+    VLOG(0) << "ApplyNodesAfterDSDO: split_node_index is smaller equal to zero, do nothing "
+      << split_node_index;
     return Status::OK();
   }
 
@@ -167,18 +215,30 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
   GraphDef second_half_graph_ = tensorflow::data::service::easl::split_state::SplitOriginalGraph::GetGraph();
   GraphDef* second_half_graph = &second_half_graph_;
 
+  // extend function library
+  const auto& sh_library = second_half_graph->library();
+  for (auto func: sh_library.function()) {
+    VLOG(0) << "Add function def: " << func.signature().name();
+    output->mutable_library()->mutable_function()->Add(std::move(func));
+  }
   tensorflow::grappler::MutableGraphView dsdo_graph_view(output);
 
-  // Apply Rewrite
+  VLOG(0) << "Print all functions";
+  for (const auto & func: output->library().function()) {
+    VLOG(0) << func.signature().name();
+  }
 
+  // Apply Rewrite
   NodeDef* sink_node_sh = getSinkNode(second_half_graph);
   NodeDef* current_node_sh = sink_node_sh;
   VLOG(0) << "Sink Node of Second Half Graph: " << getNodeRepr(current_node_sh);
   NodeDef* current_node_dsdo = addNodeToGraph(current_node_sh, dsdo_graph_view);
 
   // 0. join second half with dsdo downstream node
-  NodeDef* dsdo_next_node = getDownstreamNode(output, current_node_dsdo);
+  NodeDef* dsdo_next_node = getDownstreamNode(output, dsdo_node);
+
   std::vector<std::string> vs;
+  vs.push_back(std::string(current_node_dsdo->name()));
   for (int i = 0; i < dsdo_next_node->input_size(); i++) {
     std::string up_node_name = dsdo_next_node->input(i);
     NodeDef* up_node = getNodeDefFromName(output, up_node_name);
@@ -186,36 +246,39 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
       vs.push_back(up_node_name);
     }
   }
-  *(dsdo_next_node->mutable_input()) = {vs.begin(), vs.end()};
-  dsdo_next_node->mutable_input()->Add(std::string(current_node_dsdo->name()));
 
+  *(dsdo_next_node->mutable_input()) = {vs.begin(), vs.end()};
   BFSWholeGraph(output, "After Step 0");
 
   // 1. append second half graph nodes to first half
   int64 cur_pos_from_back = 0;
-  for (; cur_pos_from_back < split_node_index; cur_pos_from_back++) {
+  for (; cur_pos_from_back < split_node_index; ) {
     NodeDef* next_node_sh = NULL;
+
+    bool end_of_chain = (current_node_sh->op() == "SplitMarkerDataset" &&
+            cur_pos_from_back == split_node_index - 1);
 
     for (int i = 0; i < current_node_sh->input_size(); i++) {
       NodeDef* tmp_node_sh = getNodeDefFromName(second_half_graph,
                                                 current_node_sh->input(i));
       // Add this node to the dsdo_graph
-      NodeDef* added_node_dsdo = addNodeToGraph(tmp_node_sh, dsdo_graph_view);
+      NodeDef* added_node_dsdo = NULL;
 
-      if (!(tmp_node_sh->op() != "Const" && cur_pos_from_back == split_node_index - 1)) {
+      if (!end_of_chain || tmp_node_sh->op() == "Const") {
+        added_node_dsdo = addNodeToGraph(tmp_node_sh, dsdo_graph_view);
         current_node_dsdo->mutable_input()->Add(std::string(added_node_dsdo->name()));
       }
-      else if (tmp_node_sh->op() != "Const") {
-        VLOG(0) << "Skipping node: [" << current_node_sh->name() << ", "
-                << current_node_sh->op() << "]'s non_const upstream node: ["
-                << tmp_node_sh->name() << ", " << tmp_node_sh->op()
-                << "]";
-      }
+//      else if (tmp_node_sh->op() != "SplitMarkerDataset") {
+//        VLOG(0) << "Skipping node: [" << current_node_sh->name() << ", "
+//                << current_node_sh->op() << "]'s non_const upstream node: ["
+//                << tmp_node_sh->name() << ", " << tmp_node_sh->op()
+//                << "]";
+//      }
 
       if (tmp_node_sh->op() != "Const") {
         // guaranteed to be only happening once
         next_node_sh = tmp_node_sh;
-        if (cur_pos_from_back < split_node_index - 1) {
+        if (!end_of_chain) {
           current_node_dsdo = added_node_dsdo;
           /*
            * A -> B -> C -> D, split_node_index = 2
@@ -225,12 +288,16 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
       }
 
     }
+    if (current_node_sh->op() == "SplitMarkerDataset") {
+      cur_pos_from_back++;
+    }
     current_node_sh = next_node_sh;
   }
   BFSWholeGraph(output, "After Step 1");
 
   // 2. join two sub-graphs
-//  current_node_dsdo->mutable_input()->Add(std::string(dsdo_sink_node->name()));
+  current_node_dsdo->mutable_input()->Add(std::string(dsdo_node->name()));
+
   BFSWholeGraph(output, "After Step 3");
 
   return Status::OK();

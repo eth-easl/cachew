@@ -1066,6 +1066,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":graph_utils",
+        ":function_utils",
         ":optimizer_base",
         "//tensorflow/core/data/service:split_pipeline_state",
         "//tensorflow/core/grappler:mutable_graph_view",

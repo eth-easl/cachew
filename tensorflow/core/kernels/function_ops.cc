@@ -48,10 +48,15 @@ void ArgOp::Compute(OpKernelContext* ctx) {
   OP_REQUIRES(ctx, frame != nullptr, errors::Internal("no call frame"));
   const Tensor* val;
 
+  VLOG(0) << "ArgOp::Compute: from node " <<
+          ctx->op_kernel().def().name() <<
+          " num_inputs: " << ctx->num_inputs();
+
   auto validate_type = [this](const Tensor& val) {
     if (val.dtype() == dtype_) {
       return Status::OK();
     } else {
+
       return errors::InvalidArgument("Type mismatch: actual ",
                                      DataTypeString(val.dtype()),
                                      " vs. expect ", DataTypeString(dtype_));
