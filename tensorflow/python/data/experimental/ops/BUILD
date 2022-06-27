@@ -415,6 +415,20 @@ py_library(
 )
 
 py_library(
+    name = "service_split_ops",
+    srcs = [
+        "service_split_ops.py",
+    ],
+    srcs_version = "PY2AND3",
+    visibility = ["//tensorflow:internal"],
+    deps = [
+        "//tensorflow/python:experimental_dataset_ops_gen",
+        "//tensorflow/python/data/ops:dataset_ops",
+        "//tensorflow/python/data/util:structure",
+    ],
+)
+
+py_library(
     name = "sleep_op",
     srcs = [
         "sleep.py",
@@ -452,6 +466,7 @@ py_library(
         ":resampling",
         ":scan_ops",
         ":service_cache_ops",
+        ":service_split_ops",
         ":shuffle_ops",
         ":sleep_op",
         ":snapshot",

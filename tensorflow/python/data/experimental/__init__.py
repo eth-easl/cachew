@@ -162,6 +162,7 @@ from tensorflow.python.framework.type_spec import TypeSpec as Structure
 # EASL
 from tensorflow.python.data.experimental.ops.service_cache_ops import service_cache_get
 from tensorflow.python.data.experimental.ops.service_cache_ops import service_cache_put
+from tensorflow.python.data.experimental.ops.service_split_ops import service_split_mark
 from tensorflow.python.data.experimental.ops.sleep import sleep
 
 # pylint: enable=unused-import
