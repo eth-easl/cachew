@@ -35,6 +35,12 @@ std::string SplitDatasetKey(const int64 id, const uint64 fingerprint,
                             const int64 split_node_index);
 
 
+Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
+                       ::tensorflow::data::easl::MetadataStore& metadata_store,
+                       const std::vector<std::string> workers,
+                       const int64 job_id);
+
+
 /*
  * Static variable used on the client side
  * Updated after getting the get_or_create_job_request

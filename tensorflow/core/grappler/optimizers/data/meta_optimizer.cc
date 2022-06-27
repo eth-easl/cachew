@@ -35,6 +35,7 @@ namespace {
 using ConfigMap =
     std::map<string, tensorflow::RewriterConfig_CustomGraphOptimizer>;
 
+
 // tf.data optimizations, in the order we want to perform them.
 constexpr std::array<const char*, 25> kTFDataOptimizations = {
     "append_nodes_after_dsdo",
@@ -62,6 +63,10 @@ constexpr std::array<const char*, 25> kTFDataOptimizations = {
     "add_put_op_at_marker",
     "add_get_op_at_marker",
     "make_deterministic"};
+
+//constexpr std::array<const char*, 1> kTFDataOptimizations = {
+//        "append_nodes_after_dsdo"
+//};
 
 // Parses a list of string optimizer configurations into a map from
 // optimizer name -> rewriter config for that optimizer.

@@ -210,6 +210,7 @@ void NodeMetrics::DumpToStream(std::stringstream &ss) {
   ss << "}";
 }
 
+
 // Input pipeline metrics
 Status InputPipelineMetrics::GetNodeMetrics(string long_name, 
   std::shared_ptr<NodeMetrics>& metrics) {

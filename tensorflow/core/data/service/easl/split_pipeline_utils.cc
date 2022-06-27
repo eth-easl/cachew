@@ -99,6 +99,54 @@ std::string SplitDatasetKey(const int64 id, const uint64 fingerprint,
   return absl::StrCat("id_", id, "_fp_", fingerprint, "_sni_", split_node_index);
 }
 
+bool ifLocal(std::string address) {
+  return address[0] == 'l';
+}
+
+Status LogNodeMetrics(string worker_address,
+                      ::tensorflow::data::easl::NodeMetrics::MetricsCollection& metrics) {
+  VLOG(0) << "LogNodeMetrics: -- start logging metrics for worker_address: "
+    << worker_address;
+  for(auto pair : metrics){
+    VLOG(0) << "-- " << pair.first << ": "
+       << "\"bytes_produced\" : " << std::to_string(pair.second->bytes_produced()) << "; "
+       << "\"active_time_ms\" : " << std::to_string(pair.second->active_time_ms());
+  }
+}
+
+Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
+                       ::tensorflow::data::easl::MetadataStore& metadata_store,
+                       const std::vector<std::string> workers,
+                       const int64 job_id) {
+  std::string local_worker_addr, remote_worker_addr;
+  for (const auto& worker: workers) {
+    if (ifLocal(worker)) {
+      local_worker_addr = worker;
+      remote_worker_addr = worker;
+    }
+    else {
+      remote_worker_addr = worker;
+    }
+  }
+
+  VLOG(0) << "LogSplitMetrics: local_worker_addr: " << local_worker_addr
+    << " remote_worker_addr: " << remote_worker_addr;
+
+  using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
+  using InputPipelineMetrics = ::tensorflow::data::easl::InputPipelineMetrics;
+
+  std::shared_ptr<InputPipelineMetrics> input_pipeline_metrics;
+  metadata_store.GetInputPipelineMetrics(job_id, input_pipeline_metrics);
+
+  NodeMetrics::MetricsCollection local_worker_metrics, remote_worker_metrics;
+  input_pipeline_metrics->GetWorkerMetrics(local_worker_addr, local_worker_metrics);
+  input_pipeline_metrics->GetWorkerMetrics(remote_worker_addr, remote_worker_metrics);
+
+  LogNodeMetrics(local_worker_addr, local_worker_metrics);
+  LogNodeMetrics(local_worker_addr, local_worker_metrics);
+
+  VLOG(0) << "LogSplitMetrics: ends";
+}
 
 } // split_utils
 } // easl

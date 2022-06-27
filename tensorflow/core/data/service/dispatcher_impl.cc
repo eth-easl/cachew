@@ -1413,6 +1413,15 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
       }
     }
   } else if (config_.scaling_policy() == 2) {
+
+    auto workers = state_.ListWorkers();
+    std::vector<std::string> worker_addrs;
+    for (const auto& worker: workers) {
+      worker_addrs.push_back(worker->address);
+    }
+    tensorflow::data::service::easl::split_utils::LogSplitMetrics(
+            config_, metadata_store_, worker_addrs, job->job_id);
+
     metadata_store_.UnsetJobIsScaling(job->job_id);
     int64 target_worker_count = state_.ListWorkers().size();
     if (job->target_worker_count != target_worker_count) {

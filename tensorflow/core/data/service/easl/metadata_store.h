@@ -145,7 +145,7 @@ class NodeMetrics {
 
     // Get or update the metrics of a worker
     Status UpdateWorkerMetrics(string worker_address, Metrics& metrics);
-    Status GetWorkerMetrics(string worker_address, 
+    Status GetWorkerMetrics(string worker_address,
       std::shared_ptr<Metrics>& metrics);
 
     // Dump metrics to string stream
