@@ -284,7 +284,7 @@ class MetadataStore {
                        int64 dataset_id,
                        uint64 dataset_fingerprint,
                        std::string& dataset_key,
-                       bool trigger_rescale = false);
+                       bool trigger_rescale);
 
   // overloading for scaling policy 3 & 4
   Status CreateJobName(int64 job_id,
