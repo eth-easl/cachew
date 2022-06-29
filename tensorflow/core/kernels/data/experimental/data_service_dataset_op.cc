@@ -1422,11 +1422,11 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         Status s = TryGetElement(*task, get_element_result);
 
         if (s.ok()) {
-          VLOG(0) << "Got Element ";
-          auto res = get_element_result.components;
-          for (const auto & tensor: res) {
-            VLOG(0) << tensor.DebugString();
-          }
+//          VLOG(0) << "Got Element ";
+//          auto res = get_element_result.components;
+//          for (const auto & tensor: res) {
+//            VLOG(0) << tensor.DebugString();
+//          }
           break;
         }
         // Retry all errors that could indicate preemption.
