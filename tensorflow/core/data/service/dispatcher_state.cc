@@ -648,41 +648,59 @@ void DispatcherState::UpdateJobTargetWorkerCountRemoteAndLocal(
 
   // remove tasks
   // TODO: currently we don't need to decrease Local Workers
-  int64 remote_tasks_currently_being_ended = 0;
+  int64 remote_tasks_currently_being_ended = 0, local_tasks_currently_being_ended = 0;
   for (auto p: tasks_by_job_[job_id]) {
     if (ending_tasks_by_job_[job_id].contains(p.second->task_id)) {
       if (!job->is_local_worker(p.second->worker_address)) {
         remote_tasks_currently_being_ended++;
       }
+      else {
+        local_tasks_currently_being_ended++;
+      }
     }
   }
 
-  int64 num_tasks_to_end = std::max(
+  int64 num_remote_tasks_to_end = std::max(
           (int64) 0, (int64) -needed_remote_worker_count - remote_tasks_currently_being_ended
           );
 
-  VLOG(0) << "EASL (UpdateJobTargetWorkerCountRemoteAndLocal) - Tasks currently being ended: "
+  int64 num_local_tasks_to_end = std::max(
+          (int64) 0, (int64) -needed_local_worker_count - local_tasks_currently_being_ended
+          );
+
+  VLOG(0) << "EASL (UpdateJobTargetWorkerCountRemoteAndLocal) - "
+          << "Remote Tasks currently being ended: "
           << remote_tasks_currently_being_ended
-          << ", so looking to end: " << -needed_remote_worker_count << " (after max: " << num_tasks_to_end << ")";
+          << "; Local Tasks currently being ended"
+          << local_tasks_currently_being_ended
+          << ", so looking to end: " << num_remote_tasks_to_end
+          << ", and " << num_local_tasks_to_end << " respectively";
 
   TasksById current_tasks = tasks_by_job_[job_id];
   auto it = current_tasks.begin();
-  for (int i=0; it != current_tasks.end() && num_tasks_to_end > 0; i++){
+  for (int i=0; it != current_tasks.end() &&
+        (num_remote_tasks_to_end > 0 || num_local_tasks_to_end > 0) ; i++){
+
     auto task = it->second;
-    // Only add to list if not already there.
+
     if (!ending_tasks_by_job_[job_id].contains(task->task_id)){
       ending_tasks_by_job_[job_id][task->task_id] = task;
-      num_tasks_to_end--;
-
+      if (job->is_local_worker(task->worker_address)) {
+        num_local_tasks_to_end--;
+      }
+      else {
+        num_remote_tasks_to_end--;
+      }
       // TODO: we may have some delay here when updating the workers
 //      job->current_remote_worker_count--;
       VLOG(0) << "EASL - (UpdateJobTargetWorkerCountRemoteAndLocal) - ending task " << task->task_id;
     }
     it++;
   }
-  if(num_tasks_to_end > 0){
+  if (num_remote_tasks_to_end > 0 || num_local_tasks_to_end > 0){
     VLOG(0) << "EASL (UpdateJobTargetWorkerCountRemoteAndLocal) - not able to end enough tasks.";
   }
+
 }
 
 std::vector<std::shared_ptr<const DispatcherState::Job>>

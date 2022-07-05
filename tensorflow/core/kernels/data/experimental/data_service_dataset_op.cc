@@ -1631,6 +1631,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     const uint32 RESCALE_BUFFER_INTERVAL = 150;
     const uint32 EPOCH_START_BUFFER_INTERVAL = 200;
 
+
     std::vector<uint64> batch_timestamps_us_ TF_GUARDED_BY(mu_);
     std::vector<double> wait_times_ms_ TF_GUARDED_BY(mu_);
     std::vector<uint32> result_queue_size_ TF_GUARDED_BY(mu_);

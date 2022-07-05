@@ -148,7 +148,7 @@ namespace {
     double kMinQueueSizeRelativeGrowth = 1.5; // +50%
     double kMinBatchTimeRelativeGrowth = 1.5; // +50%
 
-    int MAX_LOCAL_WORKERS_PER_JOB = 3;
+    int MAX_LOCAL_WORKERS_PER_JOB = 5;
     double kPerformanceErrorBar = 0.03;
     // combine with costs
     double kPerformanceDecreaseTolerance = 0.1;
@@ -226,13 +226,14 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
               << " > Converging here since scaling is not justified.";
 
       remote_worker_count = last_metrics->remote_worker_count();
-      local_worker_count = 0;
+      local_worker_count = last_metrics->remote_worker_count();
       model_metrics->converged_metrics_ = last_metrics;
       metadata_store.UnsetJobIsScaling(job_id);
       metadata_store.ResetSameScaleCounter(job_id);
 
       metadata_store.SetJobTargetRemoteWorkerCount(job_id, remote_worker_count);
       metadata_store.SetJobTargetLocalWorkerCount(job_id, local_worker_count);
+
       return Status::OK();
     }
     second_to_last_metrics = metrics_history[--second_to_last_index];
@@ -359,16 +360,17 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       }
     } break;
     case JobScalingState::STABLE: {
-      // TODO: change this branch!!
-      remote_worker_count = last_metrics->remote_worker_count(); 
-      local_worker_count = last_metrics->local_worker_count(); 
+      VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC): Stable Mode, do nothing";
+      remote_worker_count = last_metrics->remote_worker_count();
+      local_worker_count = last_metrics->local_worker_count();
+      break;
     }
     default: {
       VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC): Something wrong happening, entering default branch";
       remote_worker_count = last_metrics->remote_worker_count(); 
       local_worker_count = last_metrics->local_worker_count(); 
     }
-      break;
+    break;
   }
   metadata_store.SetJobTargetRemoteWorkerCount(job_id, remote_worker_count);
   metadata_store.SetJobTargetLocalWorkerCount(job_id, local_worker_count);

@@ -499,6 +499,7 @@ Status MetadataStore::CreateJobName(int64 job_id, string& job_name,
   if ( it == fingerprint_name_metadata_.end()) {
     // We've never seen this input pipeline; it's expected to be a PROFILING job
 //    CHECK_EQ(job_type, "PROFILE");
+    VLOG(0) << "CreateJobName:Muyu - Profile";
     bool is_scaing = job_type != "PROFILE";
     std::string ds_key = dataset_key;
     int64 target_remote_worker_count, target_local_worker_count;

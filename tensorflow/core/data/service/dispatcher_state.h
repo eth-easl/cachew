@@ -158,7 +158,7 @@ class DispatcherState {
                  int64_t target_worker_count,
                 int64_t target_remote_worker_count,
                 int64_t target_local_worker_count,
-                  TargetWorkers target_workers)
+                TargetWorkers target_workers)
         : job_id(job_id),
           dataset_id(dataset_id),
           processing_mode(processing_mode),
