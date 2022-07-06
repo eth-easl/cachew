@@ -1156,14 +1156,15 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       VLOG(4) << "Searching for the next task to process.";
-      if (ShouldProcessLocalTask()) {
-        std::shared_ptr<Task> task = GetLocalTaskToProcess();
-        if (task) {
-          VLOG(4) << "Selected a local task to process: "
-                  << task->info.ShortDebugString();
-          return task;
-        }
-      }
+//      if (ShouldProcessLocalTask()) {
+//        std::shared_ptr<Task> task = GetLocalTaskToProcess();
+//        if (task) {
+//          VLOG(4) << "Selected a local task to process: "
+//                  << task->info.ShortDebugString();
+//          return task;
+//        }
+//      }
+
 
       if (ShouldProcessAnyTask()) {
         std::shared_ptr<Task> task = GetAnyTaskToProcess();
