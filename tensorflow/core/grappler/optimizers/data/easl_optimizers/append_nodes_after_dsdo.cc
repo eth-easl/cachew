@@ -190,8 +190,6 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
   VLOG(0) << "In AppendNodesAfterDSDO Optimizer";
   *output = item.graph;
 
-//  BFSWholeGraph(output, "START!!!!!!");
-
   NodeDef* dsdo_node = getGraphDSDO(output);
   if (dsdo_node == NULL) {
     VLOG(0) << "ApplyNodesAfterDSDO: GraphNode DSDO doesn't exist";
@@ -216,15 +214,15 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
   // extend function library
   const auto& sh_library = second_half_graph->library();
   for (auto func: sh_library.function()) {
-    VLOG(0) << "Add function def: " << func.signature().name();
+//    VLOG(0) << "Add function def: " << func.signature().name();
     output->mutable_library()->mutable_function()->Add(std::move(func));
   }
   tensorflow::grappler::MutableGraphView dsdo_graph_view(output);
 
-  VLOG(0) << "Print all functions";
-  for (const auto & func: output->library().function()) {
-    VLOG(0) << func.signature().name();
-  }
+//  VLOG(0) << "Print all functions";
+//  for (const auto & func: output->library().function()) {
+//    VLOG(0) << func.signature().name();
+//  }
 
   // Apply Rewrite
   NodeDef* sink_node_sh = getSinkNode(second_half_graph);
@@ -246,7 +244,7 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
   }
 
   *(dsdo_next_node->mutable_input()) = {vs.begin(), vs.end()};
-  BFSWholeGraph(output, "After Step 0");
+//  BFSWholeGraph(output, "After Step 0");
 
   // 1. append second half graph nodes to first half
   int64 cur_pos_from_back = 0;
@@ -289,12 +287,12 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
       current_node_dsdo = next_node_dsdo;
     }
   }
-  BFSWholeGraph(output, "After Step 1");
+//  BFSWholeGraph(output, "After Step 1");
 
   // 2. join two sub-graphs
   current_node_dsdo->mutable_input()->Add(std::string(dsdo_node->name()));
 
-  BFSWholeGraph(output, "After Step 3");
+  BFSWholeGraph(output, "Finish");
 
   return Status::OK();
 

@@ -1725,8 +1725,6 @@ Model::ModelMetrics Model::CollectMetrics() {
   Node::NodeValues node_times;
   Node::NodeValues final_times;
 
-  VLOG(0) << "EASL - Trying to collect metrics";
-
   FlushMetrics();
   {
     tf_shared_lock l(mu_);
@@ -1742,11 +1740,7 @@ Model::ModelMetrics Model::CollectMetrics() {
       last_node_name = output_->long_name();
 //      VLOG(0) << last_tf_node_name;
     }
-
   }
-
-  VLOG(0) << "(CollectMetrics) Last node name " << last_node_name;
-  VLOG(0) << "(CollectMetrics) Last TF node name " << last_tf_node_name;
 
   while (!queue.empty()) {
     auto node = queue.front();
@@ -1757,7 +1751,11 @@ Model::ModelMetrics Model::CollectMetrics() {
       queue.push_back(input);
     }
 
-    if (marker_node_name == "" && node->name() == "MarkerDataset:source_cache") {
+    // By muyu: this will make the cachew cache policy no longer working
+//    if (marker_node_name == "" && node->name() == "MarkerDataset:source_cache") {
+//      marker_node_name = node->long_name();
+//    }
+    if (marker_node_name == "" && node->name() == "SplitMarkerDataset") {
       marker_node_name = node->long_name();
     }
 

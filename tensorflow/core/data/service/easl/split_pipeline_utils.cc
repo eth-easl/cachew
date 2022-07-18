@@ -117,6 +117,7 @@ std::string SplitDatasetKey(const int64 id, const uint64 fingerprint,
 }
 
 bool ifLocal(std::string address) {
+  // hacky
   return address[0] == 'l';
 }
 
@@ -135,15 +136,24 @@ Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
                        ::tensorflow::data::easl::MetadataStore& metadata_store,
                        const std::vector<std::string> workers,
                        const int64 job_id) {
-  std::string local_worker_addr, remote_worker_addr;
+  std::string local_worker_addr = "", remote_worker_addr = "";
   for (const auto& worker: workers) {
+    VLOG(0) << worker;
     if (ifLocal(worker)) {
       local_worker_addr = worker;
-      remote_worker_addr = worker;
     }
     else {
       remote_worker_addr = worker;
     }
+  }
+
+  if (local_worker_addr == "") {
+    VLOG(0) << "LogSplitMetrics: local worker metrics not collected";
+    return Status::OK();
+  }
+  if (remote_worker_addr == "") {
+    VLOG(0) << "LogSplitMetrics: remote worker metrics not collected";
+    return Status::OK();
   }
 
   VLOG(0) << "LogSplitMetrics: local_worker_addr: " << local_worker_addr
@@ -155,14 +165,62 @@ Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
   std::shared_ptr<InputPipelineMetrics> input_pipeline_metrics;
   metadata_store.GetInputPipelineMetrics(job_id, input_pipeline_metrics);
 
-  NodeMetrics::MetricsCollection local_worker_metrics, remote_worker_metrics;
-  input_pipeline_metrics->GetWorkerMetrics(local_worker_addr, local_worker_metrics);
-  input_pipeline_metrics->GetWorkerMetrics(remote_worker_addr, remote_worker_metrics);
+  if (input_pipeline_metrics == NULL) {
+    VLOG(0) << "Metrics not ready yet";
+    return Status::OK();
+  }
 
-  LogNodeMetrics(local_worker_addr, local_worker_metrics);
-  LogNodeMetrics(local_worker_addr, local_worker_metrics);
+  double active_time_after_marker_node, active_time_marker_node, active_time_last_node;
+  int64 bytes_produced_marker_node, bytes_produced_last_node;
 
-  VLOG(0) << "LogSplitMetrics: ends";
+  input_pipeline_metrics->GetWorkerMetricsSplitLocal(local_worker_addr, active_time_after_marker_node);
+  input_pipeline_metrics->GetWorkerMetricsSplitRemote(remote_worker_addr, active_time_marker_node,
+                                                      active_time_last_node, bytes_produced_marker_node,
+                                                      bytes_produced_last_node);
+
+  if (active_time_after_marker_node <= 1e-5 ||
+      active_time_marker_node <= 1e-5 ||
+      active_time_last_node <= 1e-5 ||
+      bytes_produced_marker_node <= 5.0 ||
+      bytes_produced_last_node <= 5.0
+      ) {
+    // When these metrics are not ready
+    return Status::OK();
+  }
+
+  VLOG(0) << "LogSplitMetrics: active_time_after_marker_node: " << active_time_after_marker_node
+    << "; active_time_marker_node: " << active_time_marker_node
+    << "; active_time_last_node: " << active_time_last_node
+    << "; bytes_produced_last_node_per_ms: " << bytes_produced_last_node
+    << "; bytes_produced_marker_node_per_ms: " << bytes_produced_marker_node;
+
+  /*
+   * bytes_per_s is actually measured in ms, so should be bytes_per_ms
+   *
+   * nw_speed = 10Gbps = 1.25 * 1000 * 1000 * 1000 Bps = 1.25 * 1e6  bpms
+   */
+
+  double nw_speed = 1.25 * 1e6;
+  double tran_split = active_time_marker_node * bytes_produced_marker_node / nw_speed;
+  double tran_remote = active_time_last_node * bytes_produced_last_node / nw_speed;
+
+  VLOG(0) << "LogSplitMetrics: Local: \n"
+      << "  LWSH: " << active_time_after_marker_node << "\n"
+      << "  RWFH: " << active_time_marker_node << "\n"
+      << "  TRAN: " << tran_split << "\n";
+
+  VLOG(0) << "LogSplitMetrics: Remote: \n"
+          << "  LN: " << active_time_last_node << "\n"
+          << "  TRAN: " << tran_remote << "\n";
+
+  if (max(active_time_after_marker_node, active_time_marker_node + tran_split)
+        < active_time_last_node + tran_remote) {
+    VLOG(0) << "LogSplitMetrics: Split!!!"
+  } else {
+    VLOG(0) << "LogSplitMetrics: Remote!!!"
+  }
+
+  return Status::OK();
 }
 
 Status GetSplitNodeIndex(::tensorflow::data::easl::MetadataStore& metadata_store,

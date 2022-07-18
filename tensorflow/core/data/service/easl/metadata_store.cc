@@ -261,6 +261,50 @@ Status InputPipelineMetrics::GetWorkerMetrics(string worker_address,
   return Status::OK();
 }
 
+Status InputPipelineMetrics::GetWorkerMetricsSplitLocal(
+        string worker_address,
+        double& active_time_after_marker_node
+        ) {
+  NodeMetrics::MetricsCollection metrics;
+  GetWorkerMetrics(worker_address, metrics);
+
+  double active_time_marker_node = 10000, active_time_last_node = 10000;
+  for(auto pair : metrics){
+    if (pair.first == maker_node_name_) {
+      active_time_marker_node = pair.second->active_time_ms();
+    }
+    if (pair.first == last_node_name_) {
+      active_time_last_node = pair.second->active_time_ms();
+    }
+  }
+  active_time_after_marker_node = active_time_last_node - active_time_marker_node;
+  return Status::OK();
+}
+
+Status InputPipelineMetrics::GetWorkerMetricsSplitRemote(
+        string worker_address,
+        double& active_time_marker_node,
+        double& active_time_last_node,
+        int64& bytes_produced_marker_node,
+        int64& bytes_produced_last_node
+        ) {
+
+  NodeMetrics::MetricsCollection metrics;
+  GetWorkerMetrics(worker_address, metrics);
+  for(auto pair : metrics){
+    if (pair.first == maker_node_name_) {
+      active_time_marker_node = pair.second->active_time_ms();
+      bytes_produced_marker_node = pair.second->bytes_per_s();
+    }
+    if (pair.first == last_node_name_) {
+      active_time_last_node = pair.second->active_time_ms();
+      bytes_produced_last_node = pair.second->bytes_per_s();
+    }
+  }
+
+  return Status::OK();
+}
+
 Status InputPipelineMetrics::UpdateNodeMetrics(string long_name,
   string worker_address, NodeMetrics::Metrics& metrics) {
   auto it = metrics_.find(long_name); 
@@ -477,6 +521,9 @@ Status MetadataStore::GetInputPipelineMetrics(int64 job_id,
   Status s = GetJobMetrics(job_id, job_metrics);
   if (s.ok()) {
     metrics = job_metrics->input_pipeline_metrics_;
+  }
+  else {
+    metrics = NULL;
   }
   return s;
 }

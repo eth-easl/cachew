@@ -53,34 +53,6 @@ void DeleteNodesAfter::BFSGraph(NodeDef* sink_node,
   VLOG(0) << "(DelteNodesAfter::BFSGraph) ends";
 }
 
-// Deprecated since graph nodes are accompanied by const inputs
-// even if logically it is a chain
-
-//void DeleteNodesAfter::PrintChainOfGraph(NodeDef* sink_node,
-//                       GraphDef* output,
-//                       int64 split_node_index) {
-//  VLOG(0) << "(DeleteNodesAfter::PrintGraphChain) start ----";
-//  NodeDef* current_node = sink_node;
-//  int64 cur_pos_from_back = 0;
-//
-//  // reserve some space for printing
-//  while (cur_pos_from_back < split_node_index + 5 &&
-//         current_node->input_size() == 1 // more than one: branches; fewer than one: start point
-//          ) {
-//    if (cur_pos_from_back == split_node_index) {
-//      VLOG(0) << " <- **(" << current_node->name() << ")**";
-//    }
-//    else {
-//      VLOG(0) << " <- (" << current_node->name() << ")";
-//    }
-//    cur_pos_from_back++;
-//    int idx = graph_utils::FindGraphNodeWithName(current_node->input(0), *output);
-//    current_node = output->mutable_node(idx);
-//  }
-//
-//  VLOG(0) << "(PrintGraphChain) end ----";
-//}
-
 Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
                                     NodeDef* sink_node,
                                     GraphDef* output) {
@@ -90,17 +62,12 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
           .at(kSplitNodeIndex)
           .i();
 
-//  PrintChainOfGraph(sink_node, output, split_node_index);
-
-  BFSGraph(sink_node, output);
-
   // iterate throught the graph from sink node
   absl::flat_hash_set<std::string> visited;
   NodeDef* current_node = sink_node;
   NodeDef* prev_node;
   int64 cur_pos_from_back = 0; // sink node position
 
-  // TODO: standard needs to be the same between client and dispatcher
   if (split_node_index <= 0) {
     VLOG(0) << "split node index equal to zero, no need to split";
     return Status::OK();
@@ -108,7 +75,6 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
 
   absl::flat_hash_set<std::string> nodes_to_delete;
 
-  // TODO: add more print_outs
   // to simplify, we only consider splitting the "tail" of the graph
   /*
    * A -> B \
@@ -159,7 +125,6 @@ Status DeleteNodesAfter::ApplyOptimization(MutableGraphView &graph,
   }
 
   if (cur_pos_from_back < split_node_index) {
-    // TODO: Split Not Successful
     VLOG(0) << "(DeleteNodesAfter::ApplyOptimization): Chain not long enough "
       << "cur_pos_from_back: " << cur_pos_from_back
       << "; split_node_index: " << split_node_index;

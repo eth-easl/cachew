@@ -174,6 +174,7 @@ class InputPipelineMetrics {
     // Get the metrics for a single node
     Status GetNodeMetrics(string long_name, 
       std::shared_ptr<NodeMetrics>& metrics);
+
     Status GetLastNodeMetrics(std::shared_ptr<NodeMetrics>& metrics);
     Status GetLastTFNodeMetrics(std::shared_ptr<NodeMetrics>& metrics);
     Status GetMarkerNodeMetrics(std::shared_ptr<NodeMetrics>& metrics);
@@ -181,6 +182,18 @@ class InputPipelineMetrics {
     // Get the metrics from the same worker for each node in the graph 
     Status GetWorkerMetrics(string worker_address, 
       NodeMetrics::MetricsCollection& metrics);
+
+    Status GetWorkerMetricsSplitLocal(
+            string worker_address,
+            double& active_time_after_marker_node
+    );
+    Status GetWorkerMetricsSplitRemote(
+            string worker_address,
+            double& active_time_marker_node,
+            double& active_time_last_node,
+            int64& bytes_produced_marker_node,
+            int64& bytes_produced_last_node
+    );
 
     // Methods for setting data
     Status UpdateNodeMetrics(string long_name, string worker_address, 

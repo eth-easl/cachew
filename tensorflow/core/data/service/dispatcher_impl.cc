@@ -713,7 +713,6 @@ Status DataServiceDispatcherImpl::MakeSplitProviders(
   std::shared_ptr<const Dataset> dataset;
   TF_RETURN_IF_ERROR(state_.DatasetFromId(dataset_id, dataset));
   std::shared_ptr<const DatasetDef> dataset_def;
-  VLOG(0) << "DispatcherImpl: MakeSplitProviders...";
   TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, job_type, dataset_def));
   standalone::Dataset::Params params;
   std::unique_ptr<standalone::Dataset> standalone_dataset;
@@ -721,7 +720,6 @@ Status DataServiceDispatcherImpl::MakeSplitProviders(
 //      params, dataset_def->graph(), &standalone_dataset));
   Status s = standalone::Dataset::FromGraph(
       params, dataset_def->graph(), &standalone_dataset);
-  VLOG(0) << "From Graph";
   TF_RETURN_IF_ERROR(standalone_dataset->MakeSplitProviders(&split_providers));
   return Status::OK();
 }
@@ -734,9 +732,7 @@ TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
   std::shared_ptr<const Dataset> dataset;
   TF_RETURN_IF_ERROR(state_.DatasetFromId(dataset_id, dataset));
   std::shared_ptr<const DatasetDef> dataset_def;
-  VLOG(0) << "DispatcherImpl: MakeSplitProviders... new";
   TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, split_node_index, dataset_def));
-  VLOG(0) << "DispatcherImpl: MakeSplitProviders:: GetDatasetDef";
   standalone::Dataset::Params params;
   std::unique_ptr<standalone::Dataset> standalone_dataset;
 //  TF_RETURN_IF_ERROR(standalone::Dataset::FromGraph(
@@ -747,7 +743,6 @@ TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
     VLOG(0) << "From Graph Failed";
     VLOG(0) << s.error_message();
   }
-  VLOG(0) << "DispatcherImpl: MakeSplitProviders:: FromGraph";
   TF_RETURN_IF_ERROR(standalone_dataset->MakeSplitProviders(&split_providers));
   return Status::OK();
 }
@@ -1396,8 +1391,6 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   TF_RETURN_IF_ERROR(CheckStarted());
   bool do_reassign_workers = false;
   mutex_lock l(mu_);
-  VLOG(4) << "Received heartbeat from client id " << request->job_client_id();
-
   std::shared_ptr<const Job> job;
   Status s = state_.JobForJobClientId(request->job_client_id(), job);
 
@@ -1476,22 +1469,24 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     for (const auto& worker: workers) {
       worker_addrs.push_back(worker->address);
     }
-
+    tensorflow::data::service::easl::split_utils::LogSplitMetrics(
+            config_, metadata_store_, worker_addrs, job->job_id);
     int64 current_sni;
     metadata_store_.GetJobSplitNodeIndex(job->job_id, current_sni);
     // should be set to -1 at getOrCreateJob
     if (current_sni != -1) {
-      VLOG(0) << "Skip this round " << job->job_id << " " <<  current_sni;
+      VLOG(0) << "ClientHeartbeat: Split decision already passed to client, skip this round: "
+        << job->job_id << " " <<  current_sni;
       response->set_split_node_index(-1);
     }
     else {
-//      tensorflow::data::service::easl::split_utils::LogSplitMetrics(
-//            config_, metadata_store_, worker_addrs, job->job_id);
-      VLOG(0) << "ClientHB: set next split node index to 1";
+      tensorflow::data::service::easl::split_utils::LogSplitMetrics(
+            config_, metadata_store_, worker_addrs, job->job_id);
+      VLOG(0) << "ClientHeartbeat: Passing Split Decision: "
+        << 1 << " to the client";
       metadata_store_.SetJobSplitNodeIndex(job->job_id, 1);
       response->set_split_node_index(1);
     }
-
     metadata_store_.UnsetJobIsScaling(job->job_id);
     int64 target_worker_count = state_.ListWorkers().size();
     if (job->target_worker_count != target_worker_count) {
@@ -1632,7 +1627,6 @@ Status DataServiceDispatcherImpl::PopulateTaskDef(
   //std::string dataset_key =
       //DatasetKey(dataset->dataset_id, dataset->fingerprint);
   if (config_.work_dir().empty()) {
-    VLOG(0) << "Get Dataset Position 1";
     std::shared_ptr<const DatasetDef> dataset_def;
     TF_RETURN_IF_ERROR(dataset_store_->Get(dataset_key, dataset_def));
     *task_def->mutable_dataset_def() = *dataset_def;
@@ -1789,7 +1783,6 @@ Status DataServiceDispatcherImpl::GetDatasetDef(
       dataset.dataset_id, dataset.fingerprint, job_type);
 
   //return errors::PermissionDenied("Should not enter here for now...");
-  VLOG(0) << "xxxGet Dataset Position 2";
   return dataset_store_->Get(key, dataset_def);
 }
 
@@ -1801,7 +1794,6 @@ TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
         std::string key = service::easl::split_utils::SplitDatasetKey(
         dataset.dataset_id, dataset.fingerprint, split_node_index);
 
-        VLOG(0) << "Get Dataset Position 2";
         return dataset_store_->Get(key, dataset_def);
 }
 
