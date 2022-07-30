@@ -112,15 +112,8 @@ bool IsMapIdentity(const NodeDef& map_node, const MutableGraphView& graph) {
     return false;
   }
 
-  VLOG(0) << "IsMapIdentity::Print attrs for node: " <<  map_node.name();
-  for (const auto& p: map_node.attr()) {
-    VLOG(0) << p.first;
-  }
-
 
   // We are looking only for map(lambda *x: x) nodes.
-
-  VLOG(0) << "Debug 0";
 
   // Don't eliminate map nodes with captured arguments.
   if (map_node.attr().at("Targuments").list().type_size() != 0) return false;
@@ -128,15 +121,9 @@ bool IsMapIdentity(const NodeDef& map_node, const MutableGraphView& graph) {
   FunctionLibraryDefinition function_library(OpRegistry::Global(),
                                              graph.graph()->library());
 
-  VLOG(0) << "Try to find function: " << map_node.attr().at("f").func().name();
   const FunctionDef* fdef =
       function_library.Find(map_node.attr().at("f").func().name());
 
-  // deep copy needed?
-//  VLOG(0) << "Print Function Def " << fdef->signature().name();
-//  for (const auto& p: fdef->attr()) {
-//    VLOG(0) << p.first;
-//  }
 
   // Don't eliminate map nodes with stateful functions.
   if (function_utils::IsFunctionStateful(function_library, *fdef)) return false;

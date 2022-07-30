@@ -189,13 +189,18 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
 
   VLOG(0) << "In AppendNodesAfterDSDO Optimizer";
   *output = item.graph;
-  BFSWholeGraph(output);
+
+//  BFSWholeGraph(output, "START!!!!!!");
+
+  NodeDef* dsdo_node = getGraphDSDO(output);
+  if (dsdo_node == NULL) {
+    VLOG(0) << "ApplyNodesAfterDSDO: GraphNode DSDO doesn't exist";
+    return Status::OK();
+  }
 
   int64 split_node_index =
             tensorflow::data::service::easl::split_state::SplitIndexes::GetSplitIndex();
-
   VLOG(0) << "ApplyNodesAfterDSDO: split_node_index: " << split_node_index;
-
   if (split_node_index <= 0) {
     VLOG(0) << "ApplyNodesAfterDSDO: split_node_index is smaller equal to zero, do nothing "
       << split_node_index;
@@ -204,13 +209,6 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
 
   tensorflow::data::service::easl::split_state::SplitIndexes::Print();
   tensorflow::data::service::easl::split_state::SplitOriginalGraph::Print();
-
-  NodeDef* dsdo_node = getGraphDSDO(output);
-
-  if (dsdo_node == NULL) {
-    VLOG(0) << "ApplyNodesAfterDSDO: GraphNode DSDO doesn't exist";
-    return Status::OK();
-  }
 
   GraphDef second_half_graph_ = tensorflow::data::service::easl::split_state::SplitOriginalGraph::GetGraph();
   GraphDef* second_half_graph = &second_half_graph_;
@@ -254,6 +252,7 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
   int64 cur_pos_from_back = 0;
   for (; cur_pos_from_back < split_node_index; ) {
     NodeDef* next_node_sh = NULL;
+    NodeDef* next_node_dsdo = NULL;
 
     bool end_of_chain = (current_node_sh->op() == "SplitMarkerDataset" &&
             cur_pos_from_back == split_node_index - 1);
@@ -268,18 +267,12 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
         added_node_dsdo = addNodeToGraph(tmp_node_sh, dsdo_graph_view);
         current_node_dsdo->mutable_input()->Add(std::string(added_node_dsdo->name()));
       }
-//      else if (tmp_node_sh->op() != "SplitMarkerDataset") {
-//        VLOG(0) << "Skipping node: [" << current_node_sh->name() << ", "
-//                << current_node_sh->op() << "]'s non_const upstream node: ["
-//                << tmp_node_sh->name() << ", " << tmp_node_sh->op()
-//                << "]";
-//      }
 
       if (tmp_node_sh->op() != "Const") {
         // guaranteed to be only happening once
         next_node_sh = tmp_node_sh;
         if (!end_of_chain) {
-          current_node_dsdo = added_node_dsdo;
+          next_node_dsdo = added_node_dsdo;
           /*
            * A -> B -> C -> D, split_node_index = 2
            * current_node_dsdo is going to stop at B, but we need to stop at C
@@ -292,6 +285,9 @@ Status AppendNodesAfterDSDO::OptimizeAndCollectStats(
       cur_pos_from_back++;
     }
     current_node_sh = next_node_sh;
+    if (!end_of_chain) {
+      current_node_dsdo = next_node_dsdo;
+    }
   }
   BFSWholeGraph(output, "After Step 1");
 

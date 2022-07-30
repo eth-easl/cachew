@@ -155,7 +155,8 @@ class Node {
 
   explicit Node(Args args)
       : id_(args.id),
-        name_(std::move(args.name)),
+//        name_(std::move(args.name)),
+        name_(args.name),
         autotune_(true),
         buffered_bytes_(0),
         buffered_elements_(0),

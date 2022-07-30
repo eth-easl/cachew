@@ -1101,10 +1101,6 @@ Status DataServiceDispatcherImpl::CreateJob(
   service::easl::split_utils::GetSplitNodeIndex(metadata_store_, dataset_fingerprint,
                 job_name, split_node_index);
 
-  VLOG(0) << "(CreateJob) Split Decision: " << split_node_index
-      << " by job id: " << job_id;
-  metadata_store_.SetJobSplitNodeIndex(job_id, -1); // to indicate changes during the epoch
-
 
   // EASL: Logging stuff
   if (kEnableEventLogging) {
@@ -1132,6 +1128,10 @@ Status DataServiceDispatcherImpl::CreateJob(
 
   TF_RETURN_IF_ERROR(metadata_store_.CreateJobName(job_id, job_name, job_type,
       dataset->dataset_id, dataset->fingerprint, dataset_key, trigger_scaling));
+
+  VLOG(0) << "(CreateJob) Split Decision: " << split_node_index
+  << " by job id: " << job_id;
+  metadata_store_.SetJobSplitNodeIndex(job_id, -1); // to indicate changes during the epoch
 
   std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
