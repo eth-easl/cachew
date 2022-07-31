@@ -1145,14 +1145,14 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       VLOG(4) << "Searching for the next task to process.";
-      if (ShouldProcessLocalTask()) {
-        std::shared_ptr<Task> task = GetLocalTaskToProcess();
-        if (task) {
-          VLOG(4) << "Selected a local task to process: "
-                  << task->info.ShortDebugString();
-          return task;
-        }
-      }
+//      if (ShouldProcessLocalTask()) {
+//        std::shared_ptr<Task> task = GetLocalTaskToProcess();
+//        if (task) {
+//          VLOG(4) << "Selected a local task to process: "
+//                  << task->info.ShortDebugString();
+//          return task;
+//        }
+//      }
 
       if (ShouldProcessAnyTask()) {
         std::shared_ptr<Task> task = GetAnyTaskToProcess();
@@ -1350,10 +1350,22 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       if (enqueue_result && !result.end_of_sequence) {
+        uint64 current_micro_timestamp = Env::Default()->NowMicros();
+        std::string data_source = task.info.worker_address();
         if (local_tasks_.contains(task.info.worker_address())) {
           local_results_buffer_.push(std::move(result));
         } else {
           results_.push(std::move(result));
+        }
+        const char* log_location = std::getenv("EASL_MUYU_FROM_WHICH_WORKER_METRICS");
+        if (log_location) {
+          std::ofstream file(log_location, std::ios_base::app);
+
+          file << current_micro_timestamp << ","
+               << data_source << "\n";
+
+          file.flush();
+          file.clear();
         }
       }
       get_next_cv_.notify_all();

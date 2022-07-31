@@ -173,10 +173,20 @@ Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
   double active_time_after_marker_node, active_time_marker_node, active_time_last_node;
   int64 bytes_produced_marker_node, bytes_produced_last_node;
 
-  input_pipeline_metrics->GetWorkerMetricsSplitLocal(local_worker_addr, active_time_after_marker_node);
-  input_pipeline_metrics->GetWorkerMetricsSplitRemote(remote_worker_addr, active_time_marker_node,
-                                                      active_time_last_node, bytes_produced_marker_node,
-                                                      bytes_produced_last_node);
+  input_pipeline_metrics->GetWorkerMetricsSplitLocal(local_worker_addr,
+                                                     active_time_after_marker_node,
+                                                     bytes_produced_marker_node,
+                                                     bytes_produced_last_node);
+
+  input_pipeline_metrics->GetWorkerMetricsSplitRemote(remote_worker_addr,
+                                                      active_time_marker_node,
+                                                      active_time_last_node);
+
+  VLOG(0) << "LogSplitMetrics: active_time_after_marker_node: " << active_time_after_marker_node
+          << "; active_time_marker_node: " << active_time_marker_node
+          << "; active_time_last_node: " << active_time_last_node
+          << "; bytes_produced_last_node_per_ms: " << bytes_produced_last_node
+          << "; bytes_produced_marker_node_per_ms: " << bytes_produced_marker_node;
 
   if (active_time_after_marker_node <= 1e-5 ||
       active_time_marker_node <= 1e-5 ||
@@ -187,12 +197,6 @@ Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
     // When these metrics are not ready
     return Status::OK();
   }
-
-  VLOG(0) << "LogSplitMetrics: active_time_after_marker_node: " << active_time_after_marker_node
-    << "; active_time_marker_node: " << active_time_marker_node
-    << "; active_time_last_node: " << active_time_last_node
-    << "; bytes_produced_last_node_per_ms: " << bytes_produced_last_node
-    << "; bytes_produced_marker_node_per_ms: " << bytes_produced_marker_node;
 
   /*
    * bytes_per_s is actually measured in ms, so should be bytes_per_ms
@@ -213,11 +217,11 @@ Status LogSplitMetrics(const experimental::DispatcherConfig& dispatcher_config,
           << "  LN: " << active_time_last_node << "\n"
           << "  TRAN: " << tran_remote << "\n";
 
-  if (max(active_time_after_marker_node, active_time_marker_node + tran_split)
+  if (active_time_after_marker_node + active_time_marker_node + tran_split
         < active_time_last_node + tran_remote) {
-    VLOG(0) << "LogSplitMetrics: Split!!!"
+    VLOG(0) << "LogSplitMetrics: Split!!!";
   } else {
-    VLOG(0) << "LogSplitMetrics: Remote!!!"
+    VLOG(0) << "LogSplitMetrics: Remote!!!";
   }
 
   return Status::OK();

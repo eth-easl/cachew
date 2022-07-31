@@ -185,14 +185,14 @@ class InputPipelineMetrics {
 
     Status GetWorkerMetricsSplitLocal(
             string worker_address,
-            double& active_time_after_marker_node
+            double& active_time_after_marker_node,
+            int64& bytes_produced_marker_node,
+            int64& bytes_produced_last_node
     );
     Status GetWorkerMetricsSplitRemote(
             string worker_address,
             double& active_time_marker_node,
-            double& active_time_last_node,
-            int64& bytes_produced_marker_node,
-            int64& bytes_produced_last_node
+            double& active_time_last_node
     );
 
     // Methods for setting data

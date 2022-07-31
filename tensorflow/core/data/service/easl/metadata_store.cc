@@ -263,7 +263,9 @@ Status InputPipelineMetrics::GetWorkerMetrics(string worker_address,
 
 Status InputPipelineMetrics::GetWorkerMetricsSplitLocal(
         string worker_address,
-        double& active_time_after_marker_node
+        double& active_time_after_marker_node,
+        int64& bytes_produced_marker_node,
+        int64& bytes_produced_last_node
         ) {
   NodeMetrics::MetricsCollection metrics;
   GetWorkerMetrics(worker_address, metrics);
@@ -272,9 +274,11 @@ Status InputPipelineMetrics::GetWorkerMetricsSplitLocal(
   for(auto pair : metrics){
     if (pair.first == maker_node_name_) {
       active_time_marker_node = pair.second->active_time_ms();
+      bytes_produced_marker_node = pair.second->bytes_per_s();
     }
     if (pair.first == last_node_name_) {
       active_time_last_node = pair.second->active_time_ms();
+      bytes_produced_last_node = pair.second->bytes_per_s();
     }
   }
   active_time_after_marker_node = active_time_last_node - active_time_marker_node;
@@ -284,9 +288,7 @@ Status InputPipelineMetrics::GetWorkerMetricsSplitLocal(
 Status InputPipelineMetrics::GetWorkerMetricsSplitRemote(
         string worker_address,
         double& active_time_marker_node,
-        double& active_time_last_node,
-        int64& bytes_produced_marker_node,
-        int64& bytes_produced_last_node
+        double& active_time_last_node
         ) {
 
   NodeMetrics::MetricsCollection metrics;
@@ -294,11 +296,9 @@ Status InputPipelineMetrics::GetWorkerMetricsSplitRemote(
   for(auto pair : metrics){
     if (pair.first == maker_node_name_) {
       active_time_marker_node = pair.second->active_time_ms();
-      bytes_produced_marker_node = pair.second->bytes_per_s();
     }
     if (pair.first == last_node_name_) {
       active_time_last_node = pair.second->active_time_ms();
-      bytes_produced_last_node = pair.second->bytes_per_s();
     }
   }
 
