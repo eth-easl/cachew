@@ -1030,6 +1030,29 @@ cc_library(
     alwayslink = 1,
 )
 
+cc_library(
+    name = "autp_order",
+    srcs = ["easl_optimizers/auto_order.cc"],
+    hdrs = ["easl_optimizers/auto_order.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":graph_utils",
+        ":fusion_utils",
+        ":optimizer_base",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "//tensorflow/core/grappler:mutable_graph_view",
+        "//tensorflow/core:lib",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler:op_types",
+        "//tensorflow/core/grappler:utils",
+        "//tensorflow/core/grappler/clusters:cluster",
+        "//tensorflow/core/grappler/utils:topological_sort",
+        "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "//tensorflow/core:lib_internal",
+    ] + tf_protos_all(),
+    alwayslink = 1,
+)
+
 # ------------------------------------------------------------------------------
 # EASL 
 # ------------------------------------------------------------------------------
