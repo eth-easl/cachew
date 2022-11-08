@@ -71,6 +71,7 @@ constexpr char kMapAndBatchFusionOpt[] = "map_and_batch_fusion";
 constexpr char kNoopEliminationOpt[] = "noop_elimination";
 constexpr char kMapParallelizationOpt[] = "map_parallelization";
 constexpr char kShuffleAndRepeatFusionOpt[] = "shuffle_and_repeat_fusion";
+constexpr char kAutoOrderOpt[] = "auto_order";
 constexpr char kFilterFusionOpt[] = "filter_fusion";
 constexpr char kMapAndFilterFusionOpt[] = "map_and_filter_fusion";
 constexpr char kMapFusionOpt[] = "map_fusion";
@@ -116,6 +117,11 @@ void DefaultOptimizationGraphRewrites(
     if (optimization_options.optional_parallel_batch_case() !=
         OptimizationOptions::kParallelBatch) {
       optimization_default->insert(kParallelBatchOpt);
+    }
+    if (optimization_options.optional_auto_order_case() !=
+        OptimizationOptions::kAutoOrder) {
+      VLOG(0) << "DEBUG: Setting OptimizationOptions::kAutoOrder UPPER LOC";
+      optimization_default->insert(kAutoOrderOpt);
     }
   }
   if (OpDeterminismRequired()) {
@@ -183,6 +189,15 @@ void DefaultOptimizationGraphRewrites(
       optimization_enabled->insert(kShuffleAndRepeatFusionOpt);
     } else {
       optimization_disabled->insert(kShuffleAndRepeatFusionOpt);
+    }
+  }
+  if (optimization_options.optional_auto_order_case() ==
+      OptimizationOptions::kAutoOrder) {
+    VLOG(0) << "DEBUG: Setting OptimizationOptions::kAutoOrder";
+    if (optimization_options.auto_order()) {
+      optimization_enabled->insert(kAutoOrderOpt);
+    } else {
+      optimization_disabled->insert(kAutoOrderOpt);
     }
   }
 }

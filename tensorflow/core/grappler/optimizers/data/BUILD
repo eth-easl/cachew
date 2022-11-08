@@ -21,6 +21,7 @@ cc_library(
         ":add_put_op",
         ":add_put_op_at_marker",
         ":add_get_op_at_marker",
+        ":auto_order",
         ":append_forty_two",
         ":autotune_buffer_sizes",
         ":batch_parallelization",
@@ -1031,7 +1032,7 @@ cc_library(
 )
 
 cc_library(
-    name = "autp_order",
+    name = "auto_order",
     srcs = ["easl_optimizers/auto_order.cc"],
     hdrs = ["easl_optimizers/auto_order.h"],
     visibility = ["//visibility:public"],

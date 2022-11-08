@@ -45,10 +45,11 @@ NodeDef MakeFusedFilterNode(const NodeDef& first_filter_node,
 
 }  // namespace
 
-Status FilterFusion::OptimizeAndCollectStats(Cluster* cluster,
+Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                                              const GrapplerItem& item,
                                              GraphDef* output,
                                              OptimizationStats* stats) {
+    VLOG(0) << "OTO: AUTO ORDER BEING APPLIED (Should come before filter fusion)!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
     GraphDef sorted_old_graph = item.graph;
     TF_RETURN_IF_ERROR(TopologicalSort(&sorted_old_graph));
     *output = sorted_old_graph;
