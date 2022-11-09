@@ -43,13 +43,39 @@ NodeDef MakeFusedFilterNode(const NodeDef& first_filter_node,
     return fused_node;
 }
 
+// Calculate the cost of a proposed op ordering
+// Cost = sum(Shape(op) * DTypeBytes(op))
+int GetOrderCost(const GraphDef& suggested_order) {
+    double cost = 0;
+
+    for (const NodeDef& node : suggested_order.node()) {
+        //auto dt
+        auto op_name = node.op();
+        auto output_s = node.output_size();
+        auto input_s = node.input_size();
+        double ret_factor = 1.0;
+        double inf_factor = output_s/input_s;
+
+
+        VLOG(0) << op_name;
+        VLOG(0) << output_s;
+        VLOG(0) << intput_s;
+        VLOG(0) << inf_factor;
+        VLOG(0) << ret_factor;
+
+        cost+=output_s;
+    }
+
+    return cost;
+}
+
 }  // namespace
 
 Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
-                                             const GrapplerItem& item,
-                                             GraphDef* output,
-                                             OptimizationStats* stats) {
-    VLOG(0) << "OTO: AUTO ORDER BEING APPLIED (Should come before filter fusion)!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+                                          const GrapplerItem& item,
+                                          GraphDef* output,
+                                          OptimizationStats* stats) {
+    VLOG(0) << "OTO: AUTO ORDER BEING APPLIED (Should come before filter fusion)!!!!!!!!!";
     GraphDef sorted_old_graph = item.graph;
     TF_RETURN_IF_ERROR(TopologicalSort(&sorted_old_graph));
     *output = sorted_old_graph;
@@ -86,6 +112,11 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
             output->mutable_library());
     };
 
+    VLOG(0) << "Original pipline:";
+    auto cost = GetOrderCost(sorted_old_graph.node());
+    VLOG(0) << "Total cost:";
+    VLOG(0) << cost;  
+
     for (const NodeDef& node : sorted_old_graph.node()) {
         const NodeDef* second_filter_node = get_filter_node(node);
         if (!second_filter_node) continue;
@@ -107,7 +138,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         nodes_to_delete.insert(first_filter_node->name());
         nodes_to_delete.insert(second_filter_node->name());
         stats->num_changes++;
-    }
+    }  
 
     TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
     return Status::OK();
