@@ -51,19 +51,20 @@ int GetOrderCost(const GraphDef& suggested_order) {
     for (const NodeDef& node : suggested_order.node()) {
         //auto dt
         auto op_name = node.op();
-        auto output_s = node.output_size();
+        //auto output_s = node.output_size();
         auto input_s = node.input_size();
         double ret_factor = 1.0;
-        double inf_factor = output_s/input_s;
+        //double inf_factor = output_s/input_s;
 
 
         VLOG(0) << op_name;
-        VLOG(0) << output_s;
-        VLOG(0) << intput_s;
-        VLOG(0) << inf_factor;
+        //VLOG(0) << output_s;
+        VLOG(0) << input_s;
+        //VLOG(0) << inf_factor;
         VLOG(0) << ret_factor;
 
-        cost+=output_s;
+        //cost+=output_s;
+        cost+=input_s*ret_factor;
     }
 
     return cost;
