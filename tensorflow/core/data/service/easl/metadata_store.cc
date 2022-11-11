@@ -355,16 +355,16 @@ JobMetrics::JobMetrics(int64 job_id,
 
 // For cases that start from local worker
 JobMetrics::JobMetrics(
-        int64 job_id,
+                       int64 job_id,
                        std::string& job_type,
                        int64 dataset_id,
                        uint64 dataset_fingerprint,
                        std::string& dataset_key,
-                       bool is_ordering,
                        const string& name,
                        int64 target_remote_worker_count,
                        int64 target_local_worker_count,
-                       JobScalingState scaling_state
+                       JobScalingState scaling_state,
+                       bool is_ordering
                        )
         : job_id_(job_id),
           job_type_(job_type),

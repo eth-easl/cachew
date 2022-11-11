@@ -233,11 +233,11 @@ class JobMetrics {
                uint64 dataset_fingerprint,
                std::string& dataset_key,
                bool is_scaling,
-               bool is_ordering,
                const string& name,
                int64 target_remote_worker_count,
                int64 target_local_worker_count,
-               JobScalingState scaling_state);
+               JobScalingState scaling_state,
+               bool is_ordering = true);
 
     void DumpToFile(const std::string& path);
     void DumpToStream(std::stringstream& ss);
