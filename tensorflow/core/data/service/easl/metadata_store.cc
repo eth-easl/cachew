@@ -360,6 +360,7 @@ JobMetrics::JobMetrics(
                        int64 dataset_id,
                        uint64 dataset_fingerprint,
                        std::string& dataset_key,
+                       bool is_scaling,
                        const string& name,
                        int64 target_remote_worker_count,
                        int64 target_local_worker_count,

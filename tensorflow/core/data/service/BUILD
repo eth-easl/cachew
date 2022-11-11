@@ -1012,6 +1012,26 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "ordering_utils",
+    srcs = ["easl/ordering_utils.cc"],
+    hdrs = [
+        "easl/ordering_utils.h",
+    ],
+    deps = [
+        ":cache_model",
+        ":common_proto_cc",
+        ":dispatcher_cache_state",
+        ":dispatcher_state",
+        ":metadata_store",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:lib",
+        "//tensorflow/core/platform:errors",
+        "//tensorflow/core/platform:status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 
 # EASL
 # -------------------------------------------------------------------------------
