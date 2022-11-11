@@ -10,7 +10,7 @@
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/data/service/easl/cache_model.h"
-
+#include "tensorflow/core/grappler/optimizers/data/easl_optimizers/add_put_op.h"
 
 namespace tensorflow {
 namespace data {
@@ -71,6 +71,20 @@ Status OpOrderUpdate(
     else{
       VLOG(0) << "Currently using " << rwc << " remote workers.";
       return Status::OK();
+
+      // Initialize the optimizer  
+      tensorflow::grappler::easl::AutoOrder optimizer;
+
+      
+      tensorflow::grappler::MutableGraphView graph(graph_def);
+      Status s = optimizer.OptimizeAndCollectStats(graph, sink, graph_def);
+      if(s.ok()) {
+        VLOG(0) << "AutoOrder policy succeeded!"
+        return s
+      } else {
+        VLOG(0) << "AutoOrder policy failed!"
+        return s
+      }
     }
   } else {
     VLOG(0) << "Invalid AutoOrder Policy!";

@@ -1029,6 +1029,7 @@ cc_library(
         "//tensorflow/core:lib",
         "//tensorflow/core/platform:errors",
         "//tensorflow/core/platform:status",
+        "//tensorflow/core/grappler/optimizers/data:auto_order",
         "@com_google_absl//absl/strings",
     ],
 )

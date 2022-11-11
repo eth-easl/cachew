@@ -37,11 +37,11 @@ using ConfigMap =
 
 // tf.data optimizations, in the order we want to perform them.
 // TBD: Where exactly should the auto_order optimizer go!!!!!!!!
-constexpr std::array<const char*, 25> kTFDataOptimizations = {
+constexpr std::array<const char*, 24> kTFDataOptimizations = {
     "noop_elimination",
     "disable_intra_op_parallelism",
     "use_private_thread_pool",
-    "auto_order",
+    //"auto_order",
     "shuffle_and_repeat_fusion",
     "map_fusion",
     "filter_fusion",

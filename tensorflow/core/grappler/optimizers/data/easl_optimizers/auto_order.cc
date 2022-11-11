@@ -70,6 +70,13 @@ int GetOrderCost(const GraphDef& suggested_order) {
     return cost;
 }
 
+Status AutoOrder::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node, 
+                                   GraphDef *output) {
+  VLOG(0) << "In AutoOrder::ApplyOptimization";
+
+  return Status::OK();
+}
+
 }  // namespace
 
 Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
@@ -116,33 +123,10 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     VLOG(0) << "Original pipline:";
     auto cost = GetOrderCost(sorted_old_graph);
     VLOG(0) << "Total cost:";
-    VLOG(0) << cost;  
+    VLOG(0) << cost;
 
-    for (const NodeDef& node : sorted_old_graph.node()) {
-        const NodeDef* second_filter_node = get_filter_node(node);
-        if (!second_filter_node) continue;
+    return ApplyOptimization(graph, sink_node, output);
 
-        const NodeDef* first_filter_node =
-            get_filter_node(*graph_utils::GetInputNode(*second_filter_node, graph));
-        if (!first_filter_node) continue;
-
-        const auto* fused_predicate =
-            make_fused_function(first_filter_node, second_filter_node);
-        if (!fused_predicate) continue;
-        const auto* fused_filter_node = graph.AddNode(MakeFusedFilterNode(
-            *first_filter_node, *second_filter_node, *fused_predicate, &graph));
-
-        TF_RETURN_IF_ERROR(graph.UpdateFanouts(second_filter_node->name(),
-                                               fused_filter_node->name()));
-
-        TF_RETURN_IF_ERROR(function_library.AddFunctionDef(*fused_predicate));
-        nodes_to_delete.insert(first_filter_node->name());
-        nodes_to_delete.insert(second_filter_node->name());
-        stats->num_changes++;
-    }  
-
-    TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
-    return Status::OK();
 }
 
 REGISTER_GRAPH_OPTIMIZER_AS(AutoOrder, "auto_order");
