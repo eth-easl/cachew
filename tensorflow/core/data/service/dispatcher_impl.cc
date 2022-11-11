@@ -1059,7 +1059,7 @@ Status DataServiceDispatcherImpl::CreateJob(
     job_type == "PUT" || job_type == "PUT_SOURCE");
 
   // EASL perform the AutoOrder mechanism
-  bool is_odering;
+  bool is_ordering;
   metadata_store_.IsJobOrdering(job_id, is_ordering);
   std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
@@ -1068,11 +1068,11 @@ Status DataServiceDispatcherImpl::CreateJob(
     trigger_scaling = true;
     VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
     // TODO: Peform actual reordering HERE!!!
-    service::easl::scaling_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
+    service::easl::ordering_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
                                                 job_metrics->target_remote_worker_count_);
 
     // Only reorder once
-    metadata_store.UnsetJobIsOrdering(job_id);
+    metadata_store_.UnsetJobIsOrdering(job_id);
   }
 
   // EASL add job entry to metadata store
