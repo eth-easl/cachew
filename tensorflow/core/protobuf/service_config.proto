@@ -7,7 +7,7 @@ import "tensorflow/core/protobuf/data_service.proto";
 option go_package = "github.com/tensorflow/tensorflow/tensorflow/go/core/protobuf/for_core_protos_go_proto";
 
 // Configuration for a tf.data service DispatchServer.
-// Next id: 19
+// Next id: 20
 message DispatcherConfig {
   // The port for the dispatcher to bind to. A value of 0 indicates that the
   // dispatcher may bind to any available port.
@@ -63,6 +63,8 @@ message DispatcherConfig {
   int64 log_dumps_interval_ms = 17;
   // The threshold in percentage points using during scaling (up)
   double scaling_threshold_up = 18;
+  // The op ordering policy to be applied
+  int64 order_policy = 19;
 }
 
 // Configuration for a tf.data service WorkerServer.
