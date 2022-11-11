@@ -70,14 +70,13 @@ int GetOrderCost(const GraphDef& suggested_order) {
     return cost;
 }
 
-Status AutoOrder::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node, 
-                                   GraphDef *output) {
+}  // namespace
+
+Status AutoOrder::ApplyOptimization(MutableGraphView &graph) {
   VLOG(0) << "In AutoOrder::ApplyOptimization";
 
   return Status::OK();
 }
-
-}  // namespace
 
 Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                                           const GrapplerItem& item,
@@ -125,7 +124,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
 
-    return ApplyOptimization(graph, sink_node, output);
+    return ApplyOptimization(sorted_old_graph);
 
 }
 
