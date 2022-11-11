@@ -209,7 +209,7 @@ class DispatchServer(object):
         scaling_policy=config.scaling_policy,
         log_dir=config.log_dir,
         log_dumps_interval_ms=config.log_dumps_interval_ms,
-        scaling_threshold_up=config.scaling_threshold_up
+        scaling_threshold_up=config.scaling_threshold_up,
         order_policy=config.order_policy)
 
     self._server = _pywrap_server_lib.TF_DATA_NewDispatchServer(

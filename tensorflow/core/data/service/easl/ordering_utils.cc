@@ -42,7 +42,7 @@ Status OpOrderUpdate(
   // 1 == AutoOrder policy
 
   if(dispatcher_config.order_policy() == 0) {
-    VLOG(0) << "Not using AutoOrder Policy."
+    VLOG(0) << "Not using AutoOrder Policy.";
     metadata_store.UnsetJobIsOrdering(job_id);
     return Status::OK();
   } else if (dispatcher_config.order_policy() == 1)

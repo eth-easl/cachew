@@ -313,6 +313,7 @@ cc_library(
     deps = [
         ":cache_utils",
         ":local_worker_decision_utils",
+        "ordering_utils",
         ":scaling_utils",
         ":common",
         ":common_proto_cc",
