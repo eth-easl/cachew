@@ -23,6 +23,8 @@ class AutoOrder : public TFDataOptimizerBase {
                 return Status::OK();
             }
 
+        Status ApplyOptimization(MutableGraphView &graph);
+
         Status OptimizeAndCollectStats(Cluster* cluster, const GrapplerItem& item,
                                        GraphDef* output,
                                        OptimizationStats* stats) override;

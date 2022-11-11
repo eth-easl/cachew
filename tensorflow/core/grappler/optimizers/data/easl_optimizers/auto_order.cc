@@ -124,7 +124,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
 
-    return ApplyOptimization(sorted_old_graph);
+    return ApplyOptimization(graph);
 
 }
 

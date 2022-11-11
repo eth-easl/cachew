@@ -10,7 +10,7 @@
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/data/service/easl/cache_model.h"
-#include "tensorflow/core/grappler/optimizers/data/easl_optimizers/add_put_op.h"
+#include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
 namespace tensorflow {
 namespace data {
@@ -79,11 +79,11 @@ Status OpOrderUpdate(
       tensorflow::grappler::MutableGraphView graph(graph_def);
       Status s = optimizer.ApplyOptimization(graph);
       if(s.ok()) {
-        VLOG(0) << "AutoOrder policy succeeded!"
-        return s
+        VLOG(0) << "AutoOrder policy succeeded!";
+        return s;
       } else {
-        VLOG(0) << "AutoOrder policy failed!"
-        return s
+        VLOG(0) << "AutoOrder policy failed!";
+        return s;
       }
     }
   } else {
