@@ -233,7 +233,7 @@ class JobMetrics {
                uint64 dataset_fingerprint,
                std::string& dataset_key,
                bool is_scaling,
-               bool is_ordering = true,
+               bool is_ordering,
                const string& name,
                int64 target_remote_worker_count,
                int64 target_local_worker_count,
