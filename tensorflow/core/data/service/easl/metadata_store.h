@@ -224,8 +224,8 @@ class JobMetrics {
                uint64 dataset_fingerprint,
                std::string& dataset_key,
                bool is_scaling = true,
-               bool is_ordering = true,
-               const string& name = string());
+               const string& name = string(),
+               bool is_ordering = true);
 
     JobMetrics(int64 job_id,
                std::string& job_type,

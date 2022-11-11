@@ -331,8 +331,8 @@ JobMetrics::JobMetrics(int64 job_id,
                        uint64 dataset_fingerprint,
                        std::string& dataset_key,
                        bool is_scaling,
-                       bool is_ordering,
-                       const string& name)
+                       const string& name,
+                       bool is_ordering)
       : job_id_(job_id),
         job_type_(job_type),
         dataset_id_(dataset_id),
@@ -463,11 +463,11 @@ Status MetadataStore::CreateJobName(int64 job_id, string& job_name,
   if ( it == fingerprint_name_metadata_.end()) {
     // We've never seen this input pipeline; it's expected to be a PROFILING job
 //    CHECK_EQ(job_type, "PROFILE");
-    bool is_scaing = job_type != "PROFILE";
+    bool is_scaling = job_type != "PROFILE";
     std::string ds_key = dataset_key;
     auto job_metrics = std::make_shared<JobMetrics>(
         job_id, job_type, dataset_id, dataset_fingerprint, ds_key,
-        is_scaing, job_name);
+        is_scaling, job_name);
     job_metadata_.insert_or_assign(job_id, job_metrics);
 
     return Status::OK();
@@ -503,7 +503,7 @@ Status MetadataStore::CreateJobName(int64 job_id, string& job_name,
     // We've never seen this input pipeline; it's expected to be a PROFILING job
 //    CHECK_EQ(job_type, "PROFILE");
     VLOG(0) << "CreateJobName:Muyu - Profile";
-    bool is_scaing = job_type != "PROFILE";
+    bool is_scaling = job_type != "PROFILE";
     std::string ds_key = dataset_key;
     int64 target_remote_worker_count, target_local_worker_count;
     JobScalingState scaling_state;
@@ -522,7 +522,7 @@ Status MetadataStore::CreateJobName(int64 job_id, string& job_name,
     }
     auto job_metrics = std::make_shared<JobMetrics>(
             job_id, job_type, dataset_id, dataset_fingerprint, ds_key,
-            is_scaing, job_name, target_remote_worker_count,
+            is_scaling, job_name, target_remote_worker_count,
             target_local_worker_count, scaling_state);
     job_metadata_.insert_or_assign(job_id, job_metrics);
 
