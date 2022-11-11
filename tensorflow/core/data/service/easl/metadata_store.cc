@@ -459,20 +459,21 @@ Status MetadataStore::CreateJob(int64 job_id, string& job_type,
 Status MetadataStore::CreateJobName(int64 job_id, string& job_name,
   string& job_type, int64 dataset_id, uint64 dataset_fingerprint,
   std::string& dataset_key, bool trigger_rescale) {
-  string key = CreateFingerprintNameKey(dataset_fingerprint, job_name);
-  auto it = fingerprint_name_metadata_.find(key);
-  if ( it == fingerprint_name_metadata_.end()) {
-    // We've never seen this input pipeline; it's expected to be a PROFILING job
-//    CHECK_EQ(job_type, "PROFILE");
-    bool is_scaling = job_type != "PROFILE";
-    std::string ds_key = dataset_key;
-    auto job_metrics = std::make_shared<JobMetrics>(
-        job_id, job_type, dataset_id, dataset_fingerprint, ds_key,
-        is_scaling, job_name);
-    job_metadata_.insert_or_assign(job_id, job_metrics);
+    
+    string key = CreateFingerprintNameKey(dataset_fingerprint, job_name);
+    auto it = fingerprint_name_metadata_.find(key);
+    if (it == fingerprint_name_metadata_.end()) {
+      // We've never seen this input pipeline; it's expected to be a PROFILING job
+      // CHECK_EQ(job_type, "PROFILE");
+      bool is_scaling = job_type != "PROFILE";
+      std::string ds_key = dataset_key;
+      auto job_metrics = std::make_shared<JobMetrics>(
+          job_id, job_type, dataset_id, dataset_fingerprint, ds_key,
+          is_scaling, job_name);
+      job_metadata_.insert_or_assign(job_id, job_metrics);
 
-    return Status::OK();
-  }
+      return Status::OK();
+    }
 
     // TODO FIXME This is not a deep copy of the JobMetrics object
     // Multiple clients could copy the same object and share it, the second client would overwrite the job_id_, .. fields.

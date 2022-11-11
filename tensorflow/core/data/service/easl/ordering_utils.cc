@@ -62,7 +62,7 @@ Status OpOrderUpdate(
     VLOG(0) << "EASL (AutoOrder policy) - Worker count for last metrics: "
                 << metrics_history[metrics_history.size()-1]->worker_count(); // Guaranteed to succeed.
 
-    rwc = std::shared_ptr<ModelMetrics::Metrics> last_metrics = metrics_history[metrics_history.size() - 1];
+    int rwc = last_metrics->remote_worker_count();
     if (rwc == 0) {
       // Later we might want to try adding reorder even in full local mode (for higher throughput)
       VLOG(0) << "Already at 0 remote workers, no need to reoder.";

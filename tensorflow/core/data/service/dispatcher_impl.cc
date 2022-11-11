@@ -1053,9 +1053,27 @@ Status DataServiceDispatcherImpl::CreateJob(
 
   // Forcefully trigger rescale if:
   //  * we've transitioned to a new execution type
-  //  * if we're putting anything into cache (this can only happen once after profiling)
+  //  * we're putting anything into cache (this can only happen once after profiling)
+  //  * TODO: we've reordered the input pipeline
   bool trigger_scaling = s.ok() && (existing_job_type != job_type ||
     job_type == "PUT" || job_type == "PUT_SOURCE");
+
+  // EASL perform the AutoOrder mechanism
+  bool is_odering;
+  metadata_store_.IsJobOrdering(job_id, is_ordering);
+  std::shared_ptr<easl::JobMetrics> job_metrics;
+  s = metadata_store_.GetJobMetrics(job_id, job_metrics);
+
+  if (trigger_scaling = s.ok() && is_ordering && existing_job_type == job_type){
+    trigger_scaling = true;
+    VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
+    // TODO: Peform actual reordering HERE!!!
+    service::easl::scaling_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
+                                                job_metrics->target_remote_worker_count_);
+
+    // Only reorder once
+    metadata_store.UnsetJobIsOrdering(job_id);
+  }
 
   // EASL add job entry to metadata store
   std::string dataset_key = service::easl::cache_utils::DatasetKey(
@@ -1074,7 +1092,7 @@ Status DataServiceDispatcherImpl::CreateJob(
   }
 
 
-  std::shared_ptr<easl::JobMetrics> job_metrics;
+  //std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
   worker_count = job_metrics->target_worker_count_;
 
