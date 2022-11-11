@@ -44,6 +44,7 @@ limitations under the License.
 #include "tensorflow/core/data/service/worker.grpc.pb.h"
 #include "tensorflow/core/data/service/easl/cache_utils.h"
 #include "tensorflow/core/data/service/easl/scaling_utils.h"
+#include "tensorflow/core/data/service/easl/ordering_utils.h"
 #include "tensorflow/core/data/service/easl/metadata_store.h"
 #include "tensorflow/core/data/service/easl/local_worker_decision_utils.h"
 #include "tensorflow/core/data/standalone.h"

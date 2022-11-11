@@ -844,6 +844,27 @@ Status MetadataStore::IsJobScaling(int64 job_id, bool& is_scaling) {
   return Status::OK();
 }
 
+Status MetadataStore::SetJobIsOrdering(int64 job_id) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->is_ordering_ = true;
+  return Status::OK();
+}
+
+Status MetadataStore::UnsetJobIsOrdering(int64 job_id) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->is_ordering_ = false;
+  return Status::OK();
+}
+
+Status MetadataStore::IsJobOrdering(int64 job_id, bool& is_scaling) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  is_scaling = jobMetrics->is_ordering_;
+  return Status::OK();
+}
+
 Status MetadataStore::GetJobScalingState(int64 job_id, JobScalingState& scaling_state) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));

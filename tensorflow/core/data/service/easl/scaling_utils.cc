@@ -105,6 +105,7 @@ Status DynamicWorkerCountUpdate(
     double l_batch_time = last_metrics->last_x_batch_time_ms();
     double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
 
+    // How can this be > 1 ??
     if (relative_improvement > 1.2 || relative_improvement < -1.2) {
       VLOG(0) << "(EASL::DynamicWorkerCountUpdate) Relative improvement "
                    << "was unstable: " << relative_improvement

@@ -120,6 +120,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
 
   VLOG(0) << "Relative Improvement: " << relative_improvement;
 
+  // How can this be > 1 ??
   if (relative_improvement > 1.3 || relative_improvement < -1.3) {
     VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC) Relative improvement "
             << "was unstable: " << relative_improvement
@@ -147,6 +148,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
                   << " > improvement: " << relative_improvement << "\n"
                   << " > next remote worker count: " << remote_worker_count;
         } else {
+          // What's the point of this?
           if (last_metrics->remote_worker_count() == MAX_REMOTE_WORKERS_PER_JOB) {
             remote_worker_count = MAX_REMOTE_WORKERS_PER_JOB;
           }

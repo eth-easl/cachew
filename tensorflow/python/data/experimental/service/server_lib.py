@@ -47,7 +47,7 @@ class DispatcherConfig(
         "job_gc_check_interval_ms", "job_gc_timeout_ms", "cache_policy",
         "cache_format", "cache_compression", "cache_ops_parallelism", "cache_path",
         "scaling_policy", "log_dir", "log_dumps_interval_ms",
-        "scaling_threshold_up"])):
+        "scaling_threshold_up", "order_policy"])):
   """Configuration class for tf.data service dispatchers.
 
   Fields:
@@ -94,6 +94,7 @@ class DispatcherConfig(
         Only valid if log_dir is not empty.
     scaling_threshold_up: The threshold (in percentage points) used in the
       Autoscale policy (generally used for scaling up)
+    order_policy: The op ordering policy to be applied (0==no reodering, 1==AutoOrder policy)
   """
 
   def __new__(cls,
@@ -112,7 +113,8 @@ class DispatcherConfig(
               scaling_policy=1,
               log_dir="",
               log_dumps_interval_ms=None,
-              scaling_threshold_up=0.07):
+              scaling_threshold_up=0.07,
+              order_policy=1):
     if protocol is None:
         protocol = _pywrap_utils.TF_DATA_DefaultProtocol()
     job_gc_check_interval_ms = _get_time_or_placeholder(
@@ -127,7 +129,7 @@ class DispatcherConfig(
                               cache_policy, cache_format, cache_compression,
                               cache_ops_parallelism, cache_path, scaling_policy,
                               log_dir, log_dumps_interval_ms,
-                              scaling_threshold_up)
+                              scaling_threshold_up, order_policy)
 
 
 @tf_export("data.experimental.service.DispatchServer", v1=[])
@@ -207,7 +209,8 @@ class DispatchServer(object):
         scaling_policy=config.scaling_policy,
         log_dir=config.log_dir,
         log_dumps_interval_ms=config.log_dumps_interval_ms,
-        scaling_threshold_up=config.scaling_threshold_up)
+        scaling_threshold_up=config.scaling_threshold_up
+        order_policy=config.order_policy)
 
     self._server = _pywrap_server_lib.TF_DATA_NewDispatchServer(
         config_proto.SerializeToString())

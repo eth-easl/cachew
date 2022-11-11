@@ -224,6 +224,7 @@ class JobMetrics {
                uint64 dataset_fingerprint,
                std::string& dataset_key,
                bool is_scaling = true,
+               bool is_ordering = true,
                const string& name = string());
 
     JobMetrics(int64 job_id,
@@ -232,6 +233,7 @@ class JobMetrics {
                uint64 dataset_fingerprint,
                std::string& dataset_key,
                bool is_scaling,
+               bool is_ordering = true,
                const string& name,
                int64 target_remote_worker_count,
                int64 target_local_worker_count,
@@ -241,6 +243,7 @@ class JobMetrics {
     void DumpToStream(std::stringstream& ss);
 
     bool is_scaling_;
+    bool is_ordering_;
 
     /* When scaling_state_ is DECREASING_REMOTE: worker_count_ is remote
      * When scaling_state_ is INCREASING_LOCAL: worker_count_ is local
@@ -358,6 +361,10 @@ class MetadataStore {
   Status SetJobIsScaling(int64 job_id);
   Status UnsetJobIsScaling(int64 job_id);
   Status IsJobScaling(int64 job_id, bool& is_scaling);
+
+  Status SetJobIsOrdering(int64 job_id);
+  Status UnsetJobIsOrdering(int64 job_id);
+  Status IsJobOrdering(int64 job_id, bool& is_ordering);
 
   Status GetJobScalingState(int64 job_id, JobScalingState& scaling_state);
   Status SetJobScalingState(int64 job_id, JobScalingState scaling_state);

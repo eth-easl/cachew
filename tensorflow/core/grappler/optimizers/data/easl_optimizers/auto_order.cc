@@ -61,7 +61,7 @@ int GetOrderCost(const GraphDef& suggested_order) {
         //VLOG(0) << output_s;
         VLOG(0) << input_s;
         //VLOG(0) << inf_factor;
-        VLOG(0) << ret_factor;
+        //VLOG(0) << ret_factor;
 
         //cost+=output_s;
         cost+=input_s*ret_factor;
@@ -114,7 +114,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     };
 
     VLOG(0) << "Original pipline:";
-    auto cost = GetOrderCost(sorted_old_graph.node());
+    auto cost = GetOrderCost(sorted_old_graph);
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;  
 
