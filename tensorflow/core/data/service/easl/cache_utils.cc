@@ -84,7 +84,7 @@ std::string DatasetKey(
   return "";
 }
 
-  Status DetermineJobType(const experimental::DispatcherConfig& dispatcher_config,
+Status DetermineJobType(const experimental::DispatcherConfig& dispatcher_config,
                           ::tensorflow::data::CacheState& cache_state,
                           const ::tensorflow::data::easl::MetadataStore& metadata_store,
                           const uint64 fingerprint,

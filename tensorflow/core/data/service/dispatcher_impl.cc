@@ -788,15 +788,15 @@ Status DataServiceDispatcherImpl::RegisterDataset(
       service::easl::cache_utils::AddPutOperator(
           dataset, fingerprint, config_, put_dataset));
   TF_RETURN_IF_ERROR(dataset_store_->Put(
-  service::easl::cache_utils::DatasetPutKey(dataset_id, fingerprint),
-      put_dataset));
+      service::easl::cache_utils::DatasetPutKey(dataset_id, fingerprint),
+          put_dataset));
   DatasetDef get_dataset;
   TF_RETURN_IF_ERROR(
       service::easl::cache_utils::AddGetOperator(
           dataset, fingerprint, config_, get_dataset));
   TF_RETURN_IF_ERROR(dataset_store_->Put(
       service::easl::cache_utils::DatasetGetKey(dataset_id, fingerprint),
-      get_dataset));
+          get_dataset));
 
   // EASL - Create and store put/get for source data of this dataset
   DatasetDef put_source_dataset;
@@ -805,7 +805,7 @@ Status DataServiceDispatcherImpl::RegisterDataset(
           dataset, fingerprint, "source_cache", config_, put_source_dataset));
   TF_RETURN_IF_ERROR(dataset_store_->Put(
       service::easl::cache_utils::DatasetPutSourceKey(dataset_id, fingerprint),
-      put_source_dataset));
+          put_source_dataset));
       
   DatasetDef get_source_dataset;
   TF_RETURN_IF_ERROR(
@@ -813,8 +813,17 @@ Status DataServiceDispatcherImpl::RegisterDataset(
           dataset, fingerprint, "source_cache", config_, get_source_dataset));
   TF_RETURN_IF_ERROR(dataset_store_->Put(
       service::easl::cache_utils::DatasetGetSourceKey(dataset_id, fingerprint),
-      get_source_dataset));
+          get_source_dataset));
   VLOG(0) << "Added put/get versions for dataset fingerprint " << fingerprint;
+
+  // // TODO: Add ggeneration of all possible pipeline orderings here and store them
+  // DatasetDef reordered_dataset;
+  // TF_RETURN_IF_ERROR(
+  //     service::easl::ordering_utils::AddGetOperatorAtMarker(
+  //         dataset, fingerprint, "source_cache", config_, reordered_dataset));
+  // TF_RETURN_IF_ERROR(dataset_store_->Put(
+  //     service::easl::ordering_utils::DatasetGetSourceKey(dataset_id, fingerprint),
+  //         reordered_dataset));
 
   return Apply(update);
 }
@@ -1068,8 +1077,9 @@ Status DataServiceDispatcherImpl::CreateJob(
     trigger_scaling = true;
     VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
     // TODO: Peform actual reordering HERE!!!
+    DatasetDef reorderedDataset;
     service::easl::ordering_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
-                                                job_metrics->target_remote_worker_count_);
+                                                job_metrics->target_remote_worker_count_, dataset, reorderedDataset);
 
     // Only reorder once
     metadata_store_.UnsetJobIsOrdering(job_id);

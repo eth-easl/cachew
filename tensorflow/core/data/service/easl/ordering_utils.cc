@@ -33,7 +33,9 @@ Status OpOrderUpdate(
     const int64 job_id,
     const experimental::DispatcherConfig& dispatcher_config,
     ::tensorflow::data::easl::MetadataStore& metadata_store,
-    int64& worker_count) {
+    int64& worker_count,
+    std::shared_ptr<const Dataset> dataset,
+    DatasetDef& reorderedDataset) {
   using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;
 
@@ -72,7 +74,9 @@ Status OpOrderUpdate(
       VLOG(0) << "Currently using " << rwc << " remote workers.";
       return Status::OK();
 
-      // Initialize the optimizer  
+      // Initialize the optimizer
+      updated_dataset = dataset;
+      GraphDef* graph_def = updated_dataset.mutable_graph();
       tensorflow::grappler::easl::AutoOrder optimizer;
 
       
