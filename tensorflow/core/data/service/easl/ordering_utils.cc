@@ -35,7 +35,7 @@ Status OpOrderUpdate(
     ::tensorflow::data::easl::MetadataStore& metadata_store,
     int64& worker_count,
     const DatasetDef& dataset,
-    DatasetDef& reorderedDataset) {
+    DatasetDef& reordered_dataset) {
   using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;
 
@@ -75,8 +75,8 @@ Status OpOrderUpdate(
       return Status::OK();
 
       // Initialize the optimizer
-      updated_dataset = dataset;
-      GraphDef* graph_def = updated_dataset.mutable_graph();
+      reordered_dataset = dataset;
+      GraphDef* graph_def = reordered_dataset.mutable_graph();
       tensorflow::grappler::easl::AutoOrder optimizer;
 
       

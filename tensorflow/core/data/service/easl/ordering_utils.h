@@ -30,7 +30,7 @@ Status OpOrderUpdate(
     ::tensorflow::data::easl::MetadataStore& metadata_store,
     int64& worker_count,
     const DatasetDef& dataset,
-    DatasetDef& reorderedDataset
+    DatasetDef& reordered_dataset
     );
 
 
