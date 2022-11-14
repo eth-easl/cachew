@@ -1077,6 +1077,8 @@ Status DataServiceDispatcherImpl::CreateJob(
     trigger_scaling = true;
     VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
     // TODO: Peform actual reordering HERE!!!
+    std::shared_ptr<const DatasetDef> dataset_def;
+    TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, job_type, dataset_def));
     DatasetDef reorderedDataset;
     service::easl::ordering_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
                                                 job_metrics->target_remote_worker_count_, dataset, reorderedDataset);
