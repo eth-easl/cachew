@@ -28,7 +28,9 @@ Status OpOrderUpdate(
     const int64 job_id,
     const experimental::DispatcherConfig& dispatcher_config,
     ::tensorflow::data::easl::MetadataStore& metadata_store,
-    int64& worker_count
+    int64& worker_count,
+    const DatasetDef& dataset,
+    DatasetDef& reorderedDataset
     );
 
 

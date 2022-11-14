@@ -34,7 +34,7 @@ Status OpOrderUpdate(
     const experimental::DispatcherConfig& dispatcher_config,
     ::tensorflow::data::easl::MetadataStore& metadata_store,
     int64& worker_count,
-    std::shared_ptr<const Dataset> dataset,
+    const DatasetDef& dataset,
     DatasetDef& reorderedDataset) {
   using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;
