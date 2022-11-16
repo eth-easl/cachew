@@ -51,7 +51,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         const experimental::DispatcherConfig& dispatcher_config,
         ::tensorflow::data::easl::MetadataStore& metadata_store,
         int64& remote_worker_count,
-        int64& local_worker_count);
+        int64& local_worker_count,
+        const int64 available_workers);
 
 // First increase local and then increase remote
 //Status DynamicWorkerCountUpdateWithLocal_INCINC(
