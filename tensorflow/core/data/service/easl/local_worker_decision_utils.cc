@@ -9,7 +9,7 @@
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/data/service/easl/cache_model.h"
-#include "tensorflow/core/data/service/dipatcher_state.h"
+#include "tensorflow/core/data/service/dispatcher_state.h"
 
 namespace tensorflow {
 namespace data {
