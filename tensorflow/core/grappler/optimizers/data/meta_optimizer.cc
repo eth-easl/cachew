@@ -37,11 +37,11 @@ using ConfigMap =
 
 // tf.data optimizations, in the order we want to perform them.
 // TBD: Where exactly should the auto_order optimizer go!!!!!!!!
-constexpr std::array<const char*, 24> kTFDataOptimizations = {
+constexpr std::array<const char*, 25> kTFDataOptimizations = {
     "noop_elimination",
     "disable_intra_op_parallelism",
     "use_private_thread_pool",
-    //"auto_order",
+    "auto_order",
     "shuffle_and_repeat_fusion",
     "map_fusion",
     "filter_fusion",
@@ -107,6 +107,8 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
                                      GraphDef* output) {
   // Stores the optimized item so far.
   GrapplerItem optimized_item = item;
+
+  VLOG(0) << "Before optimizations happen";
 
   // Perform optimizations in a meaningful order.
   for (const auto& optimization : kTFDataOptimizations) {
