@@ -84,6 +84,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     else { // If we don't have enough rem workers, move to AutoLocal policy
       // We should also have a similar clause for when not enough local workers are present
       // (for now assume there are always enough local workers, since they are free)
+      VLOG(0) << "No more remote workers available! Moving on to AutoLocal policy.";
       metadata_store.SetJobScalingState(job_id, JobScalingState::INCREASING_LOCAL);
     }
   }
@@ -151,7 +152,6 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         // we're scaling up, which is a normal behavior
         if (relative_improvement > dispatcher_config.scaling_threshold_up() &&
           last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB) {
-          int available_workers = ListAvailableWorkers().size()
           remote_worker_count = last_metrics->remote_worker_count() + 1;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
                   << "Improvement large enough:\n"
