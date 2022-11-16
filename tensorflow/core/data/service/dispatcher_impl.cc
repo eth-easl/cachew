@@ -1081,7 +1081,7 @@ Status DataServiceDispatcherImpl::CreateJob(
     TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, job_type, dataset_def));
     DatasetDef reorderedDataset;
     service::easl::ordering_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
-                                                job_metrics->target_remote_worker_count_, dataset, reorderedDataset);
+                                                job_metrics->target_remote_worker_count_, *dataset_def, reorderedDataset);
 
     // Only reorder once
     metadata_store_.UnsetJobIsOrdering(job_id);
@@ -1490,12 +1490,12 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
         VLOG(0) << errors::IsNotFound(s);
       }
       if (!s.ok() && !errors::IsNotFound(s)) { return s; }
-
+      int64 available_workers = state_.ListAvailableWorkers().size();
       int64 target_remote_worker_count, target_local_worker_count;
       if (config_.scaling_policy() == 3) {
         TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCDEC(
                 job->job_type, job->job_id, config_, metadata_store_,
-                target_remote_worker_count, target_local_worker_count));
+                target_remote_worker_count, target_local_worker_count, available_workers));
       }
 //      else if (config_.scaling_policy() == 4){
 //        TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCINC(

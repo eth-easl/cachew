@@ -9,7 +9,7 @@
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/data/service/easl/cache_model.h"
-
+#include "tensorflow/core/data/service/dipatcher_state.h"
 
 namespace tensorflow {
 namespace data {
@@ -24,13 +24,13 @@ namespace {
     double kMinQueueSizeRelativeGrowth = 1.5; // +50%
     double kMinBatchTimeRelativeGrowth = 1.5; // +50%
 
-    int MAX_LOCAL_WORKERS_PER_JOB = 5;
-    int MAX_REMOTE_WORKERS_PER_JOB = 8;
+    // Why do we have these worker count limits??
+    int MAX_LOCAL_WORKERS_PER_JOB = 100; //5;
+    int MAX_REMOTE_WORKERS_PER_JOB = 100; //8;
     double kPerformanceErrorBar = 0.10;
     // combine with costs
     double kPerformanceDecreaseTolerance = 0.10;
 }
-
 
 void debug_print_local_remote(std::string debug_string, int64 remote_worker_count, int64 local_worker_count) {
   VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal)::" << debug_string
@@ -44,7 +44,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         const experimental::DispatcherConfig& dispatcher_config,
         ::tensorflow::data::easl::MetadataStore& metadata_store,
         int64& remote_worker_count,
-        int64& local_worker_count) {
+        int64& local_worker_count,
+        const int64 available_workers) {
   // Entering this function means we're choosing the right policy
   using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;
@@ -68,15 +69,23 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   TF_RETURN_IF_ERROR(metadata_store.GetJobTargetWorkerCount(job_id,
                                                             current_target_remote_worker_count,
                                                             current_target_local_worker_count));
+  // TODO: fix case when no more REM workers available (continue with AutoLocal policy)
   if (last_metrics->local_worker_count() != current_target_local_worker_count
     || last_metrics->remote_worker_count() != current_target_remote_worker_count
   ) {
     VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal_INCDEC) - Target metrics count not fulfilled:\n"
             << " > target: " << current_target_remote_worker_count << ", " << current_target_local_worker_count <<  "\n"
             << " > actual: " << last_metrics->remote_worker_count() << ", " << last_metrics->local_worker_count();
-    remote_worker_count = current_target_remote_worker_count;
-    local_worker_count = current_target_local_worker_count;
-    return Status::OK();
+    if (current_target_remote_worker_count != last_metrics->remote_worker_count() && available_workers < 0) {
+      remote_worker_count = current_target_remote_worker_count;
+      local_worker_count = current_target_local_worker_count;
+      return Status::OK();
+    }
+    else { // If we don't have enough rem workers, move to AutoLocal policy
+      // We should also have a similar clause for when not enough local workers are present
+      // (for now assume there are always enough local workers, since they are free)
+      metadata_store.SetJobScalingState(job_id, JobScalingState::INCREASING_LOCAL);
+    }
   }
 
   JobScalingState scaling_state;
@@ -133,7 +142,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   switch (scaling_state) {
     case JobScalingState::ONLY_REMOTE: {
       local_worker_count = last_metrics->local_worker_count();
-      if (second_to_last_metrics->remote_worker_count()  > last_metrics->remote_worker_count()
+      if (second_to_last_metrics->remote_worker_count() > last_metrics->remote_worker_count()
       ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC)::ONLY_REMOTE"
                 << "We are scaling down, which is a weird behavior!";
@@ -142,6 +151,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         // we're scaling up, which is a normal behavior
         if (relative_improvement > dispatcher_config.scaling_threshold_up() &&
           last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB) {
+          int available_workers = ListAvailableWorkers().size()
           remote_worker_count = last_metrics->remote_worker_count() + 1;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
                   << "Improvement large enough:\n"
