@@ -144,8 +144,8 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
 
         NodeDef* const parent = graph_utils::GetInputNode(f_op, graph);
 
-        TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
-        
+        //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
+        graph.DeleteNodes(nodes_to_delete);
     }
 
     return cost;
