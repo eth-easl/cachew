@@ -81,7 +81,7 @@ Status OpOrderUpdate(
 
       
       tensorflow::grappler::MutableGraphView graph(graph_def);
-      Status s = optimizer.ApplyOptimization(graph);
+      Status s = optimizer.ApplyOptimization(graph, *graph_def);
       if(s.ok()) {
         VLOG(0) << "AutoOrder policy succeeded!";
         return s;
