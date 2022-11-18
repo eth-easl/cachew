@@ -50,11 +50,13 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
 
     NodeDef* m_op = nullptr;
     NodeDef* b_op = nullptr;
+    NodeDef* f_op = nullptr;
     NodeDef* next_op = nullptr;
     std::string last_seen;
     
     bool batch_present = false;
     bool map_present = false;
+    bool filter_present = false;
     for (NodeDef node : suggested_order.node()) {
         //auto dt
         NodeDef* n_ptr = &node;
@@ -71,7 +73,11 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             map_present = true;
             m_op = n_ptr;
         }
-        if (last_seen == op_name) { // We've found the next fixed op
+        if (op_name.find("FilterDataset") != std::string::npos) {
+            filter_present = true;
+            f_op = n_ptr;
+        }
+        if (last_seen == "FilterDataset") { // We've found the next fixed op
             next_op = n_ptr;
         }
         last_seen = op_name;
@@ -92,6 +98,8 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     if (batch_present && map_present) { // Should be correct graph
         VLOG(0) << "Found map & batch";
 
+        /*
+        // GIVES SEG FAULT
         // Reorder the map and batch
         NodeDef* map_input = graph_utils::GetInputNode(*m_op, graph);
         NodeDef* batch_input = graph_utils::GetInputNode(*b_op, graph); // should be the map_op
@@ -100,6 +108,8 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             return -1;
             //return errors::Unknown("The one of the target nodes has no inputs.");
         }
+
+        */
 
         /*NodeDef forty_two_node;
 
@@ -122,9 +132,19 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
 
 
         // My stuff
-        (*b_op->mutable_input())[0] = map_input->name();
-        (*m_op->mutable_input())[0] = b_op->name();
-        (*next_op->mutable_input())[0] = m_op->name();
+        //(*b_op->mutable_input())[0] = map_input->name();
+        //(*m_op->mutable_input())[0] = b_op->name();
+        //(*next_op->mutable_input())[0] = m_op->name();
+        
+    }
+
+    if (filter_present) {
+        // For now just rip out the filter node (and see if graph is rewired correctly)
+        absl::flat_hash_set<string> nodes_to_delete;
+
+        NodeDef* const parent = graph_utils::GetInputNode(f_op, graph);
+
+        TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
         
     }
 
@@ -188,6 +208,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     
 
     return ApplyOptimization(graph, sorted_old_graph);
+
+    // TODO: Find a way to update num_changes
+    // stats->num_changes++;
 
 }
 
