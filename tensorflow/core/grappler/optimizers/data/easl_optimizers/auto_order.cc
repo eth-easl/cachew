@@ -142,7 +142,9 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
         // For now just rip out the filter node (and see if graph is rewired correctly)
         absl::flat_hash_set<string> nodes_to_delete;
 
-        NodeDef* const parent = graph_utils::GetInputNode(f_op, graph);
+        NodeDef* const parent = graph_utils::GetInputNode(f_op, *graph);
+        //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
+        graph.UpdateFanouts(f_op.name(), parent->name());
 
         //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
         graph.DeleteNodes(nodes_to_delete);
