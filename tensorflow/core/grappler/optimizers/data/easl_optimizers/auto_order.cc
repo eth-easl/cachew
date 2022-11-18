@@ -43,28 +43,106 @@ NodeDef MakeFusedFilterNode(const NodeDef& first_filter_node,
     return fused_node;
 }
 
+NodeDef CreateFortyTwoOpNode(MutableGraphView* graph, NodeDef* input) {
+    NodeDef forty_two_node;
+
+    // Give a unique name to our forty_two node and store it for later use
+    graph_utils::SetUniqueGraphNodeName("forty_two_dataset",
+        graph->graph(), &forty_two_node);
+
+    // Set its operation and input.
+    forty_two_node.set_op(kFortyTwoDataset);
+    forty_two_node.add_input(input->name());
+
+    // Add output_type and empty output_shape attributes
+    (*forty_two_node.mutable_attr())[kOutputTypes].mutable_list()->add_type(
+            tensorflow::DataType::DT_INT32);
+    (*forty_two_node.mutable_attr())[kOutputShapes].mutable_list()->add_shape();
+
+    return forty_two_node;
+}
+
 // Calculate the cost of a proposed op ordering
 // Cost = sum(Shape(op) * DTypeBytes(op))
 int GetOrderCost(const GraphDef& suggested_order) {
     double cost = 0;
 
+    NodeDef* m_op = nullptr;
+    NodeDef* b_op = nullptr;
+    NodeDef* next_op = nullptr;
+    auto last_seen;
     for (const NodeDef& node : suggested_order.node()) {
         //auto dt
+        
         auto op_name = node.op();
         //auto output_s = node.output_size();
         auto input_s = node.input_size();
         double ret_factor = 1.0;
         //double inf_factor = output_s/input_s;
-
+        bool batch_present = false;
+        bool map_present = false;
+        if (op_name.find("BatchDataset") != std::string::npos) {
+            batch_present = true;
+            b_op = node;
+        }
+        if (op_name.find("MapDataset") != std::string::npos) {
+            map_present = true;
+            m_op = node;
+        }
+        if (last_seen == op_name) { // We've found the next fixed op
+            next_op = node;
+        }
+        last_seen = op_name;
 
         VLOG(0) << op_name;
         //VLOG(0) << output_s;
-        VLOG(0) << input_s;
+        VLOG(1) << input_s;
         //VLOG(0) << inf_factor;
         //VLOG(0) << ret_factor;
 
         //cost+=output_s;
         cost+=input_s*ret_factor;
+
+        
+        last_seen = op_name;
+    }
+
+    if (batch_present && map_present) { // Should be correct graph
+        VLOG(0) << "Found map & batch";
+
+        // Reorder the map and batch
+        NodeDef* map_input = graph_utils::GetInputNode(*m_op, graph);
+        NodeDef* batch_input = graph_utils::GetInputNode(*b_op, graph); // should be the map_op
+        VLOG(0) << "Batch's input is " << batch_input.op();
+        if (!map_input || !batch_input) {
+            return errors::Unknown("The one of the target nodes has no inputs.");
+        }
+
+        /*NodeDef forty_two_node;
+
+        // Give a unique name to our forty_two node and store it for later use
+        graph_utils::SetUniqueGraphNodeName("forty_two_dataset",
+            graph->graph(), &forty_two_node);
+
+        // Set its operation and input.
+        forty_two_node.set_op(kFortyTwoDataset);
+        forty_two_node.add_input(input->name());
+
+        // Add output_type and empty output_shape attributes
+        (*forty_two_node.mutable_attr())[kOutputTypes].mutable_list()->add_type(
+                tensorflow::DataType::DT_INT32);
+        (*forty_two_node.mutable_attr())[kOutputShapes].mutable_list()->add_shape();
+
+        // Copy over the relevant attributes
+        (*target->mutable_input())[0] = forty_two_node.name();
+        graph_utils::CopyAttribute(kOutputTypes, forty_two_node, target);*/
+
+
+        // My stuff
+        (*b_op->mutable_input())[0] = map_input.name();
+        (*m_op->mutable_input())[0] = b_op.name();
+        (*next_op->mutable_input())[0] = m_op.name();
+        
     }
 
     return cost;
@@ -72,9 +150,14 @@ int GetOrderCost(const GraphDef& suggested_order) {
 
 }  // namespace
 
-Status AutoOrder::ApplyOptimization(MutableGraphView &graph) {
-  VLOG(0) << "In AutoOrder::ApplyOptimization";
+Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_old_graph) {
+    VLOG(0) << "In AutoOrder::ApplyOptimization";
 
+    VLOG(0) << "Original pipline:";
+    auto cost = GetOrderCost(sorted_old_graph);
+    VLOG(0) << "Total cost:";
+    VLOG(0) << cost;
+  
   return Status::OK();
 }
 
@@ -119,12 +202,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
             output->mutable_library());
     };
 
-    VLOG(0) << "Original pipline:";
-    auto cost = GetOrderCost(sorted_old_graph);
-    VLOG(0) << "Total cost:";
-    VLOG(0) << cost;
+    
 
-    return ApplyOptimization(graph);
+    return ApplyOptimization(graph, sorted_old_graph);
 
 }
 
