@@ -43,34 +43,18 @@ NodeDef MakeFusedFilterNode(const NodeDef& first_filter_node,
     return fused_node;
 }
 
-NodeDef CreateFortyTwoOpNode(MutableGraphView* graph, NodeDef* input) {
-    NodeDef forty_two_node;
-
-    // Give a unique name to our forty_two node and store it for later use
-    graph_utils::SetUniqueGraphNodeName("forty_two_dataset",
-        graph->graph(), &forty_two_node);
-
-    // Set its operation and input.
-    forty_two_node.set_op(kFortyTwoDataset);
-    forty_two_node.add_input(input->name());
-
-    // Add output_type and empty output_shape attributes
-    (*forty_two_node.mutable_attr())[kOutputTypes].mutable_list()->add_type(
-            tensorflow::DataType::DT_INT32);
-    (*forty_two_node.mutable_attr())[kOutputShapes].mutable_list()->add_shape();
-
-    return forty_two_node;
-}
-
 // Calculate the cost of a proposed op ordering
 // Cost = sum(Shape(op) * DTypeBytes(op))
-int GetOrderCost(const GraphDef& suggested_order) {
+int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     double cost = 0;
 
     NodeDef* m_op = nullptr;
     NodeDef* b_op = nullptr;
     NodeDef* next_op = nullptr;
-    auto last_seen;
+    std::string last_seen;
+    
+    bool batch_present = false;
+    bool map_present = false;
     for (const NodeDef& node : suggested_order.node()) {
         //auto dt
         
@@ -79,8 +63,6 @@ int GetOrderCost(const GraphDef& suggested_order) {
         auto input_s = node.input_size();
         double ret_factor = 1.0;
         //double inf_factor = output_s/input_s;
-        bool batch_present = false;
-        bool map_present = false;
         if (op_name.find("BatchDataset") != std::string::npos) {
             batch_present = true;
             b_op = node;
@@ -113,9 +95,10 @@ int GetOrderCost(const GraphDef& suggested_order) {
         // Reorder the map and batch
         NodeDef* map_input = graph_utils::GetInputNode(*m_op, graph);
         NodeDef* batch_input = graph_utils::GetInputNode(*b_op, graph); // should be the map_op
-        VLOG(0) << "Batch's input is " << batch_input.op();
+        VLOG(0) << "Batch's input is " << batch_input->op();
         if (!map_input || !batch_input) {
-            return errors::Unknown("The one of the target nodes has no inputs.");
+            return -1;
+            //return errors::Unknown("The one of the target nodes has no inputs.");
         }
 
         /*NodeDef forty_two_node;
@@ -139,9 +122,9 @@ int GetOrderCost(const GraphDef& suggested_order) {
 
 
         // My stuff
-        (*b_op->mutable_input())[0] = map_input.name();
-        (*m_op->mutable_input())[0] = b_op.name();
-        (*next_op->mutable_input())[0] = m_op.name();
+        (*b_op->mutable_input())[0] = map_input->name();
+        (*m_op->mutable_input())[0] = b_op->name();
+        (*next_op->mutable_input())[0] = m_op->name();
         
     }
 
@@ -154,7 +137,7 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     VLOG(0) << "In AutoOrder::ApplyOptimization";
 
     VLOG(0) << "Original pipline:";
-    auto cost = GetOrderCost(sorted_old_graph);
+    auto cost = GetOrderCost(sorted_old_graph, graph);
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
   
