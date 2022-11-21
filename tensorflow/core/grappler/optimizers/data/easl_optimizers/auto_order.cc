@@ -89,7 +89,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
             VLOG(0) << "Got parent node";
             //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
-            graph.UpdateFanouts(node->name(), parent->name());
+            graph.UpdateFanouts(node.name(), parent->name());
             VLOG(0) << "Updated fanouts";
             //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
             nodes_to_delete.insert(f_op->name());
@@ -190,9 +190,9 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
 
     VLOG(0) << "Updated graph cost:";
 
-    auto cost = GetOrderCost(sorted_old_graph, graph);
+    auto new_cost = GetOrderCost(sorted_old_graph, graph);
     VLOG(0) << "Total cost:";
-    VLOG(0) << cost;
+    VLOG(0) << new_cost;
   
   return Status::OK();
 }
