@@ -187,6 +187,12 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     auto cost = GetOrderCost(sorted_old_graph, graph);
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
+
+    VLOG(0) << "Updated graph cost:";
+
+    auto cost = GetOrderCost(sorted_old_graph, graph);
+    VLOG(0) << "Total cost:";
+    VLOG(0) << cost;
   
   return Status::OK();
 }
