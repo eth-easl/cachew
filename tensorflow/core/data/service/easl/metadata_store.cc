@@ -863,10 +863,10 @@ Status MetadataStore::UnsetJobIsOrdering(int64 job_id) {
   return Status::OK();
 }
 
-Status MetadataStore::IsJobOrdering(int64 job_id, bool& is_scaling) {
+Status MetadataStore::IsJobOrdering(int64 job_id, bool& is_ordering) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
-  is_scaling = jobMetrics->is_ordering_;
+  is_ordering = jobMetrics->is_ordering_;
   return Status::OK();
 }
 

@@ -279,6 +279,7 @@ std::vector<int> FindAllGraphNodesWithOp(const string& op,
 NodeDef* GetInputNode(const NodeDef& node, const MutableGraphView& graph) {
   if (node.input_size() == 0) return nullptr;
   VLOG(0) << "Checked input size";
+  VLOG(0) << node.name();
   MutableGraphView::InputPort input_port = graph.GetInputPort(node.name(), 0);
   VLOG(0) << "Got input port";
   return graph.GetRegularFanin(input_port).node;
