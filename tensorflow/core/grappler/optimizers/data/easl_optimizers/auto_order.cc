@@ -148,8 +148,13 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
         graph.UpdateFanouts(f_op->name(), parent->name());
         VLOG(0) << "Updated fanouts";
         //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
+        nodes_to_delete.insert(f_op->name());
         graph.DeleteNodes(nodes_to_delete);
         VLOG(0) << "Deleted Nodes";
+
+
+
+        // TODO: make wheel & docker img for CPU, all for TPU
     }
 
     return cost;
