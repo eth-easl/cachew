@@ -67,18 +67,18 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
         //double inf_factor = output_s/input_s;
         if (op_name.find("BatchDataset") != std::string::npos) {
             batch_present = true;
-            b_op = n_ptr;
+            b_op = &node;
         }
         if (op_name.find("MapDataset") != std::string::npos) {
             map_present = true;
-            m_op = n_ptr;
+            m_op = &node;
         }
         if (op_name.find("FilterDataset") != std::string::npos) {
             filter_present = true;
-            f_op = n_ptr;
+            f_op = &node;
         }
         if (last_seen == "FilterDataset") { // We've found the next fixed op
-            next_op = n_ptr;
+            next_op = &node;
         }
         last_seen = op_name;
 
