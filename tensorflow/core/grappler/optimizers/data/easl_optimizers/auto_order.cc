@@ -179,8 +179,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
         graph.DeleteNodes(nodes_to_delete);
         VLOG(0) << "Deleted Nodes";*/
 
-
-
+        
         // TODO: make wheel & docker img for CPU, all for TPU
     }
 
@@ -255,7 +254,66 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
             output->mutable_library());
     };
 
-    
+    // NEW STUFF
+        
+    // Get the output of the graph
+    NodeDef* sink_node;
+    TF_RETURN_IF_ERROR(graph_utils::GetFetchNode(graph, item, &sink_node));
+
+    // Find the first batch op by applying BFS
+    absl::flat_hash_set<std::string> visited;
+    std::queue<NodeDef*> bfs_queue;
+    bfs_queue.push(sink_node);
+    NodeDef* target = nullptr;
+
+    while (!bfs_queue.empty()) {
+        NodeDef* current_node = bfs_queue.front();
+        bfs_queue.pop();
+        visited.insert(current_node->name());
+
+        NodeDef* cur_input = graph_utils::GetInputNode(*target, graph);
+        if (cur_input.op().find("FilterDataset") != std::string::npos) {
+            VLOG(0) << "Found node with Filter Input!";
+            target = current_node;
+            (*target->mutable_input())[0] = cur_input.name();
+
+            absl::flat_hash_set<string> nodes_to_delete;
+            VLOG(0) << "Start to rip out filter node";
+            VLOG(0) << f_op->input_size();
+
+            //NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
+            //VLOG(0) << "Got parent node";
+            //(*node.mutable_input())[0] = parent->name();
+            //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
+            
+            
+            // Maybe we need this??????????
+            //graph.UpdateFanouts(node.name(), parent->name());
+            //VLOG(0) << "Updated fanouts";
+            //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
+            
+            nodes_to_delete.insert(cur_input->name());
+            graph.DeleteNodes(nodes_to_delete);
+            VLOG(0) << "Deleted Nodes";
+
+
+            break;
+        }
+
+        // Iterate throught the neighbors
+        for (int i = 0; i < current_node->input_size(); ++i) {
+            if (!visited.contains(current_node->input(i))) {
+                int idx = graph_utils::FindGraphNodeWithName(current_node->input(i), 
+                *output);
+                NodeDef* neighbor_node = output->mutable_node(idx);
+                bfs_queue.push(neighbor_node);
+            }
+        }
+     }
+
+
+
+
 
     return ApplyOptimization(graph, sorted_old_graph);
 
