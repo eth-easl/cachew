@@ -65,7 +65,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     bool batch_present = false;
     bool map_present = false;
     bool filter_present = false;
-    for (const NodeDef& node : suggested_order.node()) {
+    for (NodeDef& node : suggested_order.node()) {
         //auto dt
         //NodeDef* n_ptr = &node;
         auto op_name = node.op();
@@ -96,7 +96,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             VLOG(0) << f_op->input_size();
             NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
             VLOG(0) << "Got parent node";
-            (*node->mutable_input())[0] = parent->name();
+            (*node.mutable_input())[0] = parent->name();
             //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
             graph.UpdateFanouts(node.name(), parent->name());
             VLOG(0) << "Updated fanouts";
