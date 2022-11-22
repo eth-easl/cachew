@@ -98,7 +98,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             VLOG(0) << f_op->input_size();
             NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
             VLOG(0) << "Got parent node";
-            (*node.mutable_input())[0] = parent->name();
+            //(*node.mutable_input())[0] = parent->name();
             //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
             graph.UpdateFanouts(node.name(), parent->name());
             VLOG(0) << "Updated fanouts";
@@ -224,6 +224,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     TF_RETURN_IF_ERROR(TopologicalSort(&sorted_old_graph));
     *output = sorted_old_graph;
 
+    VLOG(0) << "Sorted graph";
+
     MutableGraphView graph(output);
     absl::flat_hash_set<string> nodes_to_delete;
     FunctionLibraryDefinition function_library(OpRegistry::Global(),
@@ -259,16 +261,19 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     // NEW STUFF
         
     // Get the output of the graph
+    VLOG(0) << "Searching for sink node";
     NodeDef* sink_node;
     TF_RETURN_IF_ERROR(graph_utils::GetFetchNode(graph, item, &sink_node));
 
     // Find the first batch op by applying BFS
     absl::flat_hash_set<std::string> visited;
     std::queue<NodeDef*> bfs_queue;
+    VLOG(0) << "Searching for wanted node";
     bfs_queue.push(sink_node);
     NodeDef* target = nullptr;
 
     while (!bfs_queue.empty()) {
+        VLOG(0) << "Trying another one";
         NodeDef* current_node = bfs_queue.front();
         bfs_queue.pop();
         visited.insert(current_node->name());
