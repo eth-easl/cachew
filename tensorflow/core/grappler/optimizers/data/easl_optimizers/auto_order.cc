@@ -276,8 +276,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         VLOG(0) << "Trying another one";
         NodeDef* current_node = bfs_queue.front();
         bfs_queue.pop();
+        VLOG(0) << "poped elem";
         visited.insert(current_node->name());
-
+        VLOG(0) << "Getting the cur input";
         NodeDef* cur_input = graph_utils::GetInputNode(*target, graph);
         if (cur_input->op().find("FilterDataset") != std::string::npos) {
             VLOG(0) << "Found node with Filter Input!";
