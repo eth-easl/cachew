@@ -43,6 +43,14 @@ NodeDef MakeFusedFilterNode(const NodeDef& first_filter_node,
     return fused_node;
 }
 
+// Given a suggested pipeline check that the output shapes/sizes match
+Status IsPipelineOk(const GraphDef& suggested_order, MutableGraphView &graph) {
+    if (false) {
+        return errors::Internal("The suggested graph fails.");
+    }
+    return Status::OK();
+}
+
 // Calculate the cost of a proposed op ordering
 // Cost = sum(Shape(op) * DTypeBytes(op))
 int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
@@ -88,6 +96,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             VLOG(0) << f_op->input_size();
             NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
             VLOG(0) << "Got parent node";
+            (*node->mutable_input())[0] = parent->name();
             //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
             graph.UpdateFanouts(node.name(), parent->name());
             VLOG(0) << "Updated fanouts";
@@ -193,8 +202,16 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     auto new_cost = GetOrderCost(sorted_old_graph, graph);
     VLOG(0) << "Total cost:";
     VLOG(0) << new_cost;
-  
-  return Status::OK();
+    
+    Status s = IsPipelineOk(sorted_old_graph, graph);
+    while (!s.ok()) {
+        // Choose next best suggestion
+        VLOG(0) << "Updating suggestion";
+        s = IsPipelineOk(sorted_old_graph, graph);
+    }
+
+
+    return Status::OK();
 }
 
 Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
@@ -243,6 +260,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     return ApplyOptimization(graph, sorted_old_graph);
 
     // TODO: Find a way to update num_changes
+    // TODO: Update metadata (see inject_prefectch.cc line 128)
     // stats->num_changes++;
 
 }
