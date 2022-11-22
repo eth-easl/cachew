@@ -1,3 +1,5 @@
+#include <queue>
+
 #include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
 #include "absl/container/flat_hash_set.h"
@@ -65,7 +67,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     bool batch_present = false;
     bool map_present = false;
     bool filter_present = false;
-    for (NodeDef& node : suggested_order.node()) {
+    for (const NodeDef& node : suggested_order.node()) {
         //auto dt
         //NodeDef* n_ptr = &node;
         auto op_name = node.op();
@@ -272,14 +274,14 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         visited.insert(current_node->name());
 
         NodeDef* cur_input = graph_utils::GetInputNode(*target, graph);
-        if (cur_input.op().find("FilterDataset") != std::string::npos) {
+        if (cur_input->op().find("FilterDataset") != std::string::npos) {
             VLOG(0) << "Found node with Filter Input!";
             target = current_node;
-            (*target->mutable_input())[0] = cur_input.name();
+            (*target->mutable_input())[0] = cur_input->name();
 
             absl::flat_hash_set<string> nodes_to_delete;
             VLOG(0) << "Start to rip out filter node";
-            VLOG(0) << f_op->input_size();
+            VLOG(0) << target->input_size();
 
             //NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
             //VLOG(0) << "Got parent node";
