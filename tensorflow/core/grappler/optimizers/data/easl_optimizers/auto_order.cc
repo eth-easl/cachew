@@ -274,13 +274,16 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
     while (!bfs_queue.empty()) {
         VLOG(0) << "Trying another one";
+        VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
+        VLOG(0) << current_node->op();
         bfs_queue.pop();
         VLOG(0) << "poped elem";
         visited.insert(current_node->name());
         VLOG(0) << "Getting the cur input";
-        NodeDef* cur_input = graph_utils::GetInputNode(*target, graph);
-        if (cur_input->op().find("FilterDataset") != std::string::npos) {
+        // This gives a seg fault
+        //NodeDef* cur_input = graph_utils::GetInputNode(*target, graph);
+        /*if (cur_input->op().find("FilterDataset") != std::string::npos) {
             VLOG(0) << "Found node with Filter Input!";
             target = current_node;
             (*target->mutable_input())[0] = cur_input->name();
@@ -306,7 +309,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
 
             break;
-        }
+        }*/
 
         // Iterate throught the neighbors
         for (int i = 0; i < current_node->input_size(); ++i) {
@@ -314,7 +317,16 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                 int idx = graph_utils::FindGraphNodeWithName(current_node->input(i), 
                 *output);
                 NodeDef* neighbor_node = output->mutable_node(idx);
-                bfs_queue.push(neighbor_node);
+                if (neighbor_node->op().find("FilterDataset") != std::string::npos) {
+                    VLOG(0) << "Found node with Filter input";
+                    VLOG(0) << current_node->op();
+                    target = current_node;
+                    
+                } else if (current_node->op().find("FilterDataset") != std::string::npos) {
+                    (*target.mutable_input())[0] = current_node.input(0);
+                } else {
+                    bfs_queue.push(neighbor_node);
+                }
             }
         }
      }
