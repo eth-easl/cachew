@@ -325,12 +325,21 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Found node with Filter input";
                     VLOG(0) << current_node->op();
                     target = current_node;
+                    bfs_queue.push(neighbor_node);
                     
                 } else if (current_node->op().find("FilterDataset") != std::string::npos) {
                     VLOG(0) << "Found Filter node";
                     VLOG(0) << current_node->op();
-                    VLOG(0) << current_node.input(0)->op();
-                    (*target.mutable_input())[0] = current_node->input(0);
+                    VLOG(0) << current_node->input(0);
+                    (*target->mutable_input())[0] = current_node->input(0);
+                    bfs_queue.push(neighbor_node);
+
+                    absl::flat_hash_set<string> nodes_to_delete;
+                    VLOG(0) << "Deleting filter node";
+                    // Update Fanouts between filter node & parent ??? (As in noop_elimination)
+                    nodes_to_delete.insert(current_node->name());
+                    graph.DeleteNodes(nodes_to_delete);
+                    
                 } else {
                     bfs_queue.push(neighbor_node);
                 }
