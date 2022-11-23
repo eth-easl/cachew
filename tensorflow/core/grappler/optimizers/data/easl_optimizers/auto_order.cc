@@ -89,7 +89,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
 
             
         }
-        if (last_seen == "FilterDataset") { // We've found the next fixed op
+        /*if (last_seen == "FilterDataset") { // We've found the next fixed op
             next_op = &node;
 
 
@@ -106,7 +106,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             nodes_to_delete.insert(f_op->name());
             graph.DeleteNodes(nodes_to_delete);
             VLOG(0) << "Deleted Nodes";
-        }
+        }*/
         last_seen = op_name;
 
         VLOG(0) << op_name;
@@ -231,6 +231,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     FunctionLibraryDefinition function_library(OpRegistry::Global(),
                                                output->library());
 
+    auto cost = GetOrderCost(sorted_old_graph, graph);
+    VLOG(0) << "Now we try to optimize";
+
     auto get_filter_node = [](const NodeDef& node) -> const NodeDef* {
         // TODO(b/148614315): Support captured inputs.
         if (node.op() == "FilterDataset" && node.input_size() == 1) return &node;
@@ -263,6 +266,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     // Get the output of the graph
     VLOG(0) << "Searching for sink node";
     NodeDef* sink_node;
+    if (item.fetch.size() == 1) {
     TF_RETURN_IF_ERROR(graph_utils::GetFetchNode(graph, item, &sink_node));
 
     // Find the first batch op by applying BFS
@@ -278,7 +282,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         NodeDef* current_node = bfs_queue.front();
         VLOG(0) << current_node->op();
         bfs_queue.pop();
-        VLOG(0) << "poped elem";
+        //VLOG(0) << "poped elem";
         visited.insert(current_node->name());
         VLOG(0) << "Getting the cur input";
         // This gives a seg fault
@@ -323,13 +327,16 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     target = current_node;
                     
                 } else if (current_node->op().find("FilterDataset") != std::string::npos) {
-                    (*target.mutable_input())[0] = current_node.input(0);
+                    VLOG(0) << "Found Filter node";
+                    VLOG(0) << current_node->op();
+                    VLOG(0) << current_node.input(0)->op();
+                    (*target.mutable_input())[0] = current_node->input(0);
                 } else {
                     bfs_queue.push(neighbor_node);
                 }
             }
         }
-     }
+    }
 
 
 
@@ -340,6 +347,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     // TODO: Find a way to update num_changes
     // TODO: Update metadata (see inject_prefectch.cc line 128)
     // stats->num_changes++;
+
+    }
+    return Status::OK();
 
 }
 
