@@ -352,7 +352,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "New node's input is " << new_filter_node->input(0);
                     VLOG(0) << "New node's parent is " << graph_utils::GetInputNode(*new_filter_node, graph)->op();
                     
-                    (*parent->mutable_input())[0] = new_filter_node;
+                    (*parent->mutable_input())[0] = new_filter_node->name();
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
                     VLOG(0) << "Old nodes test!!!!!!!!";
                     VLOG(0) << "(original) Parent is " << parent->op();
@@ -365,6 +365,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     nodes_to_delete.insert(current_node->name());
                     graph.DeleteNodes(nodes_to_delete);
                     
+                    // We've reordered some nodes, now jump out of the process
+                    return ApplyOptimization(graph, sorted_old_graph);
                 } else {
                     bfs_queue.push(neighbor_node);
                 }
