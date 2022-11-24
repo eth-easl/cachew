@@ -342,26 +342,25 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     NodeDef* const parent = graph_utils::GetInputNode(*current_node, graph);
                     VLOG(0) << "Input node is " << parent->op();
                     VLOG(0) << "Cur node is " << current_node->op();
-                    VLOG(0) << "Target Node is " target->op();
+                    VLOG(0) << "Target Node is " << target->op();
 
                     const auto* new_filter_node = graph.AddNode(MakeNewFilterNode(
                     *parent, *current_node, &graph));
-                    TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(),
-                                           new_filter_node->name()));
+                    TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(), new_filter_node->name()));
 
                     VLOG(0) << "New node is " << new_filter_node->op();
                     VLOG(0) << "New node's input is " << new_filter_node->input(0);
                     VLOG(0) << "New node's parent is " << graph_utils::GetInputNode(*new_filter_node, graph)->op();
                     
-                    
+                    (*parent->mutable_input())[0] = new_filter_node;
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
                     VLOG(0) << "Old nodes test!!!!!!!!";
                     VLOG(0) << "(original) Parent is " << parent->op();
                     VLOG(0) << "Parent's input is " << parent->input(0);
 
                     VLOG(0) << "Target node is " << target->op();
-                    VLOG(0) << "Target node's input" << target->input(0);
-                    
+                    VLOG(0) << "Target node's input " << target->input(0);
+
 
                     nodes_to_delete.insert(current_node->name());
                     graph.DeleteNodes(nodes_to_delete);
