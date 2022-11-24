@@ -337,6 +337,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     absl::flat_hash_set<string> nodes_to_delete;
                     VLOG(0) << "Deleting filter node";
                     // Update Fanouts between filter node & parent ??? (As in noop_elimination)
+                    NodeDef* const parent = graph_utils::GetInputNode(*current_node, graph);
+                    TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
                     nodes_to_delete.insert(current_node->name());
                     graph.DeleteNodes(nodes_to_delete);
                     
