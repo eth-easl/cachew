@@ -21,28 +21,27 @@ namespace grappler {
 namespace easl {
 namespace {
 
-NodeDef MakeFusedFilterNode(const NodeDef& first_filter_node,
+NodeDef MakeNewFilterNode(const NodeDef& first_filter_node,
                             const NodeDef& second_filter_node,
-                            const FunctionDef& fused_function,
                             MutableGraphView* graph) {
-    NodeDef fused_node;
-    graph_utils::SetUniqueGraphNodeName("fused_filter", graph->graph(),
-                                      &fused_node);
+    NodeDef new_f_node;
+    graph_utils::SetUniqueGraphNodeName("n_filter", graph->graph(),
+                                      &new_f_node);
 
-    fused_node.set_op("FilterDataset");
-    fused_node.add_input(first_filter_node.input(0));
+    new_f_node.set_op(second_filter_node.op());
+    new_f_node.add_input(first_filter_node.input(0));
 
-    auto attr = first_filter_node.attr().at("predicate");
-    *attr.mutable_func()->mutable_name() = fused_function.signature().name();
-    (*fused_node.mutable_attr())["predicate"] = std::move(attr);
+    auto attr = second_filter_node.attr().at("predicate");
+    //*attr.mutable_func()->mutable_name() = fused_function.signature().name();
+    (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
 
-    graph_utils::CopyAttribute("Targuments", first_filter_node, &fused_node);
+    graph_utils::CopyAttribute("Targuments", first_filter_node, &new_f_node);
 
     for (auto key : {"output_shapes", "output_types"})
-        graph_utils::CopyAttribute(key, second_filter_node, &fused_node);
-    graph_utils::MaybeSetFusedMetadata(first_filter_node, second_filter_node, &fused_node);
+        graph_utils::CopyAttribute(key, second_filter_node, &new_f_node);
+    //graph_utils::MaybeSetFusedMetadata(first_filter_node, second_filter_node, &new_f_node);
 
-    return fused_node;
+    return new_f_node;
 }
 
 // Given a suggested pipeline check that the output shapes/sizes match
@@ -332,12 +331,20 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << current_node->op();
                     VLOG(0) << current_node->input(0);
                     (*target->mutable_input())[0] = current_node->input(0);
+
                     bfs_queue.push(neighbor_node);
 
                     absl::flat_hash_set<string> nodes_to_delete;
                     VLOG(0) << "Deleting filter node";
                     // Update Fanouts between filter node & parent ??? (As in noop_elimination)
                     NodeDef* const parent = graph_utils::GetInputNode(*current_node, graph);
+
+                    const auto* new_filter_node = graph.AddNode(MakeNewFilterNode(
+                    *parent, *current_node, &graph));
+                    TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(),
+                                           new_filter_node->name()));
+
+
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
                     nodes_to_delete.insert(current_node->name());
                     graph.DeleteNodes(nodes_to_delete);
