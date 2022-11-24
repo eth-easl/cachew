@@ -206,8 +206,12 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     bfs_queue.push(sink_node);
     NodeDef* target = nullptr;
 
-    auto first_dtype = 
+    auto first_dtype = (*sink_node.mutable_attr())["output_types"];
+    auto first_shape = (*new_f_node.mutable_attr())["output_shapes"];
 
+    VLOG(0) << first_dtype;
+    VLOG(0) << first_shape;
+    
     while (!bfs_queue.empty()) {
         //VLOG(0) << "Trying another one";
         //VLOG(0) << bfs_queue.size();
