@@ -21,27 +21,27 @@ namespace grappler {
 namespace easl {
 namespace {
 
-NodeDef MakeNewFilterNode(const NodeDef& first_filter_node,
-                            const NodeDef& second_filter_node,
-                            MutableGraphView* graph) {
+NodeDef MakeNewNode(const NodeDef& new_input_node,
+                    const NodeDef& org_node,
+                    MutableGraphView* graph) {
     NodeDef new_f_node;
     graph_utils::SetUniqueGraphNodeName("n_filter", graph->graph(),
                                       &new_f_node);
 
-    new_f_node.set_op(second_filter_node.op());
-    new_f_node.add_input(first_filter_node.input(0));
+    new_f_node.set_op(org_node.op());
+    new_f_node.add_input(new_input_node.input(0));
 
     //auto attr = second_filter_node.attr().at("predicate");
     //*attr.mutable_func()->mutable_name() = fused_function.signature().name();
     //(*new_f_node.mutable_attr())["predicate"] = std::move(attr);
     VLOG(0) << "making new filter predicate";
-    (*new_f_node.mutable_attr())["predicate"] = second_filter_node.attr().at("predicate");
+    (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
 
-    graph_utils::CopyAttribute("Targuments", second_filter_node, &new_f_node);
+    graph_utils::CopyAttribute("Targuments", org_node, &new_f_node);
 
     for (auto key : {"output_shapes", "output_types"})
-        graph_utils::CopyAttribute(key, second_filter_node, &new_f_node);
-    //graph_utils::MaybeSetFusedMetadata(first_filter_node, second_filter_node, &new_f_node);
+        graph_utils::CopyAttribute(key, org_node, &new_f_node);
+    //graph_utils::MaybeSetFusedMetadata(first_filter_node, org_node, &new_f_node);
 
     return new_f_node;
 }
@@ -90,24 +90,6 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
 
             
         }
-        /*if (last_seen == "FilterDataset") { // We've found the next fixed op
-            next_op = &node;
-
-
-            absl::flat_hash_set<string> nodes_to_delete;
-            VLOG(0) << "Start to rip out filter node";
-            VLOG(0) << f_op->input_size();
-            NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
-            VLOG(0) << "Got parent node";
-            //(*node.mutable_input())[0] = parent->name();
-            //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
-            graph.UpdateFanouts(node.name(), parent->name());
-            VLOG(0) << "Updated fanouts";
-            //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
-            nodes_to_delete.insert(f_op->name());
-            graph.DeleteNodes(nodes_to_delete);
-            VLOG(0) << "Deleted Nodes";
-        }*/
         last_seen = op_name;
 
         VLOG(0) << op_name;
@@ -125,65 +107,12 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
 
     if (batch_present && map_present) { // Should be correct graph
         VLOG(0) << "Found map & batch";
-
-        /*
-        // GIVES SEG FAULT
-        // Reorder the map and batch
-        NodeDef* map_input = graph_utils::GetInputNode(*m_op, graph);
-        NodeDef* batch_input = graph_utils::GetInputNode(*b_op, graph); // should be the map_op
-        VLOG(0) << "Batch's input is " << batch_input->op();
-        if (!map_input || !batch_input) {
-            return -1;
-            //return errors::Unknown("The one of the target nodes has no inputs.");
-        }
-
-        */
-
-        /*NodeDef forty_two_node;
-
-        // Give a unique name to our forty_two node and store it for later use
-        graph_utils::SetUniqueGraphNodeName("forty_two_dataset",
-            graph->graph(), &forty_two_node);
-
-        // Set its operation and input.
-        forty_two_node.set_op(kFortyTwoDataset);
-        forty_two_node.add_input(input->name());
-
-        // Add output_type and empty output_shape attributes
-        (*forty_two_node.mutable_attr())[kOutputTypes].mutable_list()->add_type(
-                tensorflow::DataType::DT_INT32);
-        (*forty_two_node.mutable_attr())[kOutputShapes].mutable_list()->add_shape();
-
-        // Copy over the relevant attributes
-        (*target->mutable_input())[0] = forty_two_node.name();
-        graph_utils::CopyAttribute(kOutputTypes, forty_two_node, target);*/
-
-
-        // My stuff
-        //(*b_op->mutable_input())[0] = map_input->name();
-        //(*m_op->mutable_input())[0] = b_op->name();
-        //(*next_op->mutable_input())[0] = m_op->name();
         
     }
 
     if (filter_present) {
         // For now just rip out the filter node (and see if graph is rewired correctly)
         VLOG(0) << "Filter present";
-        /*absl::flat_hash_set<string> nodes_to_delete;
-        VLOG(0) << "Start to rip out filter node";
-        VLOG(0) << f_op.input_size();
-        NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
-        VLOG(0) << "Got parent node";
-        //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
-        graph.UpdateFanouts(f_op->name(), parent->name());
-        VLOG(0) << "Updated fanouts";
-        //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
-        nodes_to_delete.insert(f_op->name());
-        graph.DeleteNodes(nodes_to_delete);
-        VLOG(0) << "Deleted Nodes";*/
-
-        
-        // TODO: make wheel & docker img for CPU, all for TPU
     }
 
     return cost;
@@ -277,44 +206,18 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     bfs_queue.push(sink_node);
     NodeDef* target = nullptr;
 
+    auto first_dtype = 
+
     while (!bfs_queue.empty()) {
         //VLOG(0) << "Trying another one";
         //VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
-        //VLOG(0) << current_node->op();
+        VLOG(0) << "Visiting " << current_node->op();
+        VLOG(0) << "Curent output_type is " << (*new_f_node.mutable_attr())["output_types"];
+        VLOG(0) << "Curent output_type is " << (*new_f_node.mutable_attr())["output_shapes"];
         bfs_queue.pop();
         //VLOG(0) << "poped elem";
         visited.insert(current_node->name());
-        //VLOG(0) << "Getting the cur input";
-        // This gives a seg fault
-        //NodeDef* cur_input = graph_utils::GetInputNode(*target, graph);
-        /*if (cur_input->op().find("FilterDataset") != std::string::npos) {
-            VLOG(0) << "Found node with Filter Input!";
-            target = current_node;
-            (*target->mutable_input())[0] = cur_input->name();
-
-            absl::flat_hash_set<string> nodes_to_delete;
-            VLOG(0) << "Start to rip out filter node";
-            VLOG(0) << target->input_size();
-
-            //NodeDef* const parent = graph_utils::GetInputNode(*f_op, graph);
-            //VLOG(0) << "Got parent node";
-            //(*node.mutable_input())[0] = parent->name();
-            //TF_RETURN_IF_ERROR(graph.UpdateFanouts(node.name(), parent->name()));
-            
-            
-            // Maybe we need this??????????
-            //graph.UpdateFanouts(node.name(), parent->name());
-            //VLOG(0) << "Updated fanouts";
-            //TF_RETURN_IF_ERROR(graph.DeleteNodes(nodes_to_delete));
-            
-            nodes_to_delete.insert(cur_input->name());
-            graph.DeleteNodes(nodes_to_delete);
-            VLOG(0) << "Deleted Nodes";
-
-
-            break;
-        }*/
 
         // Iterate throught the neighbors
         for (int i = 0; i < current_node->input_size(); ++i) {
@@ -338,13 +241,12 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
                     absl::flat_hash_set<string> nodes_to_delete;
                     VLOG(0) << "Deleting filter node";
-                    // Update Fanouts between filter node & parent ??? (As in noop_elimination)
                     NodeDef* const parent = graph_utils::GetInputNode(*current_node, graph);
                     VLOG(0) << "Input node is " << parent->op();
                     VLOG(0) << "Cur node is " << current_node->op();
                     VLOG(0) << "Target Node is " << target->op();
 
-                    const auto* new_filter_node = graph.AddNode(MakeNewFilterNode(
+                    const auto* new_filter_node = graph.AddNode(MakeNewNode(
                     *parent, *current_node, &graph));
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(), new_filter_node->name()));
 
