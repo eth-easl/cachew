@@ -31,11 +31,13 @@ NodeDef MakeNewFilterNode(const NodeDef& first_filter_node,
     new_f_node.set_op(second_filter_node.op());
     new_f_node.add_input(first_filter_node.input(0));
 
-    auto attr = second_filter_node.attr().at("predicate");
+    //auto attr = second_filter_node.attr().at("predicate");
     //*attr.mutable_func()->mutable_name() = fused_function.signature().name();
-    (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
+    //(*new_f_node.mutable_attr())["predicate"] = std::move(attr);
+    VLOG(0) << "making new filter predicate";
+    (*new_f_node.mutable_attr())["predicate"] = second_filter_node.attr().at("predicate");
 
-    graph_utils::CopyAttribute("Targuments", first_filter_node, &new_f_node);
+    graph_utils::CopyAttribute("Targuments", second_filter_node, &new_f_node);
 
     for (auto key : {"output_shapes", "output_types"})
         graph_utils::CopyAttribute(key, second_filter_node, &new_f_node);
@@ -276,14 +278,14 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     NodeDef* target = nullptr;
 
     while (!bfs_queue.empty()) {
-        VLOG(0) << "Trying another one";
-        VLOG(0) << bfs_queue.size();
+        //VLOG(0) << "Trying another one";
+        //VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
-        VLOG(0) << current_node->op();
+        //VLOG(0) << current_node->op();
         bfs_queue.pop();
         //VLOG(0) << "poped elem";
         visited.insert(current_node->name());
-        VLOG(0) << "Getting the cur input";
+        //VLOG(0) << "Getting the cur input";
         // This gives a seg fault
         //NodeDef* cur_input = graph_utils::GetInputNode(*target, graph);
         /*if (cur_input->op().find("FilterDataset") != std::string::npos) {
@@ -338,14 +340,29 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Deleting filter node";
                     // Update Fanouts between filter node & parent ??? (As in noop_elimination)
                     NodeDef* const parent = graph_utils::GetInputNode(*current_node, graph);
+                    VLOG(0) << "Input node is " << parent->op();
+                    VLOG(0) << "Cur node is " << current_node->op();
+                    VLOG(0) << "Target Node is " target->op();
 
                     const auto* new_filter_node = graph.AddNode(MakeNewFilterNode(
                     *parent, *current_node, &graph));
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(),
                                            new_filter_node->name()));
 
-
+                    VLOG(0) << "New node is " << new_filter_node->op();
+                    VLOG(0) << "New node's input is " << new_filter_node->input(0);
+                    VLOG(0) << "New node's parent is " << graph_utils::GetInputNode(*new_filter_node, graph)->op();
+                    
+                    
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
+                    VLOG(0) << "Old nodes test!!!!!!!!";
+                    VLOG(0) << "(original) Parent is " << parent->op();
+                    VLOG(0) << "Parent's input is " << parent->input(0);
+
+                    VLOG(0) << "Target node is " << target->op();
+                    VLOG(0) << "Target node's input" << target->input(0);
+                    
+
                     nodes_to_delete.insert(current_node->name());
                     graph.DeleteNodes(nodes_to_delete);
                     
