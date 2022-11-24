@@ -206,8 +206,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     bfs_queue.push(sink_node);
     NodeDef* target = nullptr;
 
-    auto first_dtype = (*sink_node.mutable_attr())["output_types"];
-    auto first_shape = (*new_f_node.mutable_attr())["output_shapes"];
+    auto first_dtype = (*sink_node->mutable_attr())["output_types"];
+    auto first_shape = (*sink_node->mutable_attr())["output_shapes"];
 
     VLOG(0) << first_dtype;
     VLOG(0) << first_shape;
@@ -217,8 +217,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         //VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
         VLOG(0) << "Visiting " << current_node->op();
-        VLOG(0) << "Curent output_type is " << (*new_f_node.mutable_attr())["output_types"];
-        VLOG(0) << "Curent output_type is " << (*new_f_node.mutable_attr())["output_shapes"];
+        VLOG(0) << "Curent output_type is " << (*current_node->mutable_attr())["output_types"];
+        VLOG(0) << "Curent output_type is " << (*current_node->mutable_attr())["output_shapes"];
         bfs_queue.pop();
         //VLOG(0) << "poped elem";
         visited.insert(current_node->name());
