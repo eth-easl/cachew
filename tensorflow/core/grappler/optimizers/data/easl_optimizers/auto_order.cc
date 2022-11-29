@@ -5,6 +5,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
+#include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
 #include "tensorflow/core/grappler/grappler_item.h"
 #include "tensorflow/core/grappler/mutable_graph_view.h"
@@ -15,6 +16,7 @@
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/grappler/utils/topological_sort.h"
 #include "tensorflow/core/platform/protobuf.h"
+#include "tensorflow/core/framework/attr_value_util.h"
 
 namespace tensorflow {
 namespace grappler {
@@ -69,6 +71,10 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     bool map_present = false;
     bool filter_present = false;
     for (const NodeDef& node : suggested_order.node()) {
+        VLOG(0) << "########### NODE SUMMARY START ########";
+        std::string summary = SummarizeNodeDef(node, 100);
+        VLOG(0) << summary;
+        VLOG(0) << "########### NODE SUMMARY END ########";
         //auto dt
         //NodeDef* n_ptr = &node;
         auto op_name = node.op();
@@ -209,16 +215,16 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     auto first_dtype = (*sink_node->mutable_attr())["output_types"];
     auto first_shape = (*sink_node->mutable_attr())["output_shapes"];
 
-    VLOG(0) << first_dtype;
-    VLOG(0) << first_shape;
+    //VLOG(0) << first_dtype;
+    //VLOG(0) << first_shape;
     
     while (!bfs_queue.empty()) {
         //VLOG(0) << "Trying another one";
         //VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
         VLOG(0) << "Visiting " << current_node->op();
-        VLOG(0) << "Curent output_type is " << (*current_node->mutable_attr())["output_types"];
-        VLOG(0) << "Curent output_type is " << (*current_node->mutable_attr())["output_shapes"];
+        //VLOG(0) << "Curent output_type is " << (*current_node->mutable_attr())["output_types"];
+        //VLOG(0) << "Curent output_shape is " << (*current_node->mutable_attr())["output_shapes"];
         bfs_queue.pop();
         //VLOG(0) << "poped elem";
         visited.insert(current_node->name());
