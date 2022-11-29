@@ -101,6 +101,8 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     std::string prev_dtype = "";
     std::string prev_shape = "";
 
+    bool first_one = true;
+
     for (const NodeDef& node : suggested_order.node()) {
         VLOG(0) << "########### NODE SUMMARY START ########";
         std::string summary = SummarizeNodeDef(node, 100);
@@ -112,7 +114,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
         VLOG(0) << "########### NODE SUMMARY END ########";
 
         // Get the node's input and check if dtype/shape is different
-        try {
+        if (!first_one) {
             NodeDef * input_node = graph_utils::GetInputNode(node, graph);
             std::string in_n_sum = SummarizeNodeDef(*input_node, 100);
             std::string in_n_dt = GetOutputType(in_n_sum);
@@ -125,9 +127,10 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
                 changing_shape.push_back(node);
                 VLOG(0) << "Node " << node.name() << " changed shape!";
             }
-        } catch (const std::exception& e) { // getting input node might not work on edge nodes
+        } else { // getting input node might not work on edge nodes
             VLOG(0) << "We're probably at an edge node";
         }
+        first_one = false;
 
         //auto dt
         //NodeDef* n_ptr = &node;
@@ -277,13 +280,13 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         //VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
         VLOG(0) << "Visiting " << current_node->op();
-        //VLOG(0) << "Curent output_type is " << (*current_node->mutable_attr())["output_types"];
-        //VLOG(0) << "Curent output_shape is " << (*current_node->mutable_attr())["output_shapes"];
+        //VLOG(0) << "Current output_type is " << (*current_node->mutable_attr())["output_types"];
+        //VLOG(0) << "Current output_shape is " << (*current_node->mutable_attr())["output_shapes"];
         bfs_queue.pop();
-        //VLOG(0) << "poped elem";
+        //VLOG(0) << "popped elem";
         visited.insert(current_node->name());
 
-        // Iterate throught the neighbors
+        // Iterate through the neighbors
         for (int i = 0; i < current_node->input_size(); ++i) {
             if (!visited.contains(current_node->input(i))) {
                 int idx = graph_utils::FindGraphNodeWithName(current_node->input(i), 
@@ -317,6 +320,10 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "New node is " << new_filter_node->op();
                     VLOG(0) << "New node's input is " << new_filter_node->input(0);
                     VLOG(0) << "New node's parent is " << graph_utils::GetInputNode(*new_filter_node, graph)->op();
+
+                    // Update output type of Filter node output of 2nd to last map
+                    for (auto key : {"output_shapes", "output_types"})
+                        graph_utils::CopyAttribute(key, new_filter_node->input(0), &new_filter_node);
                     
                     (*parent->mutable_input())[0] = new_filter_node->name();
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
