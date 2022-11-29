@@ -104,6 +104,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     bool first_one = true;
 
     for (const NodeDef& node : suggested_order.node()) {
+        /*
         VLOG(0) << "########### NODE SUMMARY START ########";
         std::string summary = SummarizeNodeDef(node, 100);
         VLOG(0) << summary;
@@ -131,6 +132,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
             VLOG(0) << "We're probably at an edge node";
         }
         first_one = false;
+        */
 
         //auto dt
         //NodeDef* n_ptr = &node;
@@ -274,6 +276,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
     //VLOG(0) << first_dtype;
     //VLOG(0) << first_shape;
+
+    std::vector<NodeDef> changing_dtype = {};
+    std::vector<NodeDef> changing_shape = {};
     
     while (!bfs_queue.empty()) {
         //VLOG(0) << "Trying another one";
@@ -297,6 +302,27 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << current_node->op();
                     target = current_node;
                     bfs_queue.push(neighbor_node);
+
+                    VLOG(0) << "########### NODE SUMMARY START ########";
+                    std::string summary = SummarizeNodeDef(*current_node, 100);
+                    VLOG(0) << summary;
+                    std::string dt = GetOutputType(summary);
+                    std::string sh = GetOutputShapes(summary);
+                    VLOG(0) << "Output type is: " << dt;
+                    VLOG(0) << "Output shape is: " << sh;
+                    VLOG(0) << "########### NODE SUMMARY END ########";
+
+                    std::string in_n_sum = SummarizeNodeDef(*neighbor_node, 100);
+                    std::string in_n_dt = GetOutputType(in_n_sum);
+                    std::string in_n_sh = GetOutputShapes(in_n_sum);
+                    if (dt != in_n_dt) {
+                      changing_dtype.push_back(node);
+                      VLOG(0) << "Node " << node.name() << " changed dtype!";
+                    }
+                    if (sh != in_n_sh) {
+                      changing_shape.push_back(node);
+                      VLOG(0) << "Node " << node.name() << " changed shape!";
+                    }
                     
                 } else if (current_node->op().find("FilterDataset") != std::string::npos) {
                     VLOG(0) << "Found Filter node";
@@ -305,6 +331,29 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     (*target->mutable_input())[0] = current_node->input(0);
 
                     bfs_queue.push(neighbor_node);
+
+                    VLOG(0) << "########### NODE SUMMARY START ########";
+                    std::string summary = SummarizeNodeDef(*current_node, 100);
+                    VLOG(0) << summary;
+                    std::string dt = GetOutputType(summary);
+                    std::string sh = GetOutputShapes(summary);
+                    VLOG(0) << "Output type is: " << dt;
+                    VLOG(0) << "Output shape is: " << sh;
+                    VLOG(0) << "########### NODE SUMMARY END ########";
+
+                    std::string in_n_sum = SummarizeNodeDef(*neighbor_node, 100);
+                    std::string in_n_dt = GetOutputType(in_n_sum);
+                    std::string in_n_sh = GetOutputShapes(in_n_sum);
+                    if (dt != in_n_dt) {
+                      changing_dtype.push_back(node);
+                      VLOG(0) << "Node " << node.name() << " changed dtype!";
+                    }
+                    if (sh != in_n_sh) {
+                      changing_shape.push_back(node);
+                      VLOG(0) << "Node " << node.name() << " changed shape!";
+                    }
+
+
 
                     absl::flat_hash_set<string> nodes_to_delete;
                     VLOG(0) << "Deleting filter node";
@@ -323,7 +372,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
                     // Update output type of Filter node output of 2nd to last map
                     for (auto key : {"output_shapes", "output_types"})
-                        graph_utils::CopyAttribute(key, new_filter_node->input(0), &new_filter_node);
+                        graph_utils::CopyAttribute(key, *(graph_utils::GetInputNode(*new_filter_node, graph)), &new_filter_node);
                     
                     (*parent->mutable_input())[0] = new_filter_node->name();
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
