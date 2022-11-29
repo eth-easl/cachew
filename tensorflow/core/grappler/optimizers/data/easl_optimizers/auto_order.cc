@@ -48,7 +48,7 @@ NodeDef MakeNewNode(const NodeDef& new_input_node,
     return new_f_node;
 }
 
-std::string GetOutputType(cost std::string node_str){
+std::string GetOutputType(const std::string node_str){
     std::string delimiter = "output_types=";
     if (node_str.find(delimiter) != std::string::npos) {
         std::string dt = node_str.substr(1, node_str.find(delimiter));
@@ -60,7 +60,7 @@ std::string GetOutputType(cost std::string node_str){
     }
 }
 
-std::string GetOutputShapes(cost std::string node_str){
+std::string GetOutputShapes(const std::string node_str){
     std::string delimiter = "output_shapes=";
     if (node_str.find(delimiter) != std::string::npos) {
         std::string dt = node_str.substr(1, node_str.find(delimiter));
@@ -113,10 +113,10 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
 
         // Get the node's input and check if dtype/shape is different
         try {
-            NodeDef input_node = graph_utils::GetInputNode(*current_node, graph);
+            NodeDef input_node = graph_utils::GetInputNode(*node, graph);
             std::string in_n_sum = SummarizeNodeDef(input_node, 100);
             std::string in_n_dt = GetOutputType(in_n_sum);
-            std::string in_n_sh = GetOutputShape(in_n_sum);
+            std::string in_n_sh = GetOutputShapes(in_n_sum);
             if (dt != in_n_dt) {
                 changing_dtype.push_back(node);
                 VLOG(0) << "Node " << node.name() << " changed dtype!";
@@ -125,7 +125,6 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
                 changing_shape.push_back(node);
                 VLOG(0) << "Node " << node.name() << " changed shape!";
             }
-            node.input(0)
         } catch (const std::exception& e) { // getting input node might not work on edge nodes
             VLOG(0) << "We're probably at an edge node";
         }
