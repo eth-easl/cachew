@@ -52,8 +52,8 @@ std::string GetOutputType(const std::string node_str){
     std::string delimiter = "output_types=";
     if (node_str.find(delimiter) != std::string::npos) {
         std::string dt = node_str.substr(1, node_str.find(delimiter));
-        dt = dt.substr(0, s.find("], "));
-        dt = dt + "]"
+        dt = dt.substr(0, dt.find("], "));
+        dt = dt + "]";
            return dt;
     } else {
         return "";
@@ -64,8 +64,8 @@ std::string GetOutputShapes(const std::string node_str){
     std::string delimiter = "output_shapes=";
     if (node_str.find(delimiter) != std::string::npos) {
         std::string dt = node_str.substr(1, node_str.find(delimiter));
-        dt = dt.substr(0, s.find("], "));
-        dt = dt + "]"
+        dt = dt.substr(0, dt.find("], "));
+        dt = dt + "]";
            return dt;
     } else {
         return "";
@@ -106,15 +106,15 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
         std::string summary = SummarizeNodeDef(node, 100);
         VLOG(0) << summary;
         std::string dt = GetOutputType(summary);
-        std::string sh = GetOutputShape(summary);
+        std::string sh = GetOutputShapes(summary);
         VLOG(0) << "Output type is: " << dt;
         VLOG(0) << "Output shape is: " << sh;
         VLOG(0) << "########### NODE SUMMARY END ########";
 
         // Get the node's input and check if dtype/shape is different
         try {
-            NodeDef input_node = graph_utils::GetInputNode(*node, graph);
-            std::string in_n_sum = SummarizeNodeDef(input_node, 100);
+            NodeDef * input_node = graph_utils::GetInputNode(node, graph);
+            std::string in_n_sum = SummarizeNodeDef(*input_node, 100);
             std::string in_n_dt = GetOutputType(in_n_sum);
             std::string in_n_sh = GetOutputShapes(in_n_sum);
             if (dt != in_n_dt) {
