@@ -361,8 +361,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Input node is " << parent->op();
                     VLOG(0) << "Cur node is " << current_node->op();
                     VLOG(0) << "Target Node is " << target->op();
-
-                    const auto* new_filter_node = graph.AddNode(MakeNewNode(
+                    auto* new_filter_node = graph.AddNode(MakeNewNode(
                     *parent, *current_node, &graph));
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(), new_filter_node->name()));
 
@@ -372,7 +371,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
                     // Update output type of Filter node output of 2nd to last map
                     for (auto key : {"output_shapes", "output_types"})
-                        graph_utils::CopyAttribute(key, *(graph_utils::GetInputNode(*new_filter_node, graph)), &new_filter_node);
+                        graph_utils::CopyAttribute(key, *(graph_utils::GetInputNode(*new_filter_node, graph)), new_filter_node);
                     
                     (*parent->mutable_input())[0] = new_filter_node->name();
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
