@@ -316,12 +316,12 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     std::string in_n_dt = GetOutputType(in_n_sum);
                     std::string in_n_sh = GetOutputShapes(in_n_sum);
                     if (dt != in_n_dt) {
-                      changing_dtype.push_back(node);
-                      VLOG(0) << "Node " << node.name() << " changed dtype!";
+                      changing_dtype.push_back(current_node);
+                      VLOG(0) << "Node " << current_node.name() << " changed dtype!";
                     }
                     if (sh != in_n_sh) {
-                      changing_shape.push_back(node);
-                      VLOG(0) << "Node " << node.name() << " changed shape!";
+                      changing_shape.push_back(current_node);
+                      VLOG(0) << "Node " << current_node.name() << " changed shape!";
                     }
                     
                 } else if (current_node->op().find("FilterDataset") != std::string::npos) {
@@ -345,12 +345,12 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     std::string in_n_dt = GetOutputType(in_n_sum);
                     std::string in_n_sh = GetOutputShapes(in_n_sum);
                     if (dt != in_n_dt) {
-                      changing_dtype.push_back(node);
-                      VLOG(0) << "Node " << node.name() << " changed dtype!";
+                      changing_dtype.push_back(current_node);
+                      VLOG(0) << "Node " << current_node.name() << " changed dtype!";
                     }
                     if (sh != in_n_sh) {
-                      changing_shape.push_back(node);
-                      VLOG(0) << "Node " << node.name() << " changed shape!";
+                      changing_shape.push_back(current_node);
+                      VLOG(0) << "Node " << current_node.name() << " changed shape!";
                     }
 
 
