@@ -48,6 +48,30 @@ NodeDef MakeNewNode(const NodeDef& new_input_node,
     return new_f_node;
 }
 
+std::string GetOutputType(cost std::string node_str){
+    std::string delimiter = "output_types=";
+    if (node_str.find(delimiter) != std::string::npos) {
+        std::string dt = node_str.substr(1, node_str.find(delimiter));
+        dt = dt.substr(0, s.find("], "));
+        dt = dt + "]"
+           return dt;
+    } else {
+        return "";
+    }
+}
+
+std::string GetOutputShapes(cost std::string node_str){
+    std::string delimiter = "output_shapes=";
+    if (node_str.find(delimiter) != std::string::npos) {
+        std::string dt = node_str.substr(1, node_str.find(delimiter));
+        dt = dt.substr(0, s.find("], "));
+        dt = dt + "]"
+           return dt;
+    } else {
+        return "";
+    }
+}
+
 // Given a suggested pipeline check that the output shapes/sizes match
 Status IsPipelineOk(const GraphDef& suggested_order, MutableGraphView &graph) {
     if (false) {
@@ -70,11 +94,42 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
     bool batch_present = false;
     bool map_present = false;
     bool filter_present = false;
+
+    std::vector<NodeDef> changing_dtype = {};
+    std::vector<NodeDef> changing_shape = {};
+
+    std::string prev_dtype = "";
+    std::string prev_shape = "";
+
     for (const NodeDef& node : suggested_order.node()) {
         VLOG(0) << "########### NODE SUMMARY START ########";
         std::string summary = SummarizeNodeDef(node, 100);
         VLOG(0) << summary;
+        std::string dt = GetOutputType(summary);
+        std::string sh = GetOutputShape(summary);
+        VLOG(0) << "Output type is: " << dt;
+        VLOG(0) << "Output shape is: " << sh;
         VLOG(0) << "########### NODE SUMMARY END ########";
+
+        // Get the node's input and check if dtype/shape is different
+        try {
+            NodeDef input_node = graph_utils::GetInputNode(*current_node, graph);
+            std::string in_n_sum = SummarizeNodeDef(input_node, 100);
+            std::string in_n_dt = GetOutputType(in_n_sum);
+            std::string in_n_sh = GetOutputShape(in_n_sum);
+            if (dt != in_n_dt) {
+                changing_dtype.push_back(node);
+                VLOG(0) << "Node " << node.name() << " changed dtype!";
+            }
+            if (sh != in_n_sh) {
+                changing_shape.push_back(node);
+                VLOG(0) << "Node " << node.name() << " changed shape!";
+            }
+            node.input(0)
+        } catch (const std::exception& e) { // getting input node might not work on edge nodes
+            VLOG(0) << "We're probably at an edge node";
+        }
+
         //auto dt
         //NodeDef* n_ptr = &node;
         auto op_name = node.op();
