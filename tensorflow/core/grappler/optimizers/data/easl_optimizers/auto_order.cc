@@ -53,13 +53,14 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
     // most nodes don't change dtype/shape (then follow the one from the previous node)
     // otherwise use the dtype/shape of the original node
+    NodeDef* in_node = graph_utils::GetInputNode(*new_filter_node, graph);
     if (!changes_dtype) {
-        graph_utils::CopyAttribute("output_types", new_f_node.input(0), &new_f_node);
+        graph_utils::CopyAttribute("output_types", in_node, &new_f_node);
     } else {
         graph_utils::CopyAttribute("output_types", org_node, &new_f_node);
     }
     if (!changes_dtype) {
-        graph_utils::CopyAttribute("output_shapes", new_f_node.input(0), &new_f_node);
+        graph_utils::CopyAttribute("output_shapes", in_node, &new_f_node);
     } else {
         graph_utils::CopyAttribute("output_shapes", org_node, &new_f_node);
     }
