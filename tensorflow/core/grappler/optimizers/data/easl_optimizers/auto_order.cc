@@ -48,6 +48,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     // TODO: Check what else different op types contain
     std::string summary = SummarizeNodeDef(org_node, 100);
     VLOG(0) << "Summarized node";
+    VLOG(0) << summary;
     if (summary.find("predicate=") != std::string::npos) {
         (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
         VLOG(0) << "Set predicate (a predicate existed)";
@@ -71,7 +72,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << "Used output type of org node";
         }
     }
-    if (summary.find("output_types=") != std::string::npos) {
+    if (summary.find("output_shapes=") != std::string::npos) {
         if (!changes_shape) {
             graph_utils::CopyAttribute("output_shapes", *in_node, &new_f_node);
             VLOG(0) << "Used shape of input node";
@@ -108,8 +109,8 @@ std::string GetOutputShapes(const std::string node_str){
     std::string delimiter = "output_shapes=";
     if (node_str.find(delimiter) != std::string::npos) {
         std::string sh = node_str.substr(node_str.find(delimiter), node_str.find("], "));
-        sh = dt.erase(0, delimiter.size());
-        sh = dt.substr(0, sh.find("], "));
+        sh = sh.erase(0, delimiter.size());
+        sh = sh.substr(0, sh.find("], "));
         sh = sh + "]";
         return sh;
     } else {
