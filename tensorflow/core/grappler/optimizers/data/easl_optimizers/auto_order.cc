@@ -53,14 +53,14 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
     // most nodes don't change dtype/shape (then follow the one from the previous node)
     // otherwise use the dtype/shape of the original node
-    NodeDef* in_node = graph_utils::GetInputNode(*new_filter_node, graph);
+    NodeDef* in_node = graph_utils::GetInputNode(*new_f_node, graph);
     if (!changes_dtype) {
-        graph_utils::CopyAttribute("output_types", in_node, &new_f_node);
+        graph_utils::CopyAttribute("output_types", *in_node, &new_f_node);
     } else {
         graph_utils::CopyAttribute("output_types", org_node, &new_f_node);
     }
     if (!changes_dtype) {
-        graph_utils::CopyAttribute("output_shapes", in_node, &new_f_node);
+        graph_utils::CopyAttribute("output_shapes", *in_node, &new_f_node);
     } else {
         graph_utils::CopyAttribute("output_shapes", org_node, &new_f_node);
     }
@@ -399,7 +399,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
                     //for (int j = new_order.size()-1; j >= 0; --j) { // We have to move backwards (each node must be bound with its input)
                     for (int j = 0; j < new_order.size(); ++j) {
-                        auto* new_node = graph.AddNode(MakeNewNode(org_nodes[org_nodes.size()-1-j], org_nodes[new_order[j]], &graph));
+                        auto* new_node = graph.AddNode(*MakeNewNode(org_nodes[org_nodes.size()-1-j], org_nodes[new_order[j]], &graph));
                         new_nodes.insert(new_nodes.begin(), new_node);
                     }
 
