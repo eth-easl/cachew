@@ -29,11 +29,15 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                     bool changes_dtype = false,
                     bool changes_shape = false) {
     NodeDef new_f_node;
+    VLOG(0) << "Inside MakeNewNode";
+    VLOG(0) << "Node is a " << org_node.op();
     graph_utils::SetUniqueGraphNodeName("new_node", graph->graph(),
                                       &new_f_node);
 
     new_f_node.set_op(org_node.op());
+    VLOG(0) << "Set op";
     new_f_node.add_input(org_position_node.input(0));
+    VLOG(0) << "Set input";
 
     //auto attr = second_filter_node.attr().at("predicate");
     //*attr.mutable_func()->mutable_name() = fused_function.signature().name();
@@ -43,26 +47,34 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     // Add predicates if present
     // TODO: Check what else different op types contain
     std::string summary = SummarizeNodeDef(org_node, 100);
+    VLOG(0) << "Summarized node";
     if (summary.find("predicate=") != std::string::npos) {
         (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
+        VLOG(0) << "Set predicate (a predicate existed)";
     }
 
 
     // Targs should stay the same
     graph_utils::CopyAttribute("Targuments", org_node, &new_f_node);
+    VLOG(0) << "Coppied Targs";
 
     // most nodes don't change dtype/shape (then follow the one from the previous node)
     // otherwise use the dtype/shape of the original node
-    NodeDef* in_node = graph_utils::GetInputNode(new_f_node, graph);
+    NodeDef* in_node = graph_utils::GetInputNode(new_f_node, *graph);
+    VLOG(0) << "Got the input node";
     if (!changes_dtype) {
         graph_utils::CopyAttribute("output_types", *in_node, &new_f_node);
+        VLOG(0) << "Used output type of input node";
     } else {
         graph_utils::CopyAttribute("output_types", org_node, &new_f_node);
+        VLOG(0) << "Used output type of org node";
     }
-    if (!changes_dtype) {
+    if (!changes_shape) {
         graph_utils::CopyAttribute("output_shapes", *in_node, &new_f_node);
+        VLOG(0) << "Used shape of input node";
     } else {
         graph_utils::CopyAttribute("output_shapes", org_node, &new_f_node);
+        VLOG(0) << "Used shape of input node";
     }
 
     //for (auto key : {"output_shapes", "output_types"})
@@ -304,6 +316,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
     std::vector<NodeDef*> changing_dtype = {};
     std::vector<NodeDef*> changing_shape = {};
+
+    std::vector<bool> node_changed_dtype = {true, false};
+    std::vector<bool> node_changed_shape = {false, false};
     
     while (!bfs_queue.empty()) {
         //VLOG(0) << "Trying another one";
@@ -383,7 +398,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
 
                     absl::flat_hash_set<string> nodes_to_delete;
-                    VLOG(0) << "Deleting filter node";
+                    //VLOG(0) << "Deleting filter node";
                     NodeDef* const parent = graph_utils::GetInputNode(*current_node, graph);
                     VLOG(0) << "Input node is " << parent->op();
                     VLOG(0) << "Cur node is " << current_node->op();
@@ -402,7 +417,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     //for (int j = new_order.size()-1; j >= 0; --j) { // We have to move backwards (each node must be bound with its input)
                     for (int j = 0; j < new_order.size(); ++j) {
                         VLOG(0) << "Making a new " << org_nodes[new_order[j]]->op() << " node";
-                        auto* new_node = graph.AddNode(MakeNewNode(*org_nodes[org_nodes.size()-1-j], *org_nodes[new_order[j]], &graph));
+                        auto* new_node = graph.AddNode(MakeNewNode(*org_nodes[org_nodes.size()-1-j], *org_nodes[new_order[j]], &graph,
+                                                                   node_changed_dtype[new_order[j]], node_changed_shape[new_order[j]]));
+                        VLOG(0) << "Added the new node to the graph";
                         new_nodes.insert(new_nodes.begin(), *new_node);
                     }
 
