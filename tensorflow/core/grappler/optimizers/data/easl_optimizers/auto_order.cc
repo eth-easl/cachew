@@ -39,6 +39,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     new_f_node.add_input(org_position_node.input(0));
     VLOG(0) << "Set input";
 
+    NodeDef* in_node = graph_utils::GetInputNode(new_f_node, *graph);
+    VLOG(0) << "Got the input node";
+
     //auto attr = second_filter_node.attr().at("predicate");
     //*attr.mutable_func()->mutable_name() = fused_function.signature().name();
     //(*new_f_node.mutable_attr())["predicate"] = std::move(attr);
@@ -47,8 +50,12 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     // Add predicates if present
     // TODO: Check what else different op types contain
     std::string summary = SummarizeNodeDef(org_node, 100);
-    VLOG(0) << "Summarized node";
+    VLOG(0) << "Summarized org node";
     VLOG(0) << summary;
+    VLOG(0) << "Summarized org_position node";
+    VLOG(0) << SummarizeNodeDef(org_position_node, 100);
+    VLOG(0) << "Summarized org_position input node";
+    VLOG(0) << SummarizeNodeDef(*in_node, 100);
     if (summary.find("predicate=") != std::string::npos) {
         (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
         VLOG(0) << "Set predicate (a predicate existed)";
@@ -61,8 +68,6 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
     // most nodes don't change dtype/shape (then follow the one from the previous node)
     // otherwise use the dtype/shape of the original node
-    NodeDef* in_node = graph_utils::GetInputNode(new_f_node, *graph);
-    VLOG(0) << "Got the input node";
     if (summary.find("output_types=") != std::string::npos) {
         if (!changes_dtype) {
             graph_utils::CopyAttribute("output_types", *in_node, &new_f_node);
@@ -73,12 +78,15 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
         }
     }
     if (summary.find("output_shapes=") != std::string::npos) {
+        VLOG(0) << "Setting shape";
         if (!changes_shape) {
+            VLOG(0) << "Using shape of input node";
             graph_utils::CopyAttribute("output_shapes", *in_node, &new_f_node);
             VLOG(0) << "Used shape of input node";
         } else {
+            VLOG(0) << "Using shape of org node";
             graph_utils::CopyAttribute("output_shapes", org_node, &new_f_node);
-            VLOG(0) << "Used shape of input node";
+            VLOG(0) << "Used shape of org node";
         }
     }
 
