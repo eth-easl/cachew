@@ -62,19 +62,23 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     // otherwise use the dtype/shape of the original node
     NodeDef* in_node = graph_utils::GetInputNode(new_f_node, *graph);
     VLOG(0) << "Got the input node";
-    if (!changes_dtype) {
-        graph_utils::CopyAttribute("output_types", *in_node, &new_f_node);
-        VLOG(0) << "Used output type of input node";
-    } else {
-        graph_utils::CopyAttribute("output_types", org_node, &new_f_node);
-        VLOG(0) << "Used output type of org node";
+    if (summary.find("output_types=") != std::string::npos) {
+        if (!changes_dtype) {
+            graph_utils::CopyAttribute("output_types", *in_node, &new_f_node);
+            VLOG(0) << "Used output type of input node";
+        } else {
+            graph_utils::CopyAttribute("output_types", org_node, &new_f_node);
+            VLOG(0) << "Used output type of org node";
+        }
     }
-    if (!changes_shape) {
-        graph_utils::CopyAttribute("output_shapes", *in_node, &new_f_node);
-        VLOG(0) << "Used shape of input node";
-    } else {
-        graph_utils::CopyAttribute("output_shapes", org_node, &new_f_node);
-        VLOG(0) << "Used shape of input node";
+    if (summary.find("output_types=") != std::string::npos) {
+        if (!changes_shape) {
+            graph_utils::CopyAttribute("output_shapes", *in_node, &new_f_node);
+            VLOG(0) << "Used shape of input node";
+        } else {
+            graph_utils::CopyAttribute("output_shapes", org_node, &new_f_node);
+            VLOG(0) << "Used shape of input node";
+        }
     }
 
     //for (auto key : {"output_shapes", "output_types"})
@@ -91,6 +95,8 @@ std::string GetOutputType(const std::string node_str){
 
     if (node_str.find(delimiter) != std::string::npos) {
         std::string dt = node_str.substr(node_str.find(delimiter), node_str.find("], "));
+        dt = dt.erase(0, delimiter.size());
+        dt = dt.substr(0, dt.find("], "));
         dt = dt + "]";
         return dt;
     } else {
@@ -101,9 +107,11 @@ std::string GetOutputType(const std::string node_str){
 std::string GetOutputShapes(const std::string node_str){
     std::string delimiter = "output_shapes=";
     if (node_str.find(delimiter) != std::string::npos) {
-        std::string dt = node_str.substr(node_str.find(delimiter), node_str.find("], "));
-        dt = dt + "]";
-        return dt;
+        std::string sh = node_str.substr(node_str.find(delimiter), node_str.find("], "));
+        sh = dt.erase(0, delimiter.size());
+        sh = dt.substr(0, sh.find("], "));
+        sh = sh + "]";
+        return sh;
     } else {
         return "";
     }
