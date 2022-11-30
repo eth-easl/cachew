@@ -39,7 +39,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     new_f_node.add_input(org_position_node.input(0));
     VLOG(0) << "Set input";
 
-    NodeDef* in_node = graph_utils::GetInputNode(new_f_node, *graph);
+    // new_f_node doesn't work as arg for next line for some reason! Maybe new_f_node not set up correctly yet?
+    NodeDef* in_node = graph_utils::GetInputNode(org_position_node, *graph);
     VLOG(0) << "Got the input node";
 
     //auto attr = second_filter_node.attr().at("predicate");
