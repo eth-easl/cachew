@@ -23,26 +23,49 @@ namespace grappler {
 namespace easl {
 namespace {
 
-NodeDef MakeNewNode(const NodeDef& new_input_node,
+NodeDef MakeNewNode(const NodeDef& org_position_node,
                     const NodeDef& org_node,
-                    MutableGraphView* graph) {
+                    MutableGraphView* graph,
+                    bool changes_dtype = false,
+                    bool changes_shape = false) {
     NodeDef new_f_node;
-    graph_utils::SetUniqueGraphNodeName("n_filter", graph->graph(),
+    graph_utils::SetUniqueGraphNodeName("new_node", graph->graph(),
                                       &new_f_node);
 
     new_f_node.set_op(org_node.op());
-    new_f_node.add_input(new_input_node.input(0));
+    new_f_node.add_input(org_position_node.input(0));
 
     //auto attr = second_filter_node.attr().at("predicate");
     //*attr.mutable_func()->mutable_name() = fused_function.signature().name();
     //(*new_f_node.mutable_attr())["predicate"] = std::move(attr);
-    VLOG(0) << "making new filter predicate";
-    (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
+    //VLOG(0) << "making new filter predicate";
 
+    // Add predicates if present
+    // TODO: Check what else different op types contain
+    std::string summary = SummarizeNodeDef(org_node, 100);
+    if (summary.find("predicate=") != std::string::npos) {
+        (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
+    }
+
+
+    // Targs should stay the same
     graph_utils::CopyAttribute("Targuments", org_node, &new_f_node);
 
-    for (auto key : {"output_shapes", "output_types"})
-        graph_utils::CopyAttribute(key, org_node, &new_f_node);
+    // most nodes don't change dtype/shape (then follow the one from the previous node)
+    // otherwise use the dtype/shape of the original node
+    if (!changes_dtype) {
+        graph_utils::CopyAttribute("output_types", new_f_node.input(0), &new_f_node);
+    } else {
+        graph_utils::CopyAttribute("output_types", org_node, &new_f_node);
+    }
+    if (!changes_dtype) {
+        graph_utils::CopyAttribute("output_shapes", new_f_node.input(0), &new_f_node);
+    } else {
+        graph_utils::CopyAttribute("output_shapes", org_node, &new_f_node);
+    }
+
+    //for (auto key : {"output_shapes", "output_types"})
+    //    graph_utils::CopyAttribute(key, org_position_node, &new_f_node);
     //graph_utils::MaybeSetFusedMetadata(first_filter_node, org_node, &new_f_node);
 
     return new_f_node;
@@ -50,11 +73,13 @@ NodeDef MakeNewNode(const NodeDef& new_input_node,
 
 std::string GetOutputType(const std::string node_str){
     std::string delimiter = "output_types=";
+
+    //{{node FilterDataset/_5}} = FilterDataset[Targuments=[], _cardinality=-2, metadata="\n\01"\n\017FilterDataset:4", output_shapes=[[]], output_types=[DT_INT64], predicate=__inference_Dataset_filter_lambda_28[]](MapDataset/_4)
+
     if (node_str.find(delimiter) != std::string::npos) {
-        std::string dt = node_str.substr(1, node_str.find(delimiter));
-        dt = dt.substr(0, dt.find("], "));
+        std::string dt = node_str.substr(node_str.find(delimiter), node_str.find("], "));
         dt = dt + "]";
-           return dt;
+        return dt;
     } else {
         return "";
     }
@@ -63,10 +88,9 @@ std::string GetOutputType(const std::string node_str){
 std::string GetOutputShapes(const std::string node_str){
     std::string delimiter = "output_shapes=";
     if (node_str.find(delimiter) != std::string::npos) {
-        std::string dt = node_str.substr(1, node_str.find(delimiter));
-        dt = dt.substr(0, dt.find("], "));
+        std::string dt = node_str.substr(node_str.find(delimiter), node_str.find("], "));
         dt = dt + "]";
-           return dt;
+        return dt;
     } else {
         return "";
     }
@@ -277,8 +301,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     //VLOG(0) << first_dtype;
     //VLOG(0) << first_shape;
 
-    std::vector<NodeDef> changing_dtype = {};
-    std::vector<NodeDef> changing_shape = {};
+    std::vector<NodeDef*> changing_dtype = {};
+    std::vector<NodeDef*> changing_shape = {};
     
     while (!bfs_queue.empty()) {
         //VLOG(0) << "Trying another one";
@@ -317,11 +341,11 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     std::string in_n_sh = GetOutputShapes(in_n_sum);
                     if (dt != in_n_dt) {
                       changing_dtype.push_back(current_node);
-                      VLOG(0) << "Node " << current_node.name() << " changed dtype!";
+                      VLOG(0) << "Node " << current_node->name() << " changed dtype!";
                     }
                     if (sh != in_n_sh) {
                       changing_shape.push_back(current_node);
-                      VLOG(0) << "Node " << current_node.name() << " changed shape!";
+                      VLOG(0) << "Node " << current_node->name() << " changed shape!";
                     }
                     
                 } else if (current_node->op().find("FilterDataset") != std::string::npos) {
@@ -346,11 +370,11 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     std::string in_n_sh = GetOutputShapes(in_n_sum);
                     if (dt != in_n_dt) {
                       changing_dtype.push_back(current_node);
-                      VLOG(0) << "Node " << current_node.name() << " changed dtype!";
+                      VLOG(0) << "Node " << current_node->name() << " changed dtype!";
                     }
                     if (sh != in_n_sh) {
                       changing_shape.push_back(current_node);
-                      VLOG(0) << "Node " << current_node.name() << " changed shape!";
+                      VLOG(0) << "Node " << current_node->name() << " changed shape!";
                     }
 
 
@@ -361,6 +385,30 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Input node is " << parent->op();
                     VLOG(0) << "Cur node is " << current_node->op();
                     VLOG(0) << "Target Node is " << target->op();
+
+                    // Now we update the nodes in the graph
+                    // To avoid issues, we make all new from scratch nodes
+
+                    // TODO: Later on the policy should find this order,
+                    // for now we just change the order of 2 consecutive ops
+                    //std::vector<int> new_order = {1, 0};
+                    std::vector<int> new_order = {0, 1}; // Note that this is reverse order (we traverse tree in opposite direction)
+                    std::vector<NodeDef*> org_nodes = {current_node, parent};
+                    std::vector<NodeDef*> new_nodes = {};
+
+                    //for (int j = new_order.size()-1; j >= 0; --j) { // We have to move backwards (each node must be bound with its input)
+                    for (int j = 0; j < new_order.size(); ++j) {
+                        auto* new_node = graph.AddNode(MakeNewNode(org_nodes[org_nodes.size()-1-j], org_nodes[new_order[j]], &graph));
+                        new_nodes.insert(new_nodes.begin(), new_node);
+                    }
+
+
+
+
+                    for (int j = 0; j < org_nodes.size(); ++j) {
+                        nodes_to_delete.insert(org_nodes[i]->name());
+                    }
+
                     auto* new_filter_node = graph.AddNode(MakeNewNode(
                     *parent, *current_node, &graph));
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(), new_filter_node->name()));
