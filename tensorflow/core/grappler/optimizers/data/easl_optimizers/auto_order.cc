@@ -296,8 +296,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     bfs_queue.push(sink_node);
     NodeDef* target = nullptr;
 
-    auto first_dtype = (*sink_node->mutable_attr())["output_types"];
-    auto first_shape = (*sink_node->mutable_attr())["output_shapes"];
+    //auto first_dtype = (*sink_node->mutable_attr())["output_types"];
+    //auto first_shape = (*sink_node->mutable_attr())["output_shapes"];
 
     //VLOG(0) << first_dtype;
     //VLOG(0) << first_shape;
@@ -378,6 +378,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                       VLOG(0) << "Node " << current_node->name() << " changed shape!";
                     }
 
+                    VLOG(0) << "No. of nodes changing dtype: " << changing_dtype.size();
+                    VLOG(0) << "No. of nodes changing shape: " << changing_shape.size();
 
 
                     absl::flat_hash_set<string> nodes_to_delete;
@@ -395,24 +397,35 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     //std::vector<int> new_order = {1, 0};
                     std::vector<int> new_order = {0, 1}; // Note that this is reverse order (we traverse tree in opposite direction)
                     std::vector<NodeDef*> org_nodes = {current_node, parent};
-                    std::vector<NodeDef*> new_nodes = {};
+                    std::vector<NodeDef> new_nodes = {};
 
                     //for (int j = new_order.size()-1; j >= 0; --j) { // We have to move backwards (each node must be bound with its input)
                     for (int j = 0; j < new_order.size(); ++j) {
-                        NodeDef new_node = MakeNewNode(org_nodes[org_nodes.size()-1-j], org_nodes[new_order[j]], &graph);
-                        auto* n_node = graph.AddNode(new_node);
-                        new_nodes.insert(new_nodes.begin(), new_node);
+                        VLOG(0) << "Making a new " << org_nodes[new_order[j]]->op() << " node";
+                        auto* new_node = graph.AddNode(MakeNewNode(*org_nodes[org_nodes.size()-1-j], *org_nodes[new_order[j]], &graph));
+                        new_nodes.insert(new_nodes.begin(), *new_node);
                     }
 
+                    VLOG(0) << "Constructed new nodes.";
 
+                    // Update fanouts for each position
+                    for (int j = 0; j < org_nodes.size(); ++j) {
+                        VLOG(0) << "Updating the Fanout of NEW node " << new_nodes[j].op();
+                        TF_RETURN_IF_ERROR(graph.UpdateFanouts(org_nodes[j]->name(), new_nodes[j].name()));
+                    }
 
+                    VLOG(0) << "Updated Fanouts.";
 
                     for (int j = 0; j < org_nodes.size(); ++j) {
                         nodes_to_delete.insert(org_nodes[i]->name());
                     }
+                    graph.DeleteNodes(nodes_to_delete);
+                    VLOG(0) << "Deleted nodes";
 
-                    auto* new_filter_node = graph.AddNode(MakeNewNode(
-                    *parent, *current_node, &graph));
+
+
+                    /*
+                    auto* new_filter_node = graph.AddNode(MakeNewNode(*parent, *current_node, &graph));
                     TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(), new_filter_node->name()));
 
                     VLOG(0) << "New node is " << new_filter_node->op();
@@ -432,9 +445,12 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Target node is " << target->op();
                     VLOG(0) << "Target node's input " << target->input(0);
 
-
                     nodes_to_delete.insert(current_node->name());
                     graph.DeleteNodes(nodes_to_delete);
+                    */
+
+
+
                     
                     // We've reordered some nodes, now jump out of the process
                     return ApplyOptimization(graph, sorted_old_graph);
