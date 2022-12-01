@@ -335,7 +335,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     std::vector<NodeDef*> changing_dtype = {};
     std::vector<NodeDef*> changing_shape = {};
 
-    std::vector<bool> node_changed_dtype = {true, false};
+    std::vector<bool> node_changed_dtype = {false, true}; // remember we are going bottom up in the pipeline
     std::vector<bool> node_changed_shape = {false, false};
     
     while (!bfs_queue.empty()) {
@@ -429,7 +429,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     // for now we just change the order of 2 consecutive ops
                     //std::vector<int> new_order = {1, 0};
                     std::vector<int> new_order = {0, 1}; // Note that this is reverse order (we traverse tree in opposite direction)
-                    std::vector<NodeDef*> org_nodes = {current_node, parent};
+                    std::vector<NodeDef*> org_nodes = {current_node, parent}; // Filter, then Map
                     std::vector<NodeDef> new_nodes = {};
 
                     //for (int j = new_order.size()-1; j >= 0; --j) { // We have to move backwards (each node must be bound with its input)
