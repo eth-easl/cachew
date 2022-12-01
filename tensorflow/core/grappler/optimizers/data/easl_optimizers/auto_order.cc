@@ -460,10 +460,11 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     graph.DeleteNodes(nodes_to_delete);
                     VLOG(0) << "Deleted nodes";
 
-                    VLOG(0) << "Target node is " << target->op();
+
+                    VLOG(0) << "(Original) Target node is " << target->op();
                     VLOG(0) << "Target node's input " << target->input(0);
-                    VLOG(0) << "Target node's input's input " << target->input(0)->input(0);
-                    VLOG(0) << "Target node's input's input's input " << target->input(0)->input(0)->input(0); // Should be a map (the next non reordered op)
+                    VLOG(0) << "Target node's input's input " << graph_utils::GetInputNode(*target, graph)->input(0);
+                    VLOG(0) << "Target node's input's input's input " << graph_utils::GetInputNode(*graph_utils::GetInputNode(*target, graph), graph)->input(0); // Should be a map (the next non reordered op)
 
 
                     /*
