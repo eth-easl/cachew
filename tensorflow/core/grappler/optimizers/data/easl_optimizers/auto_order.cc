@@ -386,7 +386,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Found Filter node";
                     VLOG(0) << current_node->op();
                     VLOG(0) << current_node->input(0);
-                    (*target->mutable_input())[0] = current_node->input(0);
+                    //(*target->mutable_input())[0] = current_node->input(0);
 
                     bfs_queue.push(neighbor_node);
 
@@ -441,6 +441,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                         new_nodes.insert(new_nodes.begin(), *new_node);
                     }
 
+                    // Link the target node (the one after the last reordered interval) back to the right input
+                    (*target->mutable_input())[0] = new_nodes.back().name();
+
                     VLOG(0) << "Constructed new nodes.";
 
                     // Update fanouts for each position
@@ -457,6 +460,10 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     graph.DeleteNodes(nodes_to_delete);
                     VLOG(0) << "Deleted nodes";
 
+                    VLOG(0) << "Target node is " << target->op();
+                    VLOG(0) << "Target node's input " << target->input(0);
+                    VLOG(0) << "Target node's input's input " << target->input(0)->input(0);
+                    VLOG(0) << "Target node's input's input's input " << target->input(0)->input(0)->input(0); // Should be a map (the next non reordered op)
 
 
                     /*
