@@ -57,11 +57,18 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     VLOG(0) << SummarizeNodeDef(org_position_node, 100);
     VLOG(0) << "Summarized org_position input node";
     VLOG(0) << SummarizeNodeDef(*in_node, 100);
-    if (summary.find("predicate=") != std::string::npos) {
-        (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
-        VLOG(0) << "Set predicate (a predicate existed)";
-    }
 
+    // Add corresponding predicate if present in the original node (i.e. it was a filter node)
+    if (summary.find("predicate=") != std::string::npos) {
+      (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
+      VLOG(0) << "Set predicate (a predicate existed)";
+    }
+    // Add user-defined function if present in the original node (i.e. it was a map node)
+    if (summary.find("f=") != std::string::npos) {
+      (*new_f_node.mutable_attr())["f"] = org_node.attr().at("f");
+      VLOG(0) << "Set user-defined function (f)";
+    }
+    // TODO: What about _cardinality, metadata, preserve_cardinality, use_inter_op_parallelism, POSSIBLY MORE
 
     // Targs should stay the same
     graph_utils::CopyAttribute("Targuments", org_node, &new_f_node);
