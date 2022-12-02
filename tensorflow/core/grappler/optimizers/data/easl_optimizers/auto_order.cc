@@ -1,4 +1,5 @@
 #include <queue>
+#include <algorithm>
 
 #include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
@@ -255,15 +256,15 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     VLOG(0) << "In AutoOrder::ApplyOptimization";
 
     VLOG(0) << "Original pipline:";
-    std::vectror<std::string> op_types;
+    std::vector<std::string> op_types;
     auto cost = GetOrderCost(sorted_old_graph, graph, op_types);
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
 
     VLOG(0) << "Updated graph cost:";
 
-    std::vectror<std::string> new_op_types;
-    auto cost = GetOrderCost(sorted_old_graph, graph, new_op_types);
+    std::vector<std::string> new_op_types;
+    auto new_cost = GetOrderCost(sorted_old_graph, graph, new_op_types);
     VLOG(0) << "Total cost:";
     VLOG(0) << new_cost;
     
@@ -296,9 +297,11 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
     std::vector<std::string> op_types;
     auto cost = GetOrderCost(sorted_old_graph, graph, op_types);
+    VLOG(0) << (std::find(op_types.begin(), op_types.end(), "MapDataset") != op_types.end());
+    VLOG(0) << (std::find(op_types.begin(), op_types.end(), "FilterDataset") != op_types.end());
 
     // Only proceed with optimization if we are in the 'right' pipeline (we see a Filter or Map op)
-    if (std::find(op_types.begin(), op_types.end(), "MapDataset") != op_types.end() || std::find(op_types.begin(), op_types.end(), "FilterDataset") != op_types.end()) {
+    if (std::find(op_types.begin(), op_types.end(), "MapDataset") == op_types.end() && std::find(op_types.begin(), op_types.end(), "FilterDataset") == op_types.end()) {
         VLOG(0) << "No reorderable ops found! Not running AutoOrder optimization on this pipeline.";
         return Status::OK();
     }
