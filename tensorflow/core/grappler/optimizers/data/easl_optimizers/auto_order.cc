@@ -35,9 +35,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                                       &new_f_node);
 
     new_f_node.set_op(org_node.op());
-    VLOG(0) << "Set op";
+    VLOG(0) << "Set op: " << org_node.op();
     new_f_node.add_input(org_position_node.input(0));
-    VLOG(0) << "Set input";
+    VLOG(0) << "Set input: " << org_position_node.input(0);
 
     // new_f_node doesn't work as arg for next line for some reason! Maybe new_f_node not set up correctly yet?
     NodeDef* in_node = graph_utils::GetInputNode(org_position_node, *graph);
@@ -98,6 +98,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
         }
     }
 
+    VLOG(0) << "New node's summary is:";
+    VLOG(0) << SummarizeNodeDef(new_f_node, 100);;
+
     //for (auto key : {"output_shapes", "output_types"})
     //    graph_utils::CopyAttribute(key, org_position_node, &new_f_node);
     //graph_utils::MaybeSetFusedMetadata(first_filter_node, org_node, &new_f_node);
@@ -144,7 +147,7 @@ Status IsPipelineOk(const GraphDef& suggested_order, MutableGraphView &graph) {
 
 // Calculate the cost of a proposed op ordering
 // Cost = sum(Shape(op) * DTypeBytes(op))
-int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
+int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::vector<std::string> &op_types) {
     double cost = 0;
 
     const NodeDef* m_op = nullptr;
@@ -199,6 +202,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph) {
         //auto dt
         //NodeDef* n_ptr = &node;
         auto op_name = node.op();
+        op_types.push_back(op_name);
         //auto output_s = node.output_size();
         auto input_s = node.input_size();
         double ret_factor = 1.0;
@@ -251,13 +255,15 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     VLOG(0) << "In AutoOrder::ApplyOptimization";
 
     VLOG(0) << "Original pipline:";
-    auto cost = GetOrderCost(sorted_old_graph, graph);
+    std::vectror<std::string> op_types;
+    auto cost = GetOrderCost(sorted_old_graph, graph, op_types);
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
 
     VLOG(0) << "Updated graph cost:";
 
-    auto new_cost = GetOrderCost(sorted_old_graph, graph);
+    std::vectror<std::string> new_op_types;
+    auto cost = GetOrderCost(sorted_old_graph, graph, new_op_types);
     VLOG(0) << "Total cost:";
     VLOG(0) << new_cost;
     
@@ -288,7 +294,15 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     FunctionLibraryDefinition function_library(OpRegistry::Global(),
                                                output->library());
 
-    auto cost = GetOrderCost(sorted_old_graph, graph);
+    std::vector<std::string> op_types;
+    auto cost = GetOrderCost(sorted_old_graph, graph, op_types);
+
+    // Only proceed with optimization if we are in the 'right' pipeline (we see a Filter or Map op)
+    if (std::find(op_types.begin(), op_types.end(), "MapDataset") != op_types.end() || std::find(op_types.begin(), op_types.end(), "FilterDataset") != op_types.end()) {
+        VLOG(0) << "No reorderable ops found! Not running AutoOrder optimization on this pipeline.";
+        return Status::OK();
+    }
+
     VLOG(0) << "Now we try to optimize";
 
     auto get_filter_node = [](const NodeDef& node) -> const NodeDef* {
