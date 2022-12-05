@@ -431,7 +431,15 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     const FunctionDef* filter_func =
                         function_library.Find(filter_pred.func().name());
                     const auto filter_inputs = fusion_utils::GetFunctionInputs(filter_func);
-                    VLOG(0) << filter_inputs;
+                    auto filter_args = filter_func.signature().input_arg();
+                    int arg_size = filter_func.signature().input_arg_size();
+                    VLOG(0) << "Function has: " <<  << " arguments.";
+                    for (int i = 0; i < arg_size; ++i) {
+                        for (auto& arg : filter_args) {
+                            VLOG(0) << arg.name();
+                        }
+                    }
+                    //VLOG(0) << filter_inputs;
 
                     VLOG(0) << "########### FUNCTION SUMMARY END ########";
 
