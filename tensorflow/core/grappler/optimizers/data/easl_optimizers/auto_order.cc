@@ -71,21 +71,22 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
         // We now have to adjust the input type of this predicate/FunctionDef (later on, do the same for map ops)
         if (changes_dtype) {
             // NEW parent's output type
-            std::string parent_out_type_string = GetOutputType(SummarizeNodeDef(*in_node, 100););
+            std::string parent_out_type_string = GetOutputType(SummarizeNodeDef(*in_node, 100));
             // Remove the '[' and ']' chars
-            parent_out_type_string = parent_out_type_string.substr(1,parent_out_type_string.length-2);
+            parent_out_type_string = parent_out_type_string.substr(1,parent_out_type_string.length()-2);
 
             std::vector<string> out_type_strings;
-            stringstream ss(parent_out_type_string);
+            std::stringstream ss(parent_out_type_string);
+            std::string type;
             while (getline(ss, type, ',')) {
                 out_type_strings.push_back(type);
             }
             for (int i = 0; i < out_type_strings.size(); ++i) {
                 DataType* dt;
                 out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
-                out_type_strings[i] = toupper(out_type_strings[i]);
+                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
                 DataTypeFromString(out_type_strings[i], dt);
-    
+
             }
 
 
