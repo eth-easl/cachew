@@ -7,6 +7,8 @@
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
+#include "tensorflow/core/framework/types.h"
+#include "tensorflow/core/framework/types.pb_text.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
 #include "tensorflow/core/grappler/grappler_item.h"
 #include "tensorflow/core/grappler/mutable_graph_view.h"
@@ -28,6 +30,7 @@ namespace {
 NodeDef MakeNewNode(const NodeDef& org_position_node,
                     const NodeDef& org_node,
                     MutableGraphView* graph,
+                    FunctionLibraryDefinition function_library,
                     bool changes_dtype = false,
                     bool changes_shape = false) {
     NodeDef new_f_node;
@@ -62,13 +65,48 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
     // Add corresponding predicate if present in the original node (i.e. it was a filter node)
     if (summary.find("predicate=") != std::string::npos) {
-      (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
-      VLOG(0) << "Set predicate (a predicate existed)";
+        (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
+        VLOG(0) << "Set predicate (a predicate existed)";
+
+        // We now have to adjust the input type of this predicate/FunctionDef (later on, do the same for map ops)
+        if (changes_dtype) {
+            // NEW parent's output type
+            std::string parent_out_type_string = GetOutputType(SummarizeNodeDef(*in_node, 100););
+            // Remove the '[' and ']' chars
+            parent_out_type_string = parent_out_type_string.substr(1,parent_out_type_string.length-2);
+
+            std::vector<string> out_type_strings;
+            stringstream ss(parent_out_type_string);
+            while (getline(ss, type, ',')) {
+                out_type_strings.push_back(type);
+            }
+            for (int i = 0; i < out_type_strings.size(); ++i) {
+                DataType* dt;
+                out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                out_type_strings[i] = toupper(out_type_strings[i]);
+                DataTypeFromString(out_type_strings[i], dt);
+    
+            }
+
+
+            const auto& filter_pred = org_node.attr().at("predicate");
+            VLOG(0) << "Adjusting filter input dtype!";
+            const FunctionDef* filter_func =
+                function_library.Find(filter_pred.func().name());
+            const auto filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
+            auto filter_args = filter_func->signature().input_arg();
+            int arg_size = filter_func->signature().input_arg_size();
+            VLOG(0) << "Function has: " << arg_size << " arguments.";
+            for (auto& arg : filter_args) {
+                VLOG(0) << arg.name();
+                VLOG(0) << arg.type();
+            }
+        }
     }
     // Add user-defined function if present in the original node (i.e. it was a map node)
     if (summary.find("f=") != std::string::npos) {
-      (*new_f_node.mutable_attr())["f"] = org_node.attr().at("f");
-      VLOG(0) << "Set user-defined function (f)";
+        (*new_f_node.mutable_attr())["f"] = org_node.attr().at("f");
+        VLOG(0) << "Set user-defined function (f)";
     }
     // TODO: What about _cardinality, metadata, preserve_cardinality, use_inter_op_parallelism, POSSIBLY MORE
 
@@ -434,11 +472,16 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     auto filter_args = filter_func->signature().input_arg();
                     int arg_size = filter_func->signature().input_arg_size();
                     VLOG(0) << "Function has: " << arg_size << " arguments.";
-                    for (int i = 0; i < arg_size; ++i) {
+                    for (auto& arg : filter_args) {
+                        VLOG(0) << arg.name();
+                        VLOG(0) << arg.type();
+                    }
+                    // Creating a double loop ??
+                    /*for (int i = 0; i < arg_size; ++i) {
                         for (auto& arg : filter_args) {
                             VLOG(0) << arg.name();
                         }
-                    }
+                    }*/
                     //VLOG(0) << filter_inputs;
 
                     VLOG(0) << "########### FUNCTION SUMMARY END ########";
@@ -480,6 +523,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     for (int j = 0; j < new_order.size(); ++j) {
                         VLOG(0) << "Making a new " << org_nodes[new_order[j]]->op() << " node";
                         auto* new_node = graph.AddNode(MakeNewNode(*org_nodes[org_nodes.size()-1-j], *org_nodes[new_order[j]], &graph,
+                                                                   function_library,
                                                                    node_changed_dtype[new_order[j]], node_changed_shape[new_order[j]]));
                         VLOG(0) << "Added the new node to the graph";
                         new_nodes.insert(new_nodes.begin(), *new_node);
