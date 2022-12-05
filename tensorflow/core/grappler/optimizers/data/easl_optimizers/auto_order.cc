@@ -103,11 +103,15 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             const auto& filter_pred = new_f_node.attr().at("predicate");
             VLOG(0) << "Adjusting filter input dtype!";
-            const FunctionDef* filter_func = function_library.FindMutableFunctionDef(filter_pred.func().name());
+            const FunctionDef* filter_func = function_library.Find(filter_pred.func().name());
+
+
+
+            // THIS MUST GO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             FunctionDef* mutable_filter_func = const_cast<FunctionDef*>(filter_func);
             auto filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
             auto filter_args = filter_func->signature().input_arg();
-            auto mutable_filter_args = filter_func->mutable_signature()->mutable_input_arg();
+            auto mutable_filter_args = mutable_filter_func->mutable_signature()->mutable_input_arg();
 
             for (int i = 0; i < out_type_strings.size(); ++i) {
                 DataType* dt;
