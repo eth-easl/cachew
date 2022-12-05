@@ -59,6 +59,8 @@ using SetNodesFn = std::function<void(
     const FunctionDef& first_function, const FunctionDef& second_function,
     FunctionDef* fused_function, FunctionDefLibrary* library)>;
 
+StringCollection GetFunctionInputs(const FunctionDef& function);
+
 void MergeNodes(const FunctionDef& first_function,
                 const FunctionDef& second_function, FunctionDef* fused_function,
                 FunctionDefLibrary* library);

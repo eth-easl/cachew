@@ -141,11 +141,6 @@ void RenameFunctionNodes(const FunctionDef& first_function,
   for (auto& ret : *rets_to_fuse) update_name(&ret.second);
 }
 
-StringCollection GetFunctionInputs(const FunctionDef& function) {
-  return GetNames(function.signature().input_arg(),
-                  function.signature().input_arg_size());
-}
-
 // This function produces signature having names that do not conflict with
 // `first_signature`.  The input of returns and nodes that will be fused are
 // updated to use new names.
@@ -294,6 +289,11 @@ void CheckIfCanCompose(const OpDef& first_signature,
 }
 
 }  // namespace
+
+StringCollection GetFunctionInputs(const FunctionDef& function) {
+  return GetNames(function.signature().input_arg(),
+                  function.signature().input_arg_size());
+}
 
 void MergeNodes(const FunctionDef& first_function,
                 const FunctionDef& second_function, FunctionDef* fused_function,

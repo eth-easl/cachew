@@ -430,7 +430,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Function name: " << filter_pred.func().name();
                     const FunctionDef* filter_func =
                         function_library.Find(filter_pred.func().name());
-                    const auto filter_inputs = GetFunctionInputs(filter_func);
+                    const auto filter_inputs = fusion_utils::GetFunctionInputs(filter_func);
                     VLOG(0) << filter_inputs;
 
                     VLOG(0) << "########### FUNCTION SUMMARY END ########";
