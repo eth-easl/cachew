@@ -1049,6 +1049,7 @@ cc_library(
         "//tensorflow/core/grappler/clusters:cluster",
         "//tensorflow/core/grappler/utils:topological_sort",
         "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "//tensorflow/core/framework:types_proto_cc",
         "//tensorflow/core:lib_internal",
     ] + tf_protos_all(),
     alwayslink = 1,

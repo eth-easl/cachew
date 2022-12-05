@@ -4,11 +4,12 @@
 #include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
 #include "absl/container/flat_hash_set.h"
+#include "tensorflow/core/framework/attr_value_util.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
 #include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/framework/types.pb_text.h"
+#include "tensorflow/core/framework/types.ph.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
 #include "tensorflow/core/grappler/grappler_item.h"
 #include "tensorflow/core/grappler/mutable_graph_view.h"
@@ -20,7 +21,6 @@
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/grappler/utils/topological_sort.h"
 #include "tensorflow/core/platform/protobuf.h"
-#include "tensorflow/core/framework/attr_value_util.h"
 
 namespace tensorflow {
 namespace grappler {
@@ -85,11 +85,12 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
         VLOG(0) << "Set predicate (a predicate existed)";
 
         // We now have to adjust the input type of this predicate/FunctionDef (later on, do the same for map ops)
-        if (changes_dtype) {
+        if (!changes_dtype) {
             // NEW parent's output type
             std::string parent_out_type_string = GetOutputType(SummarizeNodeDef(*in_node, 100));
             // Remove the '[' and ']' chars
             parent_out_type_string = parent_out_type_string.substr(1,parent_out_type_string.length()-2);
+            VLOG(0) << "parent_out_type_string: " << parent_out_type_string;
 
             std::vector<string> out_type_strings;
             std::stringstream ss(parent_out_type_string);
@@ -101,12 +102,13 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 DataType* dt;
                 out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
                 std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
+                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
                 DataTypeFromString(out_type_strings[i], dt);
 
             }
 
 
-            const auto& filter_pred = org_node.attr().at("predicate");
+            const auto& filter_pred = new_f_node.attr().at("predicate");
             VLOG(0) << "Adjusting filter input dtype!";
             const FunctionDef* filter_func =
                 function_library.Find(filter_pred.func().name());
@@ -117,6 +119,11 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             for (auto& arg : filter_args) {
                 VLOG(0) << arg.name();
                 VLOG(0) << arg.type();
+            }
+            VLOG(0) << "Now we fix the input types!";
+            for (auto& arg : filter_args) {
+                VLOG(0) << arg.name();
+                arg.type() = 9;
             }
         }
     }
