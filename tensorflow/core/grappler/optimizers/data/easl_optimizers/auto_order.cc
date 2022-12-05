@@ -27,6 +27,22 @@ namespace grappler {
 namespace easl {
 namespace {
 
+std::string GetOutputType(const std::string node_str){
+  std::string delimiter = "output_types=";
+
+  //{{node FilterDataset/_5}} = FilterDataset[Targuments=[], _cardinality=-2, metadata="\n\01"\n\017FilterDataset:4", output_shapes=[[]], output_types=[DT_INT64], predicate=__inference_Dataset_filter_lambda_28[]](MapDataset/_4)
+
+  if (node_str.find(delimiter) != std::string::npos) {
+    std::string dt = node_str.substr(node_str.find(delimiter), node_str.find("], "));
+    dt = dt.erase(0, delimiter.size());
+    dt = dt.substr(0, dt.find("], "));
+    dt = dt + "]";
+    return dt;
+  } else {
+    return "";
+  }
+}
+
 NodeDef MakeNewNode(const NodeDef& org_position_node,
                     const NodeDef& org_node,
                     MutableGraphView* graph,
@@ -147,22 +163,6 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     //graph_utils::MaybeSetFusedMetadata(first_filter_node, org_node, &new_f_node);
 
     return new_f_node;
-}
-
-std::string GetOutputType(const std::string node_str){
-    std::string delimiter = "output_types=";
-
-    //{{node FilterDataset/_5}} = FilterDataset[Targuments=[], _cardinality=-2, metadata="\n\01"\n\017FilterDataset:4", output_shapes=[[]], output_types=[DT_INT64], predicate=__inference_Dataset_filter_lambda_28[]](MapDataset/_4)
-
-    if (node_str.find(delimiter) != std::string::npos) {
-        std::string dt = node_str.substr(node_str.find(delimiter), node_str.find("], "));
-        dt = dt.erase(0, delimiter.size());
-        dt = dt.substr(0, dt.find("], "));
-        dt = dt + "]";
-        return dt;
-    } else {
-        return "";
-    }
 }
 
 std::string GetOutputShapes(const std::string node_str){
