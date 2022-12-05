@@ -109,9 +109,23 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             // THIS MUST GO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             FunctionDef* mutable_filter_func = const_cast<FunctionDef*>(filter_func);
-            auto filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
+            tensorflow::grappler::fusion_utils::StringCollection filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
+            // filter_func->signature().input_arg() is of type: const OpDef
+            const OpDef ff_sig = filter_func->signature();
+
             auto filter_args = filter_func->signature().input_arg();
+
+            auto mutable_filter_args_test = mutable_filter_func->mutable_signature()->input_arg();
+
+            // mutable_filter_func->mutable_signature() is of type: OpDef*
             auto mutable_filter_args = mutable_filter_func->mutable_signature()->mutable_input_arg();
+
+            for (OpDef_ArgDef& arg : mutable_filter_args_test) {
+                VLOG(0) << arg.name();
+                VLOG(0) << arg.type();
+                arg.type = dt;
+            }
+
 
             for (int i = 0; i < out_type_strings.size(); ++i) {
                 DataType* dt;
