@@ -80,6 +80,7 @@ Status InjectPrefetch::OptimizeAndCollectStats(Cluster* cluster,
                                                const GrapplerItem& item,
                                                GraphDef* output,
                                                OptimizationStats* stats) {
+  VLOG(0) << "Inject pretech being applied!";
   *output = item.graph;
   if (!autotune_) {
     VLOG(1) << "The optimization inject_prefetch is not applied if autotune is "

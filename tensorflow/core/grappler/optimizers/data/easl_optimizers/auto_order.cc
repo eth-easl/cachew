@@ -13,6 +13,7 @@
 #include "tensorflow/core/grappler/op_types.h"
 #include "tensorflow/core/grappler/optimizers/custom_graph_optimizer_registry.h"
 #include "tensorflow/core/grappler/optimizers/data/fusion_utils.h"
+#include "tensorflow/core/grappler/optimizers/data/function_utils.h"
 #include "tensorflow/core/grappler/optimizers/data/graph_utils.h"
 #include "tensorflow/core/grappler/utils.h"
 #include "tensorflow/core/grappler/utils/topological_sort.h"
@@ -422,6 +423,17 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Output type is: " << dt;
                     VLOG(0) << "Output shape is: " << sh;
                     VLOG(0) << "########### NODE SUMMARY END ########";
+
+                    // Look into the FunctionDef
+                    VLOG(0) << "########### FUNCTION SUMMARY START ########";
+                    const auto& filter_pred = current_node->attr().at("predicate");
+                    VLOG(0) << "Function name: " << filter_pred.func().name();
+                    const FunctionDef* filter_func =
+                        function_library.Find(filter_pred.func().name());
+                    const auto filter_inputs = GetFunctionInputs(filter_func);
+                    VLOG(0) << filter_inputs;
+
+                    VLOG(0) << "########### FUNCTION SUMMARY END ########";
 
                     std::string in_n_sum = SummarizeNodeDef(*neighbor_node, 100);
                     std::string in_n_dt = GetOutputType(in_n_sum);
