@@ -416,7 +416,7 @@ class FunctionLibraryDefinition : public OpRegistryInterface {
   // subsequent call to `ReplaceFunction()` with the given name.
   const FunctionDef* Find(const std::string& func) const TF_LOCKS_EXCLUDED(mu_);
 
-  FunctionDef* FindMutableFunctionDef(string& func);
+  //FunctionDef* FindMutableFunctionDef(string& func);
 
   // Adds function definition 'fdef' to this function library.
   // Returns status 'ok' on success, or error otherwise. This is a no-op if
