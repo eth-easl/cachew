@@ -1271,7 +1271,7 @@ FunctionLibraryDefinition::FindHelper(const string& func) const {
   }
 }
 
-const FunctionDef* FunctionLibraryDefinition::FindMutableFunctionDef(string& func) {
+FunctionDef* FunctionLibraryDefinition::FindMutableFunctionDef(string& func) {
   auto iter = function_defs_.find(func);
   if (iter == function_defs_.end()) {
     return nullptr;
