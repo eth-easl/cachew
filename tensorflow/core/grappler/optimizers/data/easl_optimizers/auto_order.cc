@@ -8,8 +8,10 @@
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
-#include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/framework/types.ph.h"
+#include "tensorflow/core/framework/types.h"
+#include "tensorflow/core/framework/function.ph.h"
+#include "tensorflow/core/framework/function.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
 #include "tensorflow/core/grappler/grappler_item.h"
 #include "tensorflow/core/grappler/mutable_graph_view.h"
@@ -98,15 +100,6 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             while (getline(ss, type, ',')) {
                 out_type_strings.push_back(type);
             }
-            for (int i = 0; i < out_type_strings.size(); ++i) {
-                DataType* dt;
-                out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
-                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
-                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
-                DataTypeFromString(out_type_strings[i], dt);
-
-            }
-
 
             const auto& filter_pred = new_f_node.attr().at("predicate");
             VLOG(0) << "Adjusting filter input dtype!";
@@ -114,7 +107,26 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 function_library.Find(filter_pred.func().name());
             const auto filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
             auto filter_args = filter_func->signature().input_arg();
-            int arg_size = filter_func->signature().input_arg_size();
+            auto mutable_filter_args = filter_func->mutable_signature()->mutable_input_arg();
+
+            for (int i = 0; i < out_type_strings.size(); ++i) {
+                DataType* dt;
+                out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
+                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
+                DataTypeFromString(out_type_strings[i], dt);
+
+                for (auto& arg : mutable_filter_args) {
+                    VLOG(0) << arg.name();
+                    VLOG(0) << arg.type();
+                    arg.type = dt;
+                }
+            }
+
+
+
+
+            /*int arg_size = filter_func->signature().input_arg_size();
             VLOG(0) << "Function has: " << arg_size << " arguments.";
             for (auto& arg : filter_args) {
                 VLOG(0) << arg.name();
@@ -124,7 +136,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             for (auto& arg : filter_args) {
                 VLOG(0) << arg.name();
                 arg.type() = 9;
-            }
+            }*/
         }
     }
     // Add user-defined function if present in the original node (i.e. it was a map node)
