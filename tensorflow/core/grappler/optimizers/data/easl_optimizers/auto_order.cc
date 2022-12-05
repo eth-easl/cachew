@@ -8,9 +8,9 @@
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 #include "tensorflow/core/framework/node_def_util.h"
-#include "tensorflow/core/framework/types.ph.h"
+#include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/framework/function.ph.h"
+#include "tensorflow/core/framework/function.pb.h"
 #include "tensorflow/core/framework/function.h"
 #include "tensorflow/core/grappler/clusters/cluster.h"
 #include "tensorflow/core/grappler/grappler_item.h"
@@ -101,11 +101,11 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 out_type_strings.push_back(type);
             }
 
-            const auto& filter_pred = new_f_node.attr().at("predicate");
+            auto& filter_pred = new_f_node.attr().at("predicate");
             VLOG(0) << "Adjusting filter input dtype!";
-            const FunctionDef* filter_func =
+            FunctionDef* filter_func =
                 function_library.Find(filter_pred.func().name());
-            const auto filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
+            auto filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
             auto filter_args = filter_func->signature().input_arg();
             auto mutable_filter_args = filter_func->mutable_signature()->mutable_input_arg();
 
