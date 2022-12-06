@@ -134,7 +134,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 // First figure out the target data type
                 DataType* dt;
 
-                std::string substr_to_remove = 'DT_';
+                std::string substr_to_remove = "DT_";
                 std::size_t substr_loc = out_type_strings[i].find(substr_to_remove);
                 if (substr_loc !=std::string::npos) {
                     out_type_strings[i].erase(substr_loc,substr_to_remove.size());
@@ -143,8 +143,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 //out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
                 std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::tolower);
                 VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
-                DataTypeFromString(out_type_strings[i], dt);
-                VLOG(0) << "Output as 'DataType' " << dt;
+                bool worked = DataTypeFromString(out_type_strings[i], dt);
+                VLOG(0) << "Output has 'DataType' " << dt;
 
                 // Then get the respective OpDef_ArgDef* and set it
                 OpDef_ArgDef* mutable_in_arg = ff_sig.mutable_input_arg(i);
