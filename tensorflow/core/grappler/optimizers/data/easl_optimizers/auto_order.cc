@@ -136,8 +136,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
                 std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
                 VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
-                VLOG(0) << "Output as 'DataType' " << dt;
                 DataTypeFromString(out_type_strings[i], dt);
+                VLOG(0) << "Output as 'DataType' " << dt;
 
                 // Then get the respective OpDef_ArgDef* and set it
                 OpDef_ArgDef* mutable_in_arg = ff_sig.mutable_input_arg(i);
@@ -147,6 +147,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 //VLOG(0) << mutable_in_arg->description();
 
                 mutable_in_arg->set_type(*dt);
+                VLOG(0) << "Type has been adjusted!";
             }
 
 
