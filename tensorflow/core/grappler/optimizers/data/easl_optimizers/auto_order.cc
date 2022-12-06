@@ -117,14 +117,14 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             int in_arg_size = ff_sig.input_arg_size();
             VLOG(0) << in_arg_size;
 
-            for (int i = 0; i < out_type_strings.size(); ++i) {
+            /*for (int i = 0; i < out_type_strings.size(); ++i) {
                 DataType* dt;
                 out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
                 std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
                 VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
                 DataTypeFromString(out_type_strings[i], dt);
 
-            }
+            }*/
 
             // TODO: an arg count matching test would be good...
 
@@ -137,11 +137,11 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 DataTypeFromString(out_type_strings[i], dt);
 
                 // Then get the respective OpDef_ArgDef* and set it
-                OpDef_ArgDef* mutable_in_arg = ff_sig.mutable_input_arg();
+                OpDef_ArgDef* mutable_in_arg = ff_sig.mutable_input_arg(i);
                 VLOG(0) << "Input " << i << " was of type " << mutable_in_arg->type();
-                VLOG(0) << arg.name();
-                VLOG(0) << arg.type();
-                VLOG(0) << arg.description();
+                VLOG(0) << mutable_in_arg.name();
+                VLOG(0) << mutable_in_arg.type();
+                VLOG(0) << mutable_in_arg.description();
 
                 mutable_in_arg->set_type(dt);
             }
