@@ -133,8 +133,15 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             for (int i = 0; i < in_arg_size; ++i) {
                 // First figure out the target data type
                 DataType* dt;
-                out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
-                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
+
+                std::string substr_to_remove = 'DT_';
+                std::size_t substr_loc = out_type_strings[i].find(substr_to_remove);
+                if (substr_loc !=std::string::npos) {
+                    out_type_strings[i].erase(substr_loc,substr_to_remove.size());
+                }
+
+                //out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::tolower);
                 VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
                 DataTypeFromString(out_type_strings[i], dt);
                 VLOG(0) << "Output as 'DataType' " << dt;
