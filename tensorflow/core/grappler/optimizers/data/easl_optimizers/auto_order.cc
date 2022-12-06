@@ -111,7 +111,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             FunctionDef* mutable_filter_func = const_cast<FunctionDef*>(filter_func);
             tensorflow::grappler::fusion_utils::StringCollection filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
             // filter_func->signature().input_arg() is of type: const OpDef
-            const OpDef ff_sig = filter_func->signature();
+            const OpDef ff_sig_const = filter_func->signature();
+            // Another BAD ONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            OpDef ff_sig = const_cast<OpDef>(ff_sig_const);
 
             auto filter_args = filter_func->signature().input_arg();
             int in_arg_size = ff_sig.input_arg_size();
@@ -139,11 +141,11 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 // Then get the respective OpDef_ArgDef* and set it
                 OpDef_ArgDef* mutable_in_arg = ff_sig.mutable_input_arg(i);
                 VLOG(0) << "Input " << i << " was of type " << mutable_in_arg->type();
-                VLOG(0) << mutable_in_arg.name();
-                VLOG(0) << mutable_in_arg.type();
-                VLOG(0) << mutable_in_arg.description();
+                VLOG(0) << mutable_in_arg->name();
+                VLOG(0) << mutable_in_arg->type();
+                VLOG(0) << mutable_in_arg->description();
 
-                mutable_in_arg->set_type(dt);
+                mutable_in_arg->set_type(*dt);
             }
 
 
