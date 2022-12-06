@@ -119,17 +119,17 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             int in_arg_size = ff_sig.input_arg_size();
             VLOG(0) << "There are " << in_arg_size << " arguments";
 
-            VLOG(0) << "ORIGINAL ArgDef summary:";
-            std::string arg_sum = SummarizeArgs(filter_args);
-            VLOG(0) << arg_sum;
+            //VLOG(0) << "ORIGINAL ArgDef summary:";
+            //std::string arg_sum = SummarizeArgs(filter_args);
+            //VLOG(0) << arg_sum;
 
             VLOG(0) << "ORIGINAL OpDef summary:";
-            std::string arg_sum = SummarizeOpDef(ff_sig_const);
-            VLOG(0) << arg_sum;
+            std::string op_sum = SummarizeOpDef(ff_sig_const);
+            VLOG(0) << op_sum;
 
             VLOG(0) << "ORIGINAL Non-const OpDef summary:";
-            std::string arg_sum = SummarizeOpDef(ff_sig);
-            VLOG(0) << arg_sum;
+            std::string nc_op_sum = SummarizeOpDef(ff_sig);
+            VLOG(0) << nc_op_sum;
 
             // TODO: an arg count matching test would be good...
 
@@ -160,17 +160,17 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "Type has been adjusted to " << mutable_in_arg->type() << "!";
             }
 
-            VLOG(0) << "EDITED ArgDef summary:";
-            std::string arg_sum = SummarizeArgs(filter_args);
-            VLOG(0) << arg_sum;
+            //VLOG(0) << "EDITED ArgDef summary:";
+            //std::string arg_sum_new = SummarizeArgs(filter_args);
+            //VLOG(0) << arg_sum_new;
 
             VLOG(0) << "EDITED OpDef summary:";
-            std::string arg_sum = SummarizeOpDef(ff_sig_const);
-            VLOG(0) << arg_sum;
+            std::string op_sum_new = SummarizeOpDef(ff_sig_const);
+            VLOG(0) << op_sum_new;
 
             VLOG(0) << "EDITED Non-const OpDef summary:";
-            std::string arg_sum = SummarizeOpDef(ff_sig);
-            VLOG(0) << arg_sum;
+            std::string nc_op_sum = SummarizeOpDef(ff_sig);
+            VLOG(0) << nc_op_sum_new;
 
 
 
