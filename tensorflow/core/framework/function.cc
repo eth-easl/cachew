@@ -1271,12 +1271,16 @@ FunctionLibraryDefinition::FindHelper(const string& func) const {
   }
 }
 
-FunctionDef* FunctionLibraryDefinition::FindMutableFunctionDef(string& func) {
+const FunctionDef* FunctionLibraryDefinition::FindMutableFunctionDef(string& func) {
   auto iter = function_defs_.find(func);
   if (iter == function_defs_.end()) {
     return nullptr;
   } else {
-    return iter->second->fdef;
+    auto sec = iter->second;
+    auto test = sec->fdef();
+    VLOG(0) << typeid(test).name();
+    return sec->fdef;
+    //return iter->second->fdef;
   }
 }
 
