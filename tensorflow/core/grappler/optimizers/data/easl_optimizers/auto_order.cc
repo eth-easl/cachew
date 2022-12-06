@@ -103,6 +103,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             const AttrValue& filter_pred = new_f_node.attr().at("predicate");
             AttrValue non_const_filter_pred = (*new_f_node.mutable_attr())["predicate"];
+            FunctionDef func_def_direct = (*new_f_node.mutable_attr())["predicate"].func();
             std::string func_name = (*new_f_node.mutable_attr())["predicate"].func().name();
             VLOG(0) << "Name of filter pred function " << func_name;
             VLOG(0) << "Adjusting filter input dtype!";
@@ -168,6 +169,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "Second try";
                 OpDef_ArgDef* in_arg_mutable = mutable_ff_sig->mutable_input_arg(i);
                 in_arg_mutable->set_type(dt);
+
+                function_library.ReplaceFunction(func_name, *mutable_filter_func);
             }
 
             //VLOG(0) << "EDITED ArgDef summary:";
