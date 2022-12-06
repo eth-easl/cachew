@@ -178,8 +178,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             VLOG(0) << "Refetching the signature (AKA OpDef)";
             const OpDef ff_sig_const_new = filter_func->signature();
-            std::string op_sum_new = SummarizeOpDef(ff_sig_const);
-
+            std::string op_sum_const_new = SummarizeOpDef(ff_sig_const);
+            VLOG(0) << op_sum_const_new;
 
             /*auto mutable_filter_args_test = mutable_filter_func->mutable_signature()->input_arg();
 

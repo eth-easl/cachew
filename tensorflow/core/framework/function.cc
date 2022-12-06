@@ -1277,9 +1277,9 @@ const FunctionDef* FunctionLibraryDefinition::FindMutableFunctionDef(string& fun
     return nullptr;
   } else {
     auto sec = iter->second;
-    auto test = sec->fdef();
+    auto test = sec->fdef;
     VLOG(0) << typeid(test).name();
-    return sec->fdef;
+    return &sec->fdef;
     //return iter->second->fdef;
   }
 }
