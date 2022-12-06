@@ -114,8 +114,44 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             const OpDef ff_sig = filter_func->signature();
 
             auto filter_args = filter_func->signature().input_arg();
+            int in_arg_size = ff_sig.input_arg_size();
+            VLOG(0) << in_arg_size;
 
-            auto mutable_filter_args_test = mutable_filter_func->mutable_signature()->input_arg();
+            for (int i = 0; i < out_type_strings.size(); ++i) {
+                DataType* dt;
+                out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
+                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
+                DataTypeFromString(out_type_strings[i], dt);
+
+            }
+
+            // TODO: an arg count matching test would be good...
+
+            for (int i = 0; i < in_arg_size; ++i) {
+                // First figure out the target data type
+                DataType* dt;
+                out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
+                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
+                DataTypeFromString(out_type_strings[i], dt);
+
+                // Then get the respective OpDef_ArgDef* and set it
+                OpDef_ArgDef* mutable_in_arg = ff_sig.mutable_input_arg();
+                VLOG(0) << "Input " << i << " was of type " << mutable_in_arg->type();
+                VLOG(0) << arg.name();
+                VLOG(0) << arg.type();
+                VLOG(0) << arg.description();
+
+                mutable_in_arg->set_type(dt);
+            }
+
+
+
+
+
+
+            /*auto mutable_filter_args_test = mutable_filter_func->mutable_signature()->input_arg();
 
             // mutable_filter_func->mutable_signature() is of type: OpDef*
             auto mutable_filter_args = mutable_filter_func->mutable_signature()->mutable_input_arg();
@@ -123,11 +159,13 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             for (OpDef_ArgDef& arg : mutable_filter_args_test) {
                 VLOG(0) << arg.name();
                 VLOG(0) << arg.type();
-                arg.type = dt;
-            }
+
+                VLOG(0) << arg.description();
+
+            }*/
 
 
-            for (int i = 0; i < out_type_strings.size(); ++i) {
+            /*for (int i = 0; i < out_type_strings.size(); ++i) {
                 DataType* dt;
                 out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
                 std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
@@ -139,7 +177,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                     VLOG(0) << arg.type();
                     arg.type = dt;
                 }
-            }
+            }*/
 
 
 
