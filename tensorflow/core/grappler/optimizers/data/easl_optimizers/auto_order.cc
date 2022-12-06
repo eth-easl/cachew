@@ -113,7 +113,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             // filter_func->signature().input_arg() is of type: const OpDef
             const OpDef ff_sig_const = filter_func->signature();
             // Another BAD ONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            OpDef ff_sig = const_cast<OpDef>(ff_sig_const);
+            OpDef ff_sig = (OpDef)ff_sig_const;
 
             auto filter_args = filter_func->signature().input_arg();
             int in_arg_size = ff_sig.input_arg_size();
