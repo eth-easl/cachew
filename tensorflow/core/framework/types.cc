@@ -154,7 +154,7 @@ string DataTypeString(DataType dtype) {
 }
 
 bool DataTypeFromString(StringPiece sp, DataType* dt) {
-  VLOG(0) << "Got inside func";
+  //VLOG(0) << "Got inside func";
   if (str_util::EndsWith(sp, "_ref")) {
     sp.remove_suffix(4);
     DataType non_ref;
@@ -165,12 +165,12 @@ bool DataTypeFromString(StringPiece sp, DataType* dt) {
       return false;
     }
   }
-  VLOG(0) << "Passed 'ref' section";
+  //VLOG(0) << "Passed 'ref' section";
 
   if (sp == "float" || sp == "float32") {
-    VLOG(0) << "Found the right type!";
+    //VLOG(0) << "Found the right type!";
     *dt = DT_FLOAT;
-    VLOG(0) << "dt was set to float!";
+    //VLOG(0) << "dt was set to float!";
     return true;
   } else if (sp == "double" || sp == "float64") {
     *dt = DT_DOUBLE;
