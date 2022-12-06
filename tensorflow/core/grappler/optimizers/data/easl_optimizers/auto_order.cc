@@ -101,14 +101,17 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 out_type_strings.push_back(type);
             }
 
-            const auto& filter_pred = new_f_node.attr().at("predicate");
+            const AttrValue& filter_pred = new_f_node.attr().at("predicate");
+            AttrValue non_const_filter_pred = (*new_f_node.mutable_attr())["predicate"];
+            std::string func_name = (*new_f_node.mutable_attr())["predicate"].func().name();
+            VLOG(0) << "Name of filter pred function " << non_const_filter_pred_func_name;
             VLOG(0) << "Adjusting filter input dtype!";
-            const FunctionDef* filter_func = function_library.Find(filter_pred.func().name());
+            const FunctionDef* filter_func = function_library.Find(func_name);
 
 
 
             // THIS MUST GO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            FunctionDef* mutable_filter_func = const_cast<FunctionDef*>(filter_func);
+            //FunctionDef* mutable_filter_func = const_cast<FunctionDef*>(filter_func);
             tensorflow::grappler::fusion_utils::StringCollection filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
             // filter_func->signature().input_arg() is of type: const OpDef
             const OpDef ff_sig_const = filter_func->signature();
@@ -169,7 +172,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << op_sum_new;
 
             VLOG(0) << "EDITED Non-const OpDef summary:";
-            std::string nc_op_sum = SummarizeOpDef(ff_sig);
+            std::string nc_op_sum_new = SummarizeOpDef(ff_sig);
             VLOG(0) << nc_op_sum_new;
 
 
