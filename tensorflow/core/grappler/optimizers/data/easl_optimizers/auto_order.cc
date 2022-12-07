@@ -209,10 +209,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             *attr.mutable_func()->mutable_name() = new_function->signature().name();
             (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
 
-            VLOG(0) << "Refetching the signature (AKA OpDef)";
-            const OpDef ff_sig_const_new = filter_func->signature();
-            std::string op_sum_const_new = SummarizeOpDef(ff_sig_const);
-            VLOG(0) << op_sum_const_new;
+            VLOG(0) << "New summary of AttrValue ('predicate') ";
+            std::string pred_sum = SummarizeAttrValue(attr);
+            VLOG(0) << pred_sum;
 
             /*
 
