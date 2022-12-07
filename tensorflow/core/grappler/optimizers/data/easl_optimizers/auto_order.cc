@@ -161,7 +161,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "Output has 'DataType' " << dt;
 
                 // Set dt to the respective input arg
-                OpDef_ArgDef& mutable_in_arg = setup_ff.signature().mutable_input_arg(i);
+                OpDef_ArgDef& mutable_in_arg = *setup_ff.mutable_signature()->mutable_input_arg(i);
                 //auto& input = *signature.add_input_arg();
                 //input = input_arg;
                 //input.set_name(input.name());
@@ -172,6 +172,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "New arg type is: " << mutable_in_arg.type();
             }
             AttrValue org_attr = org_node.attr().at("predicate");
+            VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
             VLOG(0) << "Original node used function " << org_attr.func().name();
             *org_attr.mutable_func()->mutable_name() = setup_ff.signature().name();
             VLOG(0) << "New summary of attr ";
@@ -179,7 +180,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             (*new_f_node.mutable_attr())["predicate"] = org_attr;
             VLOG(0) << "Summary of new node's 'predicate' attribute:";
-            VLOG(0) << SummarizeAttrValue(setup_ff.attr().at("predicate"));
+            VLOG(0) << SummarizeAttrValue(new_f_node.attr().at("predicate"));
 
             //AttrValue attr = new_f_node.attr().at("predicate");
             //VLOG(0) << "Previously function used was " << org_func->signature().name();
@@ -190,7 +191,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             function_library.AddFunctionDef(setup_ff);
 
             VLOG(0) << "Summary of 'predicate attribute:'";
-            VLOG(0) << SummarizeAttrValue(setup_ff.attr().at("predicate"));
+            VLOG(0) << SummarizeAttrValue(new_f_node.attr().at("predicate"));
             // END TRY (WILDCARD COPY)
 
 
