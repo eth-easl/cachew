@@ -134,11 +134,11 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             // Give the function a new name (to avoid conflicts)
             StringPiece wc_func_prefix = "wc_reo_func";
-            graph_utils::SetUniqueGraphFunctionName(wc_func_prefix, library, setup_ff);
+            graph_utils::SetUniqueGraphFunctionName(wc_func_prefix, library, *setup_ff);
             VLOG(0) << "Set new function's name to " << setup_ff.signature().name();
 
             AttrValue attr = org_node.attr().at("predicate");
-            VLOG(0) << "Previously function used was " << org_func->signature.name();
+            VLOG(0) << "Previously function used was " << org_func->signature().name();
             *attr.mutable_func()->mutable_name() = setup_ff.signature().name();
             (*setup_ff.mutable_attr())["predicate"] = std::move(attr);
             VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
