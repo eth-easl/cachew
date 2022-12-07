@@ -143,9 +143,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             // This function will be used as a clone of second function, having unique
             // names.
-            const FunctionDef* org_func = function_library.Find(org_node->attr().at("predicate").func().name());
+            const FunctionDef* org_func = function_library.Find(org_node.attr().at("predicate").func().name());
             OpDef org_func_sig = org_func->signature();
-            FunctionDef setup_function = org_func;
+            FunctionDef setup_function = *org_func;
 
             // TODO: Make a new 'GetUniqueSignature' for our purposes
             /**setup_function.mutable_signature() = GetUniqueSignature(
@@ -193,7 +193,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             //fusion_utils::SameSignature(org_func.signature(), setup_function.signature(),
             //              new_function->mutable_signature());
-            new_function->mutable_signature() = setup_function.mutable_signature();
+            *new_function->mutable_signature() = setup_function.mutable_signature();
 
             StringPiece func_name_prefix = "reordered_func";
             graph_utils::SetUniqueGraphFunctionName(fused_name_prefix, library,
@@ -201,10 +201,10 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             //set_output(first_function.ret(), setup_function.ret(),
             //           fused_function->mutable_ret());
-            new_function->mutable_ret() = org_func.ret(); // TODO: CHECK THIS ONE!
+            new_function->mutable_ret() = org_func->ret(); // TODO: CHECK THIS ONE!
 
             auto attr = new_f_node.attr().at("predicate");
-            *attr.mutable_func()->mutable_name() = new_function.signature().name();
+            *attr.mutable_func()->mutable_name() = new_function->signature().name();
             (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
 
             /*
