@@ -99,9 +99,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             }
 
             const AttrValue& filter_pred = org_node.attr().at("predicate");
-            AttrValue non_const_filter_pred = (*org_node.mutable_attr())["predicate"];
             //FunctionDef func_def_direct = (*org_node.mutable_attr())["predicate"].func();
-            std::string func_name = (*org_node.mutable_attr())["predicate"].func().name();
+            std::string func_name = (*org_node.attr())["predicate"].func().name();
             VLOG(0) << "Name of filter pred function " << func_name;
             VLOG(0) << "Adjusting filter input dtype!";
             const FunctionDef* filter_func = function_library.Find(func_name);
@@ -162,15 +161,15 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "Output has 'DataType' " << dt;
 
                 // Set dt to the respective input arg
-                OpDef_ArgDef& mutable_in_arg = org_node.signature().input_arg(i);
+                OpDef_ArgDef& mutable_in_arg = setup_ff.signature().input_arg(i);
                 //auto& input = *signature.add_input_arg();
                 //input = input_arg;
                 //input.set_name(input.name());
 
-                VLOG(0) << "Original arg name (shouldn't change this): " << mutable_in_arg->name();
-                VLOG(0) << "Original arg type (to be changed): " << mutable_in_arg->type();
-                mutable_in_arg->set_type(dt);
-                VLOG(0) << "New arg type is: " << mutable_in_arg->type();
+                VLOG(0) << "Original arg name (shouldn't change this): " << mutable_in_arg.name();
+                VLOG(0) << "Original arg type (to be changed): " << mutable_in_arg.type();
+                mutable_in_arg.set_type(dt);
+                VLOG(0) << "New arg type is: " << mutable_in_arg.type();
             }
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original node used function " << org_attr.func().name();
