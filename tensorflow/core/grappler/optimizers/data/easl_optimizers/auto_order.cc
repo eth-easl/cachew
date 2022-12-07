@@ -144,7 +144,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
 
             // Set the 'real_f' function's signature
-            real_f->mutable_signature() = setup_ff.signature();
+            *real_f->mutable_signature() = setup_ff.signature();
 
             // Name the 'real_f' function
             StringPiece wc_real_f_prefix = "wc_real_reo_func";
@@ -153,7 +153,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             // RenameFunctionNodes ??
 
-            real_f->mutable_ret() = setup_ff.ret();
+            *real_f->mutable_ret() = setup_ff.ret();
 
             // Other stuff from fusion_utils ??
 
@@ -192,7 +192,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
             VLOG(0) << "Original node used function " << org_attr.func().name();
             //*org_attr.mutable_func()->mutable_name() = setup_ff.signature().name();
-            *org_attr.mutable_func()->mutable_name() = real_f.signature().name();
+            *org_attr.mutable_func()->mutable_name() = real_f->signature().name();
             VLOG(0) << "New summary of attr ";
             VLOG(0) << SummarizeAttrValue(org_attr);
 
@@ -207,7 +207,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             //VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
 
             //function_library.AddFunctionDef(setup_ff);
-            function_library.AddFunctionDef(real_f);
+            function_library.AddFunctionDef(*real_f);
 
             VLOG(0) << "Summary of 'predicate attribute:'";
             VLOG(0) << SummarizeAttrValue(new_f_node.attr().at("predicate"));
