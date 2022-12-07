@@ -43,6 +43,22 @@ std::string GetOutputType(const std::string node_str){
   }
 }
 
+// Copied from rewrite_utils.cc
+void AddFakeSinks(FunctionDef* function_def) {
+  int counter = 0;
+  for (const auto& output : function_def->signature().output_arg()) {
+    NodeDef* node = function_def->add_node_def();
+    tensorflow::grappler::function_utils::SetUniqueFunctionNodeName(
+        strings::StrCat("FakeSink", counter++), function_def, node);
+    node->set_op("Identity");
+    node->add_input(function_def->ret().at(output.name()));
+    (*node->mutable_attr())["T"].set_type(output.type());
+
+    (*function_def->mutable_ret())[output.name()] =
+        strings::StrCat(node->name(), ":output:0");
+  }
+}
+
 NodeDef MakeNewNode(const NodeDef& org_position_node,
                     const NodeDef& org_node,
                     MutableGraphView* graph,
@@ -163,7 +179,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
               if (iter == func.attr().cend()) return std::string();
               return iter->second.s();
             };
-            std::string org_construction_context = get_construction_context(org_func);
+            std::string org_construction_context = get_construction_context(*org_func);
             if (!org_construction_context.empty()) {
                 (*real_f->mutable_attr())["_construction_context"].set_s(
                     org_construction_context);
@@ -203,6 +219,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 mutable_in_arg.set_type(dt);
                 VLOG(0) << "New arg type is: " << mutable_in_arg.type();
             }
+            // All inputs of real_f should be set now. Add the fake sink nodes
+            AddFakeSinks(real_f);
+
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
             VLOG(0) << "Original node used function " << org_attr.func().name();
