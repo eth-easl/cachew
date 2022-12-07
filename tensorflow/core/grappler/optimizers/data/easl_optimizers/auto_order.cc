@@ -159,6 +159,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             for (int i = 0; i < in_arg_size; ++i) {
                 // Make a new (mutable) input arg
                 const OpDef_ArgDef& input_arg = org_func_sig.input_arg(i);
+                auto& input = *signature.add_input_arg();
                 input = input_arg;
                 input.set_name(input.name());
 
@@ -193,15 +194,15 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             //fusion_utils::SameSignature(org_func.signature(), setup_function.signature(),
             //              new_function->mutable_signature());
-            *new_function->mutable_signature() = setup_function.mutable_signature();
+            *new_function->mutable_signature() = *setup_function.mutable_signature();
 
             StringPiece func_name_prefix = "reordered_func";
-            graph_utils::SetUniqueGraphFunctionName(fused_name_prefix, library,
+            graph_utils::SetUniqueGraphFunctionName(func_name_prefix, library,
                                                     new_function);
 
             //set_output(first_function.ret(), setup_function.ret(),
             //           fused_function->mutable_ret());
-            new_function->mutable_ret() = org_func->ret(); // TODO: CHECK THIS ONE!
+            new_function->mutable_ret() = *org_func->ret(); // TODO: CHECK THIS ONE!
 
             auto attr = new_f_node.attr().at("predicate");
             *attr.mutable_func()->mutable_name() = new_function->signature().name();
