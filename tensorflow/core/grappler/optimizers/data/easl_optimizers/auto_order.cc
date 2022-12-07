@@ -49,6 +49,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                     const NodeDef& org_node,
                     MutableGraphView* graph,
                     FunctionLibraryDefinition function_library,
+                    FunctionDefLibrary* library,
                     bool changes_dtype = false,
                     bool changes_shape = false) {
     NodeDef new_f_node;
@@ -103,7 +104,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             const AttrValue& filter_pred = new_f_node.attr().at("predicate");
             AttrValue non_const_filter_pred = (*new_f_node.mutable_attr())["predicate"];
-            FunctionDef func_def_direct = (*new_f_node.mutable_attr())["predicate"].func();
+            //FunctionDef func_def_direct = (*new_f_node.mutable_attr())["predicate"].func();
             std::string func_name = (*new_f_node.mutable_attr())["predicate"].func().name();
             VLOG(0) << "Name of filter pred function " << func_name;
             VLOG(0) << "Adjusting filter input dtype!";
@@ -138,6 +139,76 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             std::string nc_op_sum = SummarizeOpDef(ff_sig);
             VLOG(0) << nc_op_sum;
 
+            // Fixing an existing function didn't work. Try to construct a brand-new function (based of fusion_utils)
+
+            // This function will be used as a clone of second function, having unique
+            // names.
+            const FunctionDef* org_func = function_library.Find(org_node->attr().at("predicate").func().name());
+            OpDef org_func_sig = org_func->signature();
+            FunctionDef setup_function = org_func;
+
+            // TODO: Make a new 'GetUniqueSignature' for our purposes
+            /**setup_function.mutable_signature() = GetUniqueSignature(
+                first_function.signature(), setup_function.signature(),
+                setup_function.mutable_ret(), setup_function.mutable_node_def());*/
+
+            // We aren't fusing anything, so let's just keep the names the same as much as possible
+            OpDef signature;
+            signature.set_name(setup_function.signature().name());
+
+            for (int i = 0; i < in_arg_size; ++i) {
+                // Make a new (mutable) input arg
+                const OpDef_ArgDef& input_arg = org_func_sig.input_arg(i);
+                input = input_arg;
+                input.set_name(input.name());
+
+                // Figure out the CORRECT input type
+                DataType dt;
+                std::string substr_to_remove = "DT_";
+                std::size_t substr_loc = out_type_strings[i].find(substr_to_remove);
+                if (substr_loc !=std::string::npos) {
+                    out_type_strings[i].erase(substr_loc,substr_to_remove.size());
+                }
+
+                //out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::tolower);
+                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
+                bool worked = DataTypeFromString(out_type_strings[i], &dt);
+                VLOG(0) << "Output has 'DataType' " << dt;
+
+                // Set the right type
+                input.set_type(dt);
+                VLOG(0) << "Type has been adjusted to " << input.type() << "!";
+            }
+
+            for (const auto& output_arg : org_func_sig.output_arg()) {
+                auto& output = *signature.add_output_arg();
+                output = output_arg;
+                output.set_name(output.name()); // Last 2 lines are probably useless??
+            }
+
+            *setup_function.mutable_signature() = signature;
+
+            FunctionDef* new_function = library->add_function();
+
+            //fusion_utils::SameSignature(org_func.signature(), setup_function.signature(),
+            //              new_function->mutable_signature());
+            new_function->mutable_signature() = setup_function.mutable_signature();
+
+            StringPiece func_name_prefix = "reordered_func";
+            graph_utils::SetUniqueGraphFunctionName(fused_name_prefix, library,
+                                                    new_function);
+
+            //set_output(first_function.ret(), setup_function.ret(),
+            //           fused_function->mutable_ret());
+            new_function->mutable_ret() = org_func.ret(); // TODO: CHECK THIS ONE!
+
+            auto attr = new_f_node.attr().at("predicate");
+            *attr.mutable_func()->mutable_name() = new_function.signature().name();
+            (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
+
+            /*
+
             // TODO: an arg count matching test would be good...
 
             for (int i = 0; i < in_arg_size; ++i) {
@@ -171,6 +242,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 in_arg_mutable->set_type(dt);
 
                 function_library.ReplaceFunction(func_name, *mutable_filter_func);
+
+
+
             }
 
             //VLOG(0) << "EDITED ArgDef summary:";
@@ -191,48 +265,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             std::string op_sum_const_new = SummarizeOpDef(ff_sig_const);
             VLOG(0) << op_sum_const_new;
 
-            /*auto mutable_filter_args_test = mutable_filter_func->mutable_signature()->input_arg();
 
-            // mutable_filter_func->mutable_signature() is of type: OpDef*
-            auto mutable_filter_args = mutable_filter_func->mutable_signature()->mutable_input_arg();
-
-            for (OpDef_ArgDef& arg : mutable_filter_args_test) {
-                VLOG(0) << arg.name();
-                VLOG(0) << arg.type();
-
-                VLOG(0) << arg.description();
-
-            }*/
-
-
-            /*for (int i = 0; i < out_type_strings.size(); ++i) {
-                DataType* dt;
-                out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
-                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::toupper);
-                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
-                DataTypeFromString(out_type_strings[i], dt);
-
-                for (auto& arg : mutable_filter_args) {
-                    VLOG(0) << arg.name();
-                    VLOG(0) << arg.type();
-                    arg.type = dt;
-                }
-            }*/
-
-
-
-
-            /*int arg_size = filter_func->signature().input_arg_size();
-            VLOG(0) << "Function has: " << arg_size << " arguments.";
-            for (auto& arg : filter_args) {
-                VLOG(0) << arg.name();
-                VLOG(0) << arg.type();
-            }
-            VLOG(0) << "Now we fix the input types!";
-            for (auto& arg : filter_args) {
-                VLOG(0) << arg.name();
-                arg.type() = 9;
-            }*/
+            */
         }
     }
     // Add user-defined function if present in the original node (i.e. it was a map node)
@@ -553,12 +587,12 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     std::string in_n_dt = GetOutputType(in_n_sum);
                     std::string in_n_sh = GetOutputShapes(in_n_sum);
                     if (dt != in_n_dt) {
-                      changing_dtype.push_back(current_node);
-                      VLOG(0) << "Node " << current_node->name() << " changed dtype!";
+                        changing_dtype.push_back(current_node);
+                        VLOG(0) << "Node " << current_node->name() << " changed dtype!";
                     }
                     if (sh != in_n_sh) {
-                      changing_shape.push_back(current_node);
-                      VLOG(0) << "Node " << current_node->name() << " changed shape!";
+                        changing_shape.push_back(current_node);
+                        VLOG(0) << "Node " << current_node->name() << " changed shape!";
                     }
                     
                 } else if (current_node->op().find("FilterDataset") != std::string::npos) {
@@ -606,12 +640,12 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     std::string in_n_dt = GetOutputType(in_n_sum);
                     std::string in_n_sh = GetOutputShapes(in_n_sum);
                     if (dt != in_n_dt) {
-                      changing_dtype.push_back(current_node);
-                      VLOG(0) << "Node " << current_node->name() << " changed dtype!";
+                        changing_dtype.push_back(current_node);
+                        VLOG(0) << "Node " << current_node->name() << " changed dtype!";
                     }
                     if (sh != in_n_sh) {
-                      changing_shape.push_back(current_node);
-                      VLOG(0) << "Node " << current_node->name() << " changed shape!";
+                        changing_shape.push_back(current_node);
+                        VLOG(0) << "Node " << current_node->name() << " changed shape!";
                     }
 
                     VLOG(0) << "No. of nodes changing dtype: " << changing_dtype.size();
@@ -639,7 +673,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     for (int j = 0; j < new_order.size(); ++j) {
                         VLOG(0) << "Making a new " << org_nodes[new_order[j]]->op() << " node";
                         auto* new_node = graph.AddNode(MakeNewNode(*org_nodes[org_nodes.size()-1-j], *org_nodes[new_order[j]], &graph,
-                                                                   function_library,
+                                                                   function_library, output->mutable_library(),
                                                                    node_changed_dtype[new_order[j]], node_changed_shape[new_order[j]]));
                         VLOG(0) << "Added the new node to the graph";
                         new_nodes.insert(new_nodes.begin(), *new_node);
