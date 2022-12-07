@@ -157,6 +157,21 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             // Other stuff from fusion_utils ??
 
+            // Setting construction ctx OR metadata
+            auto get_construction_context = [](const FunctionDef& func) {
+              auto iter = func.attr().find("_construction_context");
+              if (iter == func.attr().cend()) return std::string();
+              return iter->second.s();
+            };
+            std::string org_construction_context = get_construction_context(org_func);
+            if (!org_construction_context.empty()) {
+                (*real_f->mutable_attr())["_construction_context"].set_s(
+                    org_construction_context);
+            }
+
+            graph_utils::MaybeSetFusedMetadata(org_node, org_node,
+                                               &new_f_node);
+
             // Fix the input arg types here !!!
             for (int i = 0; i < in_arg_size; ++i) {
                 // Figure out the CORRECT input type

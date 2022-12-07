@@ -111,6 +111,7 @@ void RemoveFakeSinks(FunctionDef* function_def) {
 Status ApplyRewrites(OpKernelContext* ctx,
                      const std::function<RewriterConfig(void)> config_factory,
                      GraphDef* graph_def, string* dataset_node) {
+  VLOG(0) << "In apply rewrites";
   std::unique_ptr<tensorflow::grappler::GrapplerItem> grappler_item =
       GetGrapplerItem(graph_def, dataset_node, /*add_fake_sinks=*/true);
   std::unordered_map<std::string, tensorflow::DeviceProperties> device_map;
