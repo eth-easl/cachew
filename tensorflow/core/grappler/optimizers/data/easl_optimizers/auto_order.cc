@@ -178,6 +178,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "Output has 'DataType' " << dt;
 
                 // Set the right type
+                VLOG(0) << "Type was " << input.type() << "!";
                 input.set_type(dt);
                 VLOG(0) << "Type has been adjusted to " << input.type() << "!";
             }
@@ -202,11 +203,16 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             //set_output(first_function.ret(), setup_function.ret(),
             //           fused_function->mutable_ret());
-            new_function->mutable_ret() = *org_func->ret(); // TODO: CHECK THIS ONE!
+            *new_function->mutable_ret() = org_func->ret(); // TODO: CHECK THIS ONE!
 
             auto attr = new_f_node.attr().at("predicate");
             *attr.mutable_func()->mutable_name() = new_function->signature().name();
             (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
+
+            VLOG(0) << "Refetching the signature (AKA OpDef)";
+            const OpDef ff_sig_const_new = filter_func->signature();
+            std::string op_sum_const_new = SummarizeOpDef(ff_sig_const);
+            VLOG(0) << op_sum_const_new;
 
             /*
 
@@ -261,10 +267,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << nc_op_sum_new;
 
 
-            VLOG(0) << "Refetching the signature (AKA OpDef)";
-            const OpDef ff_sig_const_new = filter_func->signature();
-            std::string op_sum_const_new = SummarizeOpDef(ff_sig_const);
-            VLOG(0) << op_sum_const_new;
+
 
 
             */
