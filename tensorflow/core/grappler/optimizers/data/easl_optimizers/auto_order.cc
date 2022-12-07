@@ -129,7 +129,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             OpDef org_func_sig = org_func->signature();
 
             // NEW TRY (WILDCARD COPY)
-            VLOG(0) << "Performing WildCard copy"
+            VLOG(0) << "Performing WildCard copy";
             FunctionDef setup_ff = *org_func;
 
             // Give the function a new name (to avoid conflicts)
@@ -137,13 +137,13 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             graph_utils::SetUniqueGraphFunctionName(wc_func_prefix, library, setup_ff);
             VLOG(0) << "Set new function's name to " << setup_ff.signature().name();
 
-            std::string attr = org_node.attr().at("predicate");
-            VLOG(0) << "Previously function used was " << org_func.signature.name();
+            AttrValue attr = org_node.attr().at("predicate");
+            VLOG(0) << "Previously function used was " << org_func->signature.name();
             *attr.mutable_func()->mutable_name() = setup_ff.signature().name();
             (*setup_ff.mutable_attr())["predicate"] = std::move(attr);
             VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
 
-            TF_RETURN_IF_ERROR(function_library.AddFunctionDef(*fused_predicate));
+            TF_RETURN_IF_ERROR(function_library.AddFunctionDef(*setup_ff));
 
             VLOG(0) << "Summary of 'predicate attribute:'";
             VLOG(0) << SummarizeAttrValue(setup_ff.attr().at("predicate"));
@@ -391,15 +391,12 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
         double ret_factor = 1.0;
         //double inf_factor = output_s/input_s;
         if (op_name.find("BatchDataset") != std::string::npos) {
-            batch_present = true;
             b_op = &node;
         }
         if (op_name.find("MapDataset") != std::string::npos) {
-            map_present = true;
             m_op = &node;
         }
         if (op_name.find("FilterDataset") != std::string::npos) {
-            filter_present = true;
             f_op = &node;
         }
         last_seen = op_name;
