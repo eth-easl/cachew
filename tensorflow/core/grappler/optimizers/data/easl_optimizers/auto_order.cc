@@ -77,11 +77,14 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
     // Add corresponding predicate if present in the original node (i.e. it was a filter node)
     if (summary.find("predicate=") != std::string::npos) {
-        (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
         VLOG(0) << "Set predicate (a predicate existed)";
 
-        // We now have to adjust the input type of this predicate/FunctionDef (later on, do the same for map ops)
-        if (!changes_dtype) {
+        if (changes_dtype) {  // The node will figure the types out for itself (hopefully)
+            (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
+        }
+        else {
+            // There may have been a change in type, follow the output types of the previous node
+
             // NEW parent's output type
             std::string parent_out_type_string = GetOutputType(SummarizeNodeDef(*in_node, 100));
             // Remove the '[' and ']' chars
@@ -95,10 +98,10 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 out_type_strings.push_back(type);
             }
 
-            const AttrValue& filter_pred = new_f_node.attr().at("predicate");
-            AttrValue non_const_filter_pred = (*new_f_node.mutable_attr())["predicate"];
-            //FunctionDef func_def_direct = (*new_f_node.mutable_attr())["predicate"].func();
-            std::string func_name = (*new_f_node.mutable_attr())["predicate"].func().name();
+            const AttrValue& filter_pred = org_node.attr().at("predicate");
+            AttrValue non_const_filter_pred = (*org_node.mutable_attr())["predicate"];
+            //FunctionDef func_def_direct = (*org_node.mutable_attr())["predicate"].func();
+            std::string func_name = (*org_node.mutable_attr())["predicate"].func().name();
             VLOG(0) << "Name of filter pred function " << func_name;
             VLOG(0) << "Adjusting filter input dtype!";
             const FunctionDef* filter_func = function_library.Find(func_name);
@@ -115,7 +118,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
             auto filter_args = filter_func->signature().input_arg();
             int in_arg_size = ff_sig_const.input_arg_size();
-            VLOG(0) << "There are " << in_arg_size << " arguments";
+            VLOG(0) << "There are " << in_arg_size << " arguments.";
 
             //VLOG(0) << "ORIGINAL ArgDef summary:";
             //std::string arg_sum = SummarizeArgs(filter_args);
@@ -137,11 +140,53 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             graph_utils::SetUniqueGraphFunctionName(wc_func_prefix, library, &setup_ff);
             VLOG(0) << "Set new function's name to " << setup_ff.signature().name();
 
-            AttrValue attr = new_f_node.attr().at("predicate");
-            VLOG(0) << "Previously function used was " << org_func->signature().name();
-            *attr.mutable_func()->mutable_name() = setup_ff.signature().name();
-            (*setup_ff.mutable_attr())["predicate"] = std::move(attr);
-            VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
+            // Fix the input arg types here !!!
+            for (int i = 0; i < in_arg_size; ++i) {
+                // Figure out the CORRECT input type
+                DataType dt;
+                std::string substr_to_remove = "DT_";
+                std::size_t substr_loc =
+                    out_type_strings[i].find(substr_to_remove);
+                if (substr_loc != std::string::npos) {
+                    out_type_strings[i].erase(substr_loc,
+                                            substr_to_remove.size());
+                }
+
+                // out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                std::transform(out_type_strings[i].begin(),
+                               out_type_strings[i].end(),
+                               out_type_strings[i].begin(), ::tolower);
+                VLOG(0) << "Output " << i << " is of type "
+                        << out_type_strings[i];
+                bool worked = DataTypeFromString(out_type_strings[i], &dt);
+                VLOG(0) << "Output has 'DataType' " << dt;
+
+                // Set dt to the respective input arg
+                OpDef_ArgDef& mutable_in_arg = org_node.signature().input_arg(i);
+                //auto& input = *signature.add_input_arg();
+                //input = input_arg;
+                //input.set_name(input.name());
+
+                VLOG(0) << "Original arg name (shouldn't change this): " << mutable_in_arg->name();
+                VLOG(0) << "Original arg type (to be changed): " << mutable_in_arg->type();
+                mutable_in_arg->set_type(dt);
+                VLOG(0) << "New arg type is: " << mutable_in_arg->type();
+            }
+            AttrValue org_attr = org_node.attr().at("predicate");
+            VLOG(0) << "Original node used function " << org_attr.func().name();
+            *org_attr.mutable_func()->mutable_name() = setup_ff.signature().name();
+            VLOG(0) << "New summary of attr ";
+            VLOG(0) << SummarizeAttrValue(org_attr);
+
+            (*new_f_node.mutable_attr())["predicate"] = org_attr;
+            VLOG(0) << "Summary of new node's 'predicate' attribute:";
+            VLOG(0) << SummarizeAttrValue(setup_ff.attr().at("predicate"));
+
+            //AttrValue attr = new_f_node.attr().at("predicate");
+            //VLOG(0) << "Previously function used was " << org_func->signature().name();
+            //*attr.mutable_func()->mutable_name() = setup_ff.signature().name();
+            //(*setup_ff.mutable_attr())["predicate"] = std::move(attr);
+            //VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
 
             function_library.AddFunctionDef(setup_ff);
 
