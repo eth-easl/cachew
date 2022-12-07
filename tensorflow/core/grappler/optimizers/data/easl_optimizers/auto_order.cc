@@ -137,7 +137,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             graph_utils::SetUniqueGraphFunctionName(wc_func_prefix, library, &setup_ff);
             VLOG(0) << "Set new function's name to " << setup_ff.signature().name();
 
-            AttrValue attr = org_node.attr().at("predicate");
+            AttrValue attr = new_f_node.attr().at("predicate");
             VLOG(0) << "Previously function used was " << org_func->signature().name();
             *attr.mutable_func()->mutable_name() = setup_ff.signature().name();
             (*setup_ff.mutable_attr())["predicate"] = std::move(attr);
