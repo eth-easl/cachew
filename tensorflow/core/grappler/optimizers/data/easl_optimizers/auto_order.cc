@@ -128,7 +128,6 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             const FunctionDef* org_func = function_library.Find(org_node.attr().at("predicate").func().name());
             OpDef org_func_sig = org_func->signature();
 
-            /*
             // NEW TRY (WILDCARD COPY)
             VLOG(0) << "Performing WildCard copy";
             FunctionDef setup_ff = *org_func;
@@ -144,12 +143,12 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             (*setup_ff.mutable_attr())["predicate"] = std::move(attr);
             VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
 
-            TF_RETURN_IF_ERROR(function_library.AddFunctionDef(setup_ff));
+            function_library.AddFunctionDef(setup_ff);
 
             VLOG(0) << "Summary of 'predicate attribute:'";
             VLOG(0) << SummarizeAttrValue(setup_ff.attr().at("predicate"));
             // END TRY (WILDCARD COPY)
-            */
+
 
             if (false) {
                 // This function will be used as a clone of the original function, having unique names.
