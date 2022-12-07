@@ -32,8 +32,6 @@ namespace {
 std::string GetOutputType(const std::string node_str){
   std::string delimiter = "output_types=";
 
-  //{{node FilterDataset/_5}} = FilterDataset[Targuments=[], _cardinality=-2, metadata="\n\01"\n\017FilterDataset:4", output_shapes=[[]], output_types=[DT_INT64], predicate=__inference_Dataset_filter_lambda_28[]](MapDataset/_4)
-
   if (node_str.find(delimiter) != std::string::npos) {
     std::string dt = node_str.substr(node_str.find(delimiter), node_str.find("], "));
     dt = dt.erase(0, delimiter.size());
@@ -66,11 +64,6 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     // new_f_node doesn't work as arg for next line for some reason! Maybe new_f_node not set up correctly yet?
     NodeDef* in_node = graph_utils::GetInputNode(org_position_node, *graph);
     VLOG(0) << "Got the input node";
-
-    //auto attr = second_filter_node.attr().at("predicate");
-    //*attr.mutable_func()->mutable_name() = fused_function.signature().name();
-    //(*new_f_node.mutable_attr())["predicate"] = std::move(attr);
-    //VLOG(0) << "making new filter predicate";
 
     // Add predicates if present
     // TODO: Check what else different op types contain
@@ -110,21 +103,18 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << "Adjusting filter input dtype!";
             const FunctionDef* filter_func = function_library.Find(func_name);
 
-
-
             // THIS MUST GO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            FunctionDef* mutable_filter_func = const_cast<FunctionDef*>(filter_func);
-            OpDef* mutable_ff_sig = mutable_filter_func->mutable_signature();
-
+            //FunctionDef* mutable_filter_func = const_cast<FunctionDef*>(filter_func);
+            //OpDef* mutable_ff_sig = mutable_filter_func->mutable_signature();
 
             tensorflow::grappler::fusion_utils::StringCollection filter_inputs = fusion_utils::GetFunctionInputs(*filter_func);
             // filter_func->signature().input_arg() is of type: const OpDef
             const OpDef ff_sig_const = filter_func->signature();
             // Another BAD ONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            OpDef ff_sig = (OpDef)ff_sig_const;
+            //OpDef ff_sig = (OpDef)ff_sig_const;
 
             auto filter_args = filter_func->signature().input_arg();
-            int in_arg_size = ff_sig.input_arg_size();
+            int in_arg_size = ff_sig_const.input_arg_size();
             VLOG(0) << "There are " << in_arg_size << " arguments";
 
             //VLOG(0) << "ORIGINAL ArgDef summary:";
@@ -135,88 +125,110 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             std::string op_sum = SummarizeOpDef(ff_sig_const);
             VLOG(0) << op_sum;
 
-            VLOG(0) << "ORIGINAL Non-const OpDef summary:";
-            std::string nc_op_sum = SummarizeOpDef(ff_sig);
-            VLOG(0) << nc_op_sum;
-
-            // Fixing an existing function didn't work. Try to construct a brand-new function (based of fusion_utils)
-
-            // This function will be used as a clone of second function, having unique
-            // names.
             const FunctionDef* org_func = function_library.Find(org_node.attr().at("predicate").func().name());
             OpDef org_func_sig = org_func->signature();
-            FunctionDef setup_function = *org_func;
 
-            // TODO: Make a new 'GetUniqueSignature' for our purposes
-            /**setup_function.mutable_signature() = GetUniqueSignature(
-                first_function.signature(), setup_function.signature(),
-                setup_function.mutable_ret(), setup_function.mutable_node_def());*/
+            // NEW TRY (WILDCARD COPY)
+            VLOG(0) << "Performing WildCard copy"
+            FunctionDef setup_ff = *org_func;
 
-            // We aren't fusing anything, so let's just keep the names the same as much as possible
-            OpDef signature;
-            signature.set_name(setup_function.signature().name());
+            // Give the function a new name (to avoid conflicts)
+            StringPiece wc_func_prefix = "wc_reo_func";
+            graph_utils::SetUniqueGraphFunctionName(wc_func_prefix, library, setup_ff);
+            VLOG(0) << "Set new function's name to " << setup_ff.signature().name();
 
-            for (int i = 0; i < in_arg_size; ++i) {
-                // Make a new (mutable) input arg
-                const OpDef_ArgDef& input_arg = org_func_sig.input_arg(i);
-                auto& input = *signature.add_input_arg();
-                input = input_arg;
-                input.set_name(input.name());
+            std::string attr = org_node.attr().at("predicate");
+            VLOG(0) << "Previously function used was " << org_func.signature.name();
+            *attr.mutable_func()->mutable_name() = setup_ff.signature().name();
+            (*setup_ff.mutable_attr())["predicate"] = std::move(attr);
+            VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
 
-                // Figure out the CORRECT input type
-                DataType dt;
-                std::string substr_to_remove = "DT_";
-                std::size_t substr_loc = out_type_strings[i].find(substr_to_remove);
-                if (substr_loc !=std::string::npos) {
-                    out_type_strings[i].erase(substr_loc,substr_to_remove.size());
+            TF_RETURN_IF_ERROR(function_library.AddFunctionDef(*fused_predicate));
+
+            VLOG(0) << "Summary of 'predicate attribute:'";
+            VLOG(0) << SummarizeAttrValue(setup_ff.attr().at("predicate"));
+            // END TRY (WILDCARD COPY)
+
+
+            if (false) {
+                // This function will be used as a clone of the original function, having unique names.
+                FunctionDef setup_function = *org_func;
+
+                // We aren't fusing anything, so let's just keep the names the same as much as possible
+                OpDef signature;
+                signature.set_name(setup_function.signature().name());
+
+                for (int i = 0; i < in_arg_size; ++i) {
+                  // Make a new (mutable) input arg
+                  const OpDef_ArgDef& input_arg = org_func_sig.input_arg(i);
+                  auto& input = *signature.add_input_arg();
+                  input = input_arg;
+                  input.set_name(input.name());
+
+                  // Figure out the CORRECT input type
+                  DataType dt;
+                  std::string substr_to_remove = "DT_";
+                  std::size_t substr_loc =
+                      out_type_strings[i].find(substr_to_remove);
+                  if (substr_loc != std::string::npos) {
+                    out_type_strings[i].erase(substr_loc,
+                                              substr_to_remove.size());
+                  }
+
+                  // out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
+                  std::transform(out_type_strings[i].begin(),
+                                 out_type_strings[i].end(),
+                                 out_type_strings[i].begin(), ::tolower);
+                  VLOG(0) << "Output " << i << " is of type "
+                          << out_type_strings[i];
+                  bool worked = DataTypeFromString(out_type_strings[i], &dt);
+                  VLOG(0) << "Output has 'DataType' " << dt;
+
+                  // Set the right type
+                  VLOG(0) << "Type was " << input.type() << "!";
+                  input.set_type(dt);
+                  VLOG(0) << "Type has been adjusted to " << input.type()
+                          << "!";
                 }
 
-                //out_type_strings[i].erase(std::remove(out_type_strings[i].begin(), out_type_strings[i].end(), '_'), out_type_strings[i].end());
-                std::transform(out_type_strings[i].begin(), out_type_strings[i].end(),out_type_strings[i].begin(), ::tolower);
-                VLOG(0) << "Output " << i << " is of type " << out_type_strings[i];
-                bool worked = DataTypeFromString(out_type_strings[i], &dt);
-                VLOG(0) << "Output has 'DataType' " << dt;
+                for (const auto& output_arg : org_func_sig.output_arg()) {
+                  auto& output = *signature.add_output_arg();
+                  output = output_arg;
+                  output.set_name(
+                      output.name());  // Last 2 lines are probably useless??
+                }
 
-                // Set the right type
-                VLOG(0) << "Type was " << input.type() << "!";
-                input.set_type(dt);
-                VLOG(0) << "Type has been adjusted to " << input.type() << "!";
+                *setup_function.mutable_signature() = signature;
+
+                FunctionDef* new_function = library->add_function();
+
+                // fusion_utils::SameSignature(org_func.signature(), setup_function.signature(),
+                //               new_function->mutable_signature());
+                *new_function->mutable_signature() =
+                    *setup_function.mutable_signature();
+
+                StringPiece func_name_prefix = "reordered_func";
+                graph_utils::SetUniqueGraphFunctionName(func_name_prefix,
+                                                        library, new_function);
+
+                // set_output(first_function.ret(), setup_function.ret(),
+                //            fused_function->mutable_ret());
+                *new_function->mutable_ret() =
+                    org_func->ret();  // TODO: CHECK THIS ONE!
+
+                auto attr = new_f_node.attr().at("predicate");
+                *attr.mutable_func()->mutable_name() =
+                    new_function->signature().name();
+                (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
+
+                VLOG(0) << "New summary of AttrValue ('predicate') ";
+                std::string pred_sum = SummarizeAttrValue(attr);
+                VLOG(0) << pred_sum;
             }
-
-            for (const auto& output_arg : org_func_sig.output_arg()) {
-                auto& output = *signature.add_output_arg();
-                output = output_arg;
-                output.set_name(output.name()); // Last 2 lines are probably useless??
-            }
-
-            *setup_function.mutable_signature() = signature;
-
-            FunctionDef* new_function = library->add_function();
-
-            //fusion_utils::SameSignature(org_func.signature(), setup_function.signature(),
-            //              new_function->mutable_signature());
-            *new_function->mutable_signature() = *setup_function.mutable_signature();
-
-            StringPiece func_name_prefix = "reordered_func";
-            graph_utils::SetUniqueGraphFunctionName(func_name_prefix, library,
-                                                    new_function);
-
-            //set_output(first_function.ret(), setup_function.ret(),
-            //           fused_function->mutable_ret());
-            *new_function->mutable_ret() = org_func->ret(); // TODO: CHECK THIS ONE!
-
-            auto attr = new_f_node.attr().at("predicate");
-            *attr.mutable_func()->mutable_name() = new_function->signature().name();
-            (*new_f_node.mutable_attr())["predicate"] = std::move(attr);
-
-            VLOG(0) << "New summary of AttrValue ('predicate') ";
-            std::string pred_sum = SummarizeAttrValue(attr);
-            VLOG(0) << pred_sum;
 
             /*
 
             // TODO: an arg count matching test would be good...
-
             for (int i = 0; i < in_arg_size; ++i) {
                 // First figure out the target data type
                 DataType dt;
@@ -249,8 +261,6 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
                 function_library.ReplaceFunction(func_name, *mutable_filter_func);
 
-
-
             }
 
             //VLOG(0) << "EDITED ArgDef summary:";
@@ -260,14 +270,6 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << "EDITED OpDef summary:";
             std::string op_sum_new = SummarizeOpDef(ff_sig_const);
             VLOG(0) << op_sum_new;
-
-            VLOG(0) << "EDITED Non-const OpDef summary:";
-            std::string nc_op_sum_new = SummarizeOpDef(ff_sig);
-            VLOG(0) << nc_op_sum_new;
-
-
-
-
 
             */
         }
@@ -348,18 +350,6 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
     const NodeDef* f_op = nullptr;
     const NodeDef* next_op = nullptr;
     std::string last_seen;
-    
-    bool batch_present = false;
-    bool map_present = false;
-    bool filter_present = false;
-
-    std::vector<NodeDef> changing_dtype = {};
-    std::vector<NodeDef> changing_shape = {};
-
-    std::string prev_dtype = "";
-    std::string prev_shape = "";
-
-    bool first_one = true;
 
     for (const NodeDef& node : suggested_order.node()) {
         /*
@@ -411,8 +401,6 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
         if (op_name.find("FilterDataset") != std::string::npos) {
             filter_present = true;
             f_op = &node;
-
-            
         }
         last_seen = op_name;
 
@@ -424,19 +412,8 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
 
         //cost+=output_s;
         cost+=input_s*ret_factor;
-
         
         last_seen = op_name;
-    }
-
-    if (batch_present && map_present) { // Should be correct graph
-        VLOG(0) << "Found map & batch";
-        
-    }
-
-    if (filter_present) {
-        // For now just rip out the filter node (and see if graph is rewired correctly)
-        VLOG(0) << "Filter present";
     }
 
     return cost;
@@ -466,8 +443,6 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
         VLOG(0) << "Updating suggestion";
         s = IsPipelineOk(sorted_old_graph, graph);
     }
-
-
     return Status::OK();
 }
 
@@ -484,8 +459,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
     MutableGraphView graph(output);
     absl::flat_hash_set<string> nodes_to_delete;
-    FunctionLibraryDefinition function_library(OpRegistry::Global(),
-                                               output->library());
+    FunctionLibraryDefinition function_library(OpRegistry::Global(), output->library());
 
     std::vector<std::string> op_types;
     auto cost = GetOrderCost(sorted_old_graph, graph, op_types);
@@ -526,8 +500,6 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
             fusion_utils::LazyConjunctionOutput, fusion_utils::LazyConjunctionNodes,
             output->mutable_library());
     };
-
-    // NEW STUFF
         
     // Get the output of the graph
     VLOG(0) << "Searching for sink node";
@@ -541,12 +513,6 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     VLOG(0) << "Searching for wanted node";
     bfs_queue.push(sink_node);
     NodeDef* target = nullptr;
-
-    //auto first_dtype = (*sink_node->mutable_attr())["output_types"];
-    //auto first_shape = (*sink_node->mutable_attr())["output_shapes"];
-
-    //VLOG(0) << first_dtype;
-    //VLOG(0) << first_shape;
 
     std::vector<NodeDef*> changing_dtype = {};
     std::vector<NodeDef*> changing_shape = {};
