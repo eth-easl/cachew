@@ -134,10 +134,28 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << "Performing WildCard copy";
             FunctionDef setup_ff = *org_func;
 
+            FunctionDef* real_f = library->add_function();
+
             // Give the function a new name (to avoid conflicts)
             StringPiece wc_func_prefix = "wc_reo_func";
             graph_utils::SetUniqueGraphFunctionName(wc_func_prefix, library, &setup_ff);
             VLOG(0) << "Set new function's name to " << setup_ff.signature().name();
+
+
+
+            // Set the 'real_f' function's signature
+            real_f->mutable_signature() = setup_ff.signature();
+
+            // Name the 'real_f' function
+            StringPiece wc_real_f_prefix = "wc_real_reo_func";
+            graph_utils::SetUniqueGraphFunctionName(wc_real_f_prefix, library, real_f);
+            VLOG(0) << "Set REAL new function's name to " << real_f->signature().name();
+
+            // RenameFunctionNodes ??
+
+            real_f->mutable_ret() = setup_ff.ret();
+
+            // Other stuff from fusion_utils ??
 
             // Fix the input arg types here !!!
             for (int i = 0; i < in_arg_size; ++i) {
@@ -161,10 +179,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "Output has 'DataType' " << dt;
 
                 // Set dt to the respective input arg
-                OpDef_ArgDef& mutable_in_arg = *setup_ff.mutable_signature()->mutable_input_arg(i);
-                //auto& input = *signature.add_input_arg();
-                //input = input_arg;
-                //input.set_name(input.name());
+                //OpDef_ArgDef& mutable_in_arg = *setup_ff.mutable_signature()->mutable_input_arg(i);
+                OpDef_ArgDef& mutable_in_arg = *real_f->mutable_signature()->mutable_input_arg(i);
+
 
                 VLOG(0) << "Original arg name (shouldn't change this): " << mutable_in_arg.name();
                 VLOG(0) << "Original arg type (to be changed): " << mutable_in_arg.type();
@@ -174,7 +191,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
             VLOG(0) << "Original node used function " << org_attr.func().name();
-            *org_attr.mutable_func()->mutable_name() = setup_ff.signature().name();
+            //*org_attr.mutable_func()->mutable_name() = setup_ff.signature().name();
+            *org_attr.mutable_func()->mutable_name() = real_f.signature().name();
             VLOG(0) << "New summary of attr ";
             VLOG(0) << SummarizeAttrValue(org_attr);
 
@@ -188,7 +206,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             //(*setup_ff.mutable_attr())["predicate"] = std::move(attr);
             //VLOG(0) << "Now we use function " << setup_ff.attr().at("predicate").func().name();
 
-            function_library.AddFunctionDef(setup_ff);
+            //function_library.AddFunctionDef(setup_ff);
+            function_library.AddFunctionDef(real_f);
 
             VLOG(0) << "Summary of 'predicate attribute:'";
             VLOG(0) << SummarizeAttrValue(new_f_node.attr().at("predicate"));
