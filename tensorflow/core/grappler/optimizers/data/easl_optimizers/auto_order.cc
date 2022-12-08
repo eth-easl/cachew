@@ -4,6 +4,7 @@
 #include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
 #include "absl/container/flat_hash_set.h"
+#include "tensorflow/core/framework/dataset.h"
 #include "tensorflow/core/framework/attr_value_util.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/node_def.pb.h"
@@ -221,7 +222,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             }
 
             // From FilterFusion
-            (*fused_function->mutable_attr())[data::kTFDataFunction].set_b(true);
+            (*real_f->mutable_attr())[data::kTFDataFunction].set_b(true);
 
             // All inputs of real_f should be set now. Add the fake sink nodes
             //AddFakeSinks(real_f);
