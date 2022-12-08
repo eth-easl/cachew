@@ -131,6 +131,7 @@ Status ApplyRewrites(OpKernelContext* ctx,
     VLOG(0) << "Removing Fake sinks for function: ";
     VLOG(0) << SummarizeOpDef(function_def.signature());
     RemoveFakeSinks(&function_def);
+    VLOG(0) << "Function after deleting fake sinks " << SummarizeOpDef(function_def.signature());
   }
 
   return Status::OK();

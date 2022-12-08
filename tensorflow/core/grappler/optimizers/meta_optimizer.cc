@@ -969,6 +969,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
   for (const FunctionDef& function : optimized_graph->library().function()) {
     find_differentiable_functions(function.node_def());
   }
+  VLOG(0) << "Optimizing reachable functions";
 
   // Find functions that will be compiled by XLA later
   // We do it by looking for XlaLaunch ops that call functions,
@@ -1017,6 +1018,8 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
   // Propagate `_tf_data_function` attributes from functions to their callees.
   PropagateTFDataAttrs(flib, *optimized_graph->mutable_library());
 
+  VLOG(0) << "Found functions to compile";
+
   // Optimize each function only once.
   absl::flat_hash_set<string> optimized_funcs;
   while (optimize_function_library) {
@@ -1045,7 +1048,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
       // and in function instantiation.
       if (data::IsTFDataFunction(func)) continue;
 
-      VLOG(3) << "Optimize function: function=" << func_name << " ["
+      VLOG(0) << "Optimize function: function=" << func_name << " ["
               << function_idx++ << " of "
               << optimized_graph->library().function_size() << "]";
 
@@ -1134,7 +1137,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
     }
   }
 
-  VLOG(1) << "Optimized " << optimized_funcs.size()
+  VLOG(0) << "Optimized " << optimized_funcs.size()
           << " functions: " << absl::StrJoin(optimized_funcs, ", ");
   VLOG(3) << "Optimized graph =\n" << optimized_graph->DebugString();
   if (VLOG_IS_ON(1)) {
