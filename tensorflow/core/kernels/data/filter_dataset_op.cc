@@ -244,6 +244,7 @@ class FilterDatasetOp::Dataset : public DatasetBase {
 
 FilterDatasetOp::FilterDatasetOp(OpKernelConstruction* ctx)
     : UnaryDatasetOpKernel(ctx) {
+  VLOG(0) << "Inside FilterDatasetOp";
   OP_REQUIRES_OK(ctx, FunctionMetadata::Create(ctx, kPredicate, /*params=*/{},
                                                &func_metadata_));
   OP_REQUIRES(ctx, func_metadata_->short_circuit_info().indices.size() <= 1,

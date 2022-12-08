@@ -182,6 +182,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             };
             std::string org_construction_context = get_construction_context(*org_func);
             if (!org_construction_context.empty()) {
+                VLOG(0) << "The orignial function had a construction context, setting it to the 'real_f' function.";
                 (*real_f->mutable_attr())["_construction_context"].set_s(
                     org_construction_context);
             }
@@ -221,8 +222,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 VLOG(0) << "New arg type is: " << mutable_in_arg.type();
             }
 
-            // From FilterFusion
-            (*real_f->mutable_attr())[data::kTFDataFunction].set_b(true);
+            // From FilterFusion (This will cause errors earlier on) DO NOT USE!
+            //(*real_f->mutable_attr())[data::kTFDataFunction].set_b(true);
 
             // All inputs of real_f should be set now. Add the fake sink nodes
             //AddFakeSinks(real_f);

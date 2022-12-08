@@ -911,7 +911,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
       tensorflow::metrics::GetGraphOptimizationCounter(),
       {kGrapplerCategory, "*"});
 
-  VLOG(1) << "Starting optimization for grappler item: " << item.id;
+  VLOG(0) << "Starting optimization for grappler item: " << item.id;
   optimization_results_.clear();
 
   // Constructs a FunctionLibraryDefinition with functions that are reachable
@@ -932,7 +932,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
   *item.graph.mutable_library() = minimized_flib(item.graph).ToProto();
   int new_library_size = item.graph.library().function_size();
 
-  VLOG(1) << absl::Substitute(
+  VLOG(0) << absl::Substitute(
       "Deleted $0 unreachable functions from the graph (library size = $1)",
       old_library_size - new_library_size, new_library_size);
 
@@ -943,7 +943,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
 
   // 1. Optimize main graph
   TF_RETURN_IF_ERROR(OptimizeGraph(cluster, std::move(item), optimized_graph));
-  VLOG(1) << "Optimized main graph.";
+  VLOG(0) << "Optimized main graph.";
   GRAPPLER_RETURN_IF_DEADLINE_EXCEEDED();
 
   // 2. Optimize functions reachable from the optimized graph.

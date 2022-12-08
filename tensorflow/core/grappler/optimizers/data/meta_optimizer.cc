@@ -119,6 +119,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
     timings.ReportAndStop();
     if (!status.ok()) return status;
   }
+  VLOG(0) << "Data Optimizations performed.";
 
   // Store the final result of all the optimizations in `output`.
   output->Swap(&optimized_item.graph);
@@ -133,7 +134,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
     auto* func = flib.Find(name);
     // Skip non tf.data functions.
     if (!data::IsTFDataFunction(*func)) continue;
-    VLOG(3) << "Optimize function: function=" << func->signature().name();
+    VLOG(0) << "Optimize function: function=" << func->signature().name();
     optimized_functions = true;
 
     // Make a GrapplerItem from a FunctionDef.
@@ -149,10 +150,12 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
     for (const FunctionDef& func_def :
          optimized_func_graph.library().function()) {
       if (flib.Find(func_def.signature().name()) == nullptr) {
+        VLOG(0) << "Newly create function: " << func_def.signature().name();
         TF_RETURN_IF_ERROR(flib.AddFunctionDef(func_def));
       }
     }
 
+    VLOG(0) << "Function was optimized";
     // Convert optimized graph back to FunctionDef.
     FunctionDef optimized_func;
     func_item.SwapFunctionBody(std::move(optimized_func_graph));
@@ -164,6 +167,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   }
   if (optimized_functions) {
     *output->mutable_library() = flib.ToProto();
+    VLOG(0) << "Done with optimizing and updating f_lib";
   }
   return Status::OK();
 }
@@ -173,6 +177,7 @@ Status TFDataMetaOptimizer::ApplyOptimization(const string& name,
                                               GrapplerItem* item) const {
   GRAPPLER_RETURN_IF_DEADLINE_EXCEEDED();
 
+  VLOG(0) << "Running the " << name << " optimizer";
   const auto* optimizer = gtl::FindOrNull(enabled_optimizers_, name);
   if (!optimizer) {
     return Status::OK();
