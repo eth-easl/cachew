@@ -70,7 +70,7 @@ void AddFakeSinksV2(FunctionDef* function_def, FunctionDef* org_f_def) {
 
     for (int i = 0; i < org_f_def->node_def_size(); ++i) {
         VLOG(0) << "NodeDef " << i << " name: " << org_f_def->node_def(i).name();
-        VLOG(0) << "NodeDef " << i << " is type: " << org_f_def->node_def(i)->op();
+        VLOG(0) << "NodeDef " << i << " is type: " << org_f_def->node_def(i).op();
         VLOG(0) << "NodeDef " << i << " summarized: " << SummarizeNodeDef(org_f_def->node_def(i));
     }
 
@@ -97,7 +97,7 @@ void AddFakeSinksV2(FunctionDef* function_def, FunctionDef* org_f_def) {
 
     for (int i = 0; i < function_def->node_def_size(); ++i) {
         VLOG(0) << "NodeDef " << i << " name: " << function_def->node_def(i).name();
-        VLOG(0) << "NodeDef " << i << " is type: " << function_def->node_def(i)->op();
+        VLOG(0) << "NodeDef " << i << " is type: " << function_def->node_def(i).op();
         VLOG(0) << "NodeDef " << i << " summarized: " << SummarizeNodeDef(function_def->node_def(i));
     }
 }
@@ -268,7 +268,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             //(*real_f->mutable_attr())[data::kTFDataFunction].set_b(true);
 
             // All inputs of real_f should be set now. Add the fake sink nodes
-            AddFakeSinksV2(real_f);
+            AddFakeSinksV2(real_f, org_func);
 
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
