@@ -150,6 +150,12 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
       graph_to_run.get(), input_names, output_names, {} /* target nodes */,
       device_->attributes(), false /* use_function_convention */, &metadata));
   VLOG(0) << "Rewrote graph for execution";
+  VLOG(0) << "Input names:";
+  for (auto input: input_names)
+      VLOG(0) << input;
+  VLOG(0) << "Output names:";
+  for (auto output: output_names)
+      VLOG(0) << output;
 
   // Create the local executor and the Rendezvous for fetching back the
   // constants.

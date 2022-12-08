@@ -143,7 +143,9 @@ class ExecutorImpl : public Executor {
   explicit ExecutorImpl(const LocalExecutorParams& p) : immutable_state_(p) {}
 
   Status Initialize(const Graph& graph) {
+    VLOG(0) << "In Initialize method";
     TF_RETURN_IF_ERROR(immutable_state_.Initialize(graph));
+    VLOG(0) << "In Initialize method (2)";
     kernel_stats_.Initialize(immutable_state_.graph_view());
     return Status::OK();
   }
@@ -1378,6 +1380,7 @@ void ExecutorImpl::RunAsync(const Args& args, DoneCallback done) {
 Status NewLocalExecutor(const LocalExecutorParams& params, const Graph& graph,
                         Executor** executor) {
   ExecutorImpl* impl = new ExecutorImpl(params);
+  VLOG(0) << "Make Executor from params";
   const Status s = impl->Initialize(graph);
   if (s.ok()) {
     *executor = impl;
