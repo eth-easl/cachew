@@ -240,6 +240,9 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             VLOG(0) << "Summary of new node's 'predicate' attribute:";
             VLOG(0) << SummarizeAttrValue(new_f_node.attr().at("predicate"));
 
+            VLOG(0) << "Summary of NEW OpDef";
+            VLOG(0) << SummarizeOpDef(real_f->signature());
+
             //AttrValue attr = new_f_node.attr().at("predicate");
             //VLOG(0) << "Previously function used was " << org_func->signature().name();
             //*attr.mutable_func()->mutable_name() = setup_ff.signature().name();
