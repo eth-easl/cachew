@@ -178,10 +178,12 @@ Status RewriteDataset(OpKernelContext* ctx, const DatasetBase* input,
   TF_RETURN_IF_ERROR(
       AsGraphDefForRewrite(ctx, input, &input_list, &graph_def, &output_node));
 
-  VLOG(0) << "Before graph rewrites: " << graph_def.DebugString();
+  VLOG(0) << "Before graph rewrites: ";
+  VLOG(3) << graph_def.DebugString();
   TF_RETURN_IF_ERROR(
       ApplyRewrites(ctx, config_factory, &graph_def, &output_node));
-  VLOG(0) << "After graph rewrites: " << graph_def.DebugString();
+  VLOG(0) << "After graph rewrites: ";
+  VLOG(3) << graph_def.DebugString();
 
   // Instantiate the optimized input pipeline by running the optimized graph
   // using the optimized function library.

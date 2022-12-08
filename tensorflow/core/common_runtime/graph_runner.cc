@@ -149,6 +149,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
   TF_RETURN_IF_ERROR(subgraph::RewriteGraphForExecution(
       graph_to_run.get(), input_names, output_names, {} /* target nodes */,
       device_->attributes(), false /* use_function_convention */, &metadata));
+  VLOG(0) << "Rewrote graph for execution";
 
   // Create the local executor and the Rendezvous for fetching back the
   // constants.
@@ -169,10 +170,12 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
                                  kernel);
   };
   params.delete_kernel = [](OpKernel* kernel) { delete kernel; };
+  VLOG(0) << "Initialized runner/kernels/params";
 
   Executor* executor;
   TF_RETURN_IF_ERROR(NewLocalExecutor(params, *graph_to_run, &executor));
   std::unique_ptr<Executor> executor_unref(executor);
+  VLOG(0) << "Prepared executor";
 
   Executor::Args args;
   // NOTE: we could take a step id as an argument, but currently
@@ -190,6 +193,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
 
   // Run the graph.
   TF_RETURN_IF_ERROR(executor->Run(args));
+  VLOG(0) << "Executor ran";
 
   outputs->resize(output_names.size());
   for (size_t i = 0; i < output_names.size(); ++i) {
@@ -207,6 +211,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
     // deleted along with the device.
     (*outputs)[i] = tensor::DeepCopy(output_tensor);
   }
+  VLOG(0) << "Processed outputs";
 
   return Status::OK();
 }
