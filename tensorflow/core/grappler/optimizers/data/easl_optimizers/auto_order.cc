@@ -219,8 +219,12 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
                 mutable_in_arg.set_type(dt);
                 VLOG(0) << "New arg type is: " << mutable_in_arg.type();
             }
+
+            // From FilterFusion
+            (*fused_function->mutable_attr())[data::kTFDataFunction].set_b(true);
+
             // All inputs of real_f should be set now. Add the fake sink nodes
-            AddFakeSinks(real_f);
+            //AddFakeSinks(real_f);
 
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
