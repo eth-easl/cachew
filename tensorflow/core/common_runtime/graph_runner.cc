@@ -107,6 +107,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
   if (device_ == nullptr) {
     return errors::NotFound("Cannot find a device for GraphRunner.");
   }
+  VLOG(0) << "Inside GraphRunner";
 
   if (function_library && function_library->device() &&
       function_library->device()->device_type() != device_->device_type()) {
@@ -125,6 +126,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
   // prior to returning.
   std::unique_ptr<Graph> graph_to_run(new Graph(graph->op_registry()));
   CopyGraph(*graph, graph_to_run.get());
+  VLOG(0) << "Made a new graph and copied it";
 
   SimpleRendezvous rendez;
 
@@ -140,6 +142,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
     TF_RETURN_IF_ERROR(rendez.Send(parsed, Rendezvous::Args(), in.second,
                                    false /* is_dead */));
   }
+  VLOG(0) << "Fed in the inputs";
 
   // Call RewriteGraphForExecution
   subgraph::RewriteGraphMetadata metadata;
