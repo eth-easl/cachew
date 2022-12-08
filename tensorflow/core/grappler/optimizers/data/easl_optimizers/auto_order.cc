@@ -60,6 +60,48 @@ void AddFakeSinks(FunctionDef* function_def) {
   }
 }
 
+void AddFakeSinksV2(FunctionDef* function_def, FunctionDef* org_f_def) {
+    VLOG(0) << "Org func had " << org_f_def->signature().output_arg_size() << "output args";
+    VLOG(0) << "Org func Nodedef size " << org_f_def->node_def_size();
+
+    for (const OpDef_ArgDef& output : org_f_def->signature().output_arg()) {
+        VLOG(0) << "Org func output name: " << output.name();
+    }
+
+    for (int i = 0; i < org_f_def->node_def_size(); ++i) {
+        VLOG(0) << "NodeDef " << i << " name: " << org_f_def->node_def(i).name();
+        VLOG(0) << "NodeDef " << i << " is type: " << org_f_def->node_def(i)->op();
+        VLOG(0) << "NodeDef " << i << " summarized: " << SummarizeNodeDef(org_f_def->node_def(i));
+    }
+
+    VLOG(0) << "New func has " << function_def->signature().output_arg_size() << "output args";
+    VLOG(0) << "New func Nodedef size " << function_def->node_def_size();
+
+    int counter = 0;
+    for (const auto& output : function_def->signature().output_arg()) {
+        NodeDef* node = function_def->add_node_def();
+        tensorflow::grappler::function_utils::SetUniqueFunctionNodeName(
+            strings::StrCat("FakeSink", counter++), function_def, node);
+        node->set_op("Identity");
+        node->add_input(function_def->ret().at(output.name()));
+        (*node->mutable_attr())["T"].set_type(output.type());
+
+        (*function_def->mutable_ret())[output.name()] =
+            strings::StrCat(node->name(), ":output:0");
+    }
+
+    // Check the FunctionDefs match (to some extent)
+    for (const OpDef_ArgDef& output : function_def->signature().output_arg()) {
+        VLOG(0) << "New func output name: " << output.name();
+    }
+
+    for (int i = 0; i < function_def->node_def_size(); ++i) {
+        VLOG(0) << "NodeDef " << i << " name: " << function_def->node_def(i).name();
+        VLOG(0) << "NodeDef " << i << " is type: " << function_def->node_def(i)->op();
+        VLOG(0) << "NodeDef " << i << " summarized: " << SummarizeNodeDef(function_def->node_def(i));
+    }
+}
+
 NodeDef MakeNewNode(const NodeDef& org_position_node,
                     const NodeDef& org_node,
                     MutableGraphView* graph,
@@ -226,7 +268,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             //(*real_f->mutable_attr())[data::kTFDataFunction].set_b(true);
 
             // All inputs of real_f should be set now. Add the fake sink nodes
-            //AddFakeSinks(real_f);
+            AddFakeSinksV2(real_f);
 
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
