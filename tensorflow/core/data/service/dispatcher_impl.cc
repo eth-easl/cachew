@@ -1067,17 +1067,26 @@ Status DataServiceDispatcherImpl::CreateJob(
   bool trigger_scaling = s.ok() && (existing_job_type != job_type ||
     job_type == "PUT" || job_type == "PUT_SOURCE");
 
+  VLOG(0) << "Deciding whether to trigger the AutoOrder policy";
+  //bool new_old_job = metadata_store_.JobSeenBefore();
   // EASL perform the AutoOrder mechanism
   bool is_ordering;
   metadata_store_.IsJobOrdering(job_id, is_ordering);
   std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
+  VLOG(0) << "Got the JobMetrics";
+  if (!s.ok()) {
+    VLOG(0) << "Fetching JobMetrics failed!";
+  }
 
   // For now just order after the 1st epoch passes (later on place AutoOrder after AutoPlacement policy)
   //easl::MetricsHistory metrics_history;
-  easl::ModelMetrics model_metrics;
+  //easl::ModelMetrics model_metrics;
   //Status s_hist = job_metrics->GetMetricsHistory(metrics_history);
+  auto model_metrics = job_metrics->model_metrics_;
+  VLOG(0) << "(Test) Got model metics!";
   auto metrics_history = job_metrics->model_metrics_->metrics_history_;
+  VLOG(0) << "Got MetricsHistory!"
   int hist_size = metrics_history.size();
   VLOG(0) << "History has length (should correspond to no. of epochs): " << hist_size;
   if (hist_size==1) {
