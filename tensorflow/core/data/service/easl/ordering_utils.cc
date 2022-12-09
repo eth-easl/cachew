@@ -31,7 +31,7 @@ double kMinBatchTimeRelativeGrowth = 1.5; // +50%
 // TODO: Check what happens with batch!
 Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store, std::vector<float> inflationFactors, int64 job_id) {
   std::shared_ptr<::tensorflow::data::easl::JobMetrics> job_metrics;
-  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, job_metrics))
+  TF_RETURN_IF_ERROR(metadata_store.GetJobMetrics(job_id, job_metrics));
 
 
   std::shared_ptr<::tensorflow::data::easl::InputPipelineMetrics> i_p_metrics;
@@ -60,7 +60,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   int total_elems_produced = 0;
   for (int i = 0; i < num_workers; ++i) {
     tensorflow::data::easl::NodeMetrics final_node_worker_metrics;
-    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_metrics));
+    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
     elems_produced_final.push_back(final_node_worker_metrics->num_elements());
     total_elems_produced += elems_produced_final[i];
     VLOG(0) << "Worker " << worker_ips[i] << " produced " << elems_produced_final[i] << " elements";
@@ -70,10 +70,10 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // Examine the metric for each worker 1 by 1
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
-    Status s = i_p_metrics.GetWorkerMetrics(worker_ips[i], worker_metrics);
+    Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
     for (int j = 0; j < nodes_in_pipeline; ++j) {
       // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
-      float inflation_f = worker_metrics->metrics_.find(node_names[j]).bytes_produced() / worker_metrics.metrics_.find(node_names[j]).bytes_consumed()
+      float inflation_f = worker_metrics.find(node_names[j]).bytes_produced() / worker_metrics.find(node_names[j]).bytes_consumed()
       inflationFactors[j] += elems_produced_final[i] * inflation_f;
     }
   }
