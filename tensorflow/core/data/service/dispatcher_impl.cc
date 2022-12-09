@@ -1086,7 +1086,7 @@ Status DataServiceDispatcherImpl::CreateJob(
   auto model_metrics = job_metrics->model_metrics_;
   VLOG(0) << "(Test) Got model metics!";
   auto metrics_history = job_metrics->model_metrics_->metrics_history_;
-  VLOG(0) << "Got MetricsHistory!"
+  VLOG(0) << "Got MetricsHistory!";
   int hist_size = metrics_history.size();
   VLOG(0) << "History has length (should correspond to no. of epochs): " << hist_size;
   if (hist_size==1) {
