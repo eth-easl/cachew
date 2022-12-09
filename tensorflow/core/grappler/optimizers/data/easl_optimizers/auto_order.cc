@@ -145,6 +145,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     if (summary.find("predicate=") != std::string::npos) {
         VLOG(0) << "Set predicate (a predicate existed)";
 
+        // For now focus on ops that don't change the d_type and merely copy over the predicate as is
+        changes_dtype = true
         if (changes_dtype) {  // The node will figure the types out for itself (hopefully)
             (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
         }
@@ -277,7 +279,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             //(*real_f->mutable_attr())[data::kTFDataFunction].set_b(true);
 
             // All inputs of real_f should be set now. Add the fake sink nodes
-            AddFakeSinksV2(real_f, org_func, dt);
+            //AddFakeSinksV2(real_f, org_func, dt);
 
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);

@@ -63,7 +63,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
     auto it = final_node_worker_metrics.find(node_names[node_names.size()-1]);
     if (it != final_node_worker_metrics.end()) {
-      elems_produced_final.push_back(it->second->num_elements();
+      elems_produced_final.push_back(it->second->num_elements());
     } else {
       elems_produced_final.push_back(0);
     }
