@@ -31,7 +31,7 @@ double kMinBatchTimeRelativeGrowth = 1.5; // +50%
 // TODO: Check what happens with batch!
 Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store, std::vector<float> inflationFactors, int64 job_id) {
   std::shared_ptr<::tensorflow::data::easl::InputPipelineMetrics> i_p_metrics;
-  GetInputPipelineMetrics(job_id, i_p_metrics);
+  metadata_store.GetInputPipelineMetrics(job_id, i_p_metrics);
 
   std::vector<std::string> worker_ips;
   std::shared_ptr<::tensorflow::data::easl::NodeMetrics> final_node_metrics;
@@ -55,8 +55,10 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   std::vector<int> elems_produced_final;
   int total_elems_produced = 0;
   for (int i = 0; i < num_workers; ++i) {
-    elems_produced_final.push_back(i_p_metrics.GetWorkerMetrics(worker_ips(i), final_node_metrics));
-    total_elems_produced += final_node_metrics[i];
+    tensorflow::data::easl::NodeMetrics final_node_worker_metrics;
+    TF_RETURN_IF_ERROR(i_p_metrics.GetWorkerMetrics(worker_ips(i), final_node_metrics));
+    elems_produced_final.push_back(final_node_worker_metrics.num_elements());
+    total_elems_produced += elems_produced_final[i];
     VLOG(0) << "Worker " << worker_ips[i] << " produced " << elems_produced_final[i] << " elements";
   }
   VLOG(0) << "In total " << total_elems_produced << " elements were produced by the input pipeline.";
@@ -64,7 +66,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // Examine the metric for each worker 1 by 1
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
-    auto worker_metrics = i_p_metrics.GetWorkerMetrics(worker_ips[i], worker_metrics);
+    Status s = i_p_metrics.GetWorkerMetrics(worker_ips[i], worker_metrics);
     for (int j = 0; j < nodes_in_pipeline; ++j) {
       // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
       float inflation_f = worker_metrics.metrics_.find(nodes_in_pipeline[j]).bytes_produced() / worker_metrics.metrics_.find(nodes_in_pipeline[j]).bytes_consumed()
@@ -151,7 +153,7 @@ Status OpOrderUpdate(
       tensorflow::grappler::easl::AutoOrder optimizer;
 
       std::vector<float> inflationFactors;
-      Status s1 = DetermineInflationFactors(metadata_store, inflationFactors);
+      Status s1 = DetermineInflationFactors(metadata_store, inflationFactors, job_id);
       
       tensorflow::grappler::MutableGraphView graph(graph_def);
       Status s = optimizer.ApplyOptimization(graph, *graph_def);
