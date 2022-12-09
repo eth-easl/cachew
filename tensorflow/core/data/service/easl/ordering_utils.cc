@@ -27,6 +27,77 @@ double kMinQueueSizeRelativeGrowth = 1.5; // +50%
 double kMinBatchTimeRelativeGrowth = 1.5; // +50%
 }
 
+// Big assumption (TBC), this happens after the completion of an epoch (i.e. each op will process the same no. of elems (except for filtering))
+// TODO: Check what happens with batch!
+Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store, vector<float> inflationFactors, int64 job_id) {
+  std::shared_ptr<InputPipelineMetrics>& i_p_metrics;
+  GetInputPipelineMetrics(job_id, i_p_metrics);
+
+  std::vector<std::string> worker_ips;
+  std::shared_ptr<NodeMetrics> final_node_metrics;
+  TF_RETURN_IF_ERROR(metadata_store.GetLastNodeMetrics(job_id, final_node_metrics));
+  for (auto e : final_node_metrics->metrics_) {
+    worker_ips.push_back(e.first);
+  }
+  int num_workers = worker_ips.size();
+  VLOG(0) << "In total " << num_workers << " workers worked on this job";
+
+  int nodes_in_pipeline = 0;
+  std::vector<std::string> node_names;
+  for (auto e : i_p_metrics->metrics_) {
+    nodes_in_pipeline++;
+    node_names.push_back(e.first);
+    inflationFactors.push_back(0);
+  }
+  VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
+
+  // Use the num elems produced by a specific worker's last node as a weighting means
+  std::vector<int> elems_produced_final;
+  int total_elems_produced = 0;
+  for (int i = 0; i < w_count; ++i) {
+    elems_produced_final.push_back(GetWorkerMetrics(worker_ips(i), final_node_metrics));
+    total_elems_produced += final_node_metrics(i);
+    VLOG(0) << "Worker " << worker_ips(i) << " produced " << elems_produced_final(i) << " elements";
+  }
+  VLOG(0) << "In total " << total_elems_produced << " elements were produced by the input pipeline.";
+
+  // Examine the metric for each worker 1 by 1
+  for (int i = 0; i < num_workers; ++i) {
+    NodeMetrics::MetricsCollection& worker_metrics;
+    auto worker_metrics = i_p_metrics.GetWorkerMetrics(worker_ips(i), worker_metrics);
+    for (int j = 0; j < nodes_in_pipeline; ++j) {
+      // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
+      float inflation_f = worker_metrics.metrics_.find(nodes_in_pipeline(j)).bytes_produced() / worker_metrics.metrics_.find(nodes_in_pipeline(j)).bytes_consumed()
+      inflationFactors(j) += elems_produced_final(i) * inflation_f;
+    }
+  }
+
+  // Divide inflation factors by the no. of elems
+  for (int i = 0; i < nodes_in_pipeline; ++i) {
+    inflationFactors(i) /= total_elems_produced;
+    VLOG(0) << "Node " << node_names(i) << " has inflation factor " << inflationFactors(i);
+  }
+
+
+
+
+  /*std::shared_ptr<NodeMetrics> final_node_metrics;
+  TF_RETURN_IF_ERROR(metadata_store.GetLastNodeMetrics(job_id, final_node_metrics));
+  size_t num_workers = (final_node_metrics->metrics_).size();
+  int num_ops = 5; // Figure out from the node metrics
+  //for (int i)
+  int total_elems =
+  for (std::pair<std::string, std::shared_ptr<NodeMetrics::Metrics>> e : final_node_metrics->metrics_) {
+    VLOG(0) << "NodeMetrics first (string) is: " << e.first;
+    std::shared_ptr<NodeMetrics::Metrics> worker_metrics = e.second;
+
+    for (int j = 0 ; j < num_ops; ++j) {
+
+    }
+  }*/
+
+  return Status::OK();
+}
 
 Status OpOrderUpdate(
     const std::string& job_type,
@@ -67,7 +138,7 @@ Status OpOrderUpdate(
     int rwc = last_metrics->remote_worker_count();
     if (rwc == 0) {
       // Later we might want to try adding reorder even in full local mode (for higher throughput)
-      VLOG(0) << "Already at 0 remote workers, no need to reoder.";
+      VLOG(0) << "Already at 0 remote workers, no need to reorder.";
       return Status::OK();
     }
     else{
@@ -79,6 +150,8 @@ Status OpOrderUpdate(
       GraphDef* graph_def = reordered_dataset.mutable_graph();
       tensorflow::grappler::easl::AutoOrder optimizer;
 
+      std::vector<float> inflationFactors;
+      Status s = DetermineInflationFactors(metadata_store, inflationFactors);
       
       tensorflow::grappler::MutableGraphView graph(graph_def);
       Status s = optimizer.ApplyOptimization(graph, *graph_def);

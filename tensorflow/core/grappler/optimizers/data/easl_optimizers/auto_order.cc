@@ -60,9 +60,10 @@ void AddFakeSinks(FunctionDef* function_def) {
   }
 }
 
-void AddFakeSinksV2(FunctionDef* function_def, FunctionDef* org_f_def) {
-    VLOG(0) << "Org func had " << org_f_def->signature().output_arg_size() << "output args";
+void AddFakeSinksV2(FunctionDef* function_def, const FunctionDef* org_f_def, DataType dt) {
+    VLOG(0) << "Org func had " << org_f_def->signature().output_arg_size() << " output args";
     VLOG(0) << "Org func Nodedef size " << org_f_def->node_def_size();
+    VLOG(0) << "Org func ret size " << org_f_def->ret_size();
 
     for (const OpDef_ArgDef& output : org_f_def->signature().output_arg()) {
         VLOG(0) << "Org func output name: " << output.name();
@@ -72,9 +73,15 @@ void AddFakeSinksV2(FunctionDef* function_def, FunctionDef* org_f_def) {
         VLOG(0) << "NodeDef " << i << " name: " << org_f_def->node_def(i).name();
         VLOG(0) << "NodeDef " << i << " is type: " << org_f_def->node_def(i).op();
         VLOG(0) << "NodeDef " << i << " summarized: " << SummarizeNodeDef(org_f_def->node_def(i));
+
+        /*NodeDef* node = function_def->add_node_def();
+        tensorflow::grappler::function_utils::SetUniqueFunctionNodeName(
+            strings::StrCat("ReoOrdered", org_f_def->node_def(i).name()), function_def, node);
+        node->set_op(org_f_def->node_def(i).op());
+        (*node->mutable_attr())["T"].set_type(output.type());*/
     }
 
-    VLOG(0) << "New func has " << function_def->signature().output_arg_size() << "output args";
+    VLOG(0) << "New func has " << function_def->signature().output_arg_size() << " output args";
     VLOG(0) << "New func Nodedef size " << function_def->node_def_size();
 
     int counter = 0;
@@ -232,10 +239,12 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             graph_utils::MaybeSetFusedMetadata(org_node, org_node,
                                                &new_f_node);
 
+            DataType dt; // This might be dangerous
+
             // Fix the input arg types here !!!
             for (int i = 0; i < in_arg_size; ++i) {
                 // Figure out the CORRECT input type
-                DataType dt;
+
                 std::string substr_to_remove = "DT_";
                 std::size_t substr_loc =
                     out_type_strings[i].find(substr_to_remove);
@@ -268,7 +277,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             //(*real_f->mutable_attr())[data::kTFDataFunction].set_b(true);
 
             // All inputs of real_f should be set now. Add the fake sink nodes
-            AddFakeSinksV2(real_f, org_func);
+            AddFakeSinksV2(real_f, org_func, dt);
 
             AttrValue org_attr = org_node.attr().at("predicate");
             VLOG(0) << "Original summary of attr " << SummarizeAttrValue(org_attr);
@@ -663,7 +672,8 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     std::vector<NodeDef*> changing_dtype = {};
     std::vector<NodeDef*> changing_shape = {};
 
-    std::vector<bool> node_changed_dtype = {false, true}; // remember we are going bottom up in the pipeline
+    //std::vector<bool> node_changed_dtype = {false, true}; // remember we are going bottom up in the pipeline
+    std::vector<bool> node_changed_dtype = {false, false}; // remember we are going bottom up in the pipeline
     std::vector<bool> node_changed_shape = {false, false};
     
     while (!bfs_queue.empty()) {
