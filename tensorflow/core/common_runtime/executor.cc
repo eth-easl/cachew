@@ -143,9 +143,9 @@ class ExecutorImpl : public Executor {
   explicit ExecutorImpl(const LocalExecutorParams& p) : immutable_state_(p) {}
 
   Status Initialize(const Graph& graph) {
-    VLOG(0) << "In Initialize method";
+    VLOG(1) << "In Initialize method";
     TF_RETURN_IF_ERROR(immutable_state_.Initialize(graph));
-    VLOG(0) << "In Initialize method (2)";
+    VLOG(1) << "In Initialize method (2)";
     kernel_stats_.Initialize(immutable_state_.graph_view());
     return Status::OK();
   }

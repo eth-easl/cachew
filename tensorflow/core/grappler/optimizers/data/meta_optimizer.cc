@@ -177,7 +177,7 @@ Status TFDataMetaOptimizer::ApplyOptimization(const string& name,
                                               GrapplerItem* item) const {
   GRAPPLER_RETURN_IF_DEADLINE_EXCEEDED();
 
-  VLOG(0) << "Running the " << name << " optimizer";
+  //VLOG(0) << "Running the " << name << " optimizer";
   const auto* optimizer = gtl::FindOrNull(enabled_optimizers_, name);
   if (!optimizer) {
     return Status::OK();

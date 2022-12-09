@@ -107,7 +107,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
   if (device_ == nullptr) {
     return errors::NotFound("Cannot find a device for GraphRunner.");
   }
-  VLOG(0) << "Inside GraphRunner";
+  VLOG(1) << "Inside GraphRunner";
 
   if (function_library && function_library->device() &&
       function_library->device()->device_type() != device_->device_type()) {
@@ -126,7 +126,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
   // prior to returning.
   std::unique_ptr<Graph> graph_to_run(new Graph(graph->op_registry()));
   CopyGraph(*graph, graph_to_run.get());
-  VLOG(0) << "Made a new graph and copied it";
+  VLOG(1) << "Made a new graph and copied it";
 
   SimpleRendezvous rendez;
 
@@ -142,20 +142,20 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
     TF_RETURN_IF_ERROR(rendez.Send(parsed, Rendezvous::Args(), in.second,
                                    false /* is_dead */));
   }
-  VLOG(0) << "Fed in the inputs";
+  VLOG(1) << "Fed in the inputs";
 
   // Call RewriteGraphForExecution
   subgraph::RewriteGraphMetadata metadata;
   TF_RETURN_IF_ERROR(subgraph::RewriteGraphForExecution(
       graph_to_run.get(), input_names, output_names, {} /* target nodes */,
       device_->attributes(), false /* use_function_convention */, &metadata));
-  VLOG(0) << "Rewrote graph for execution";
-  VLOG(0) << "Input names:";
+  VLOG(1) << "Rewrote graph for execution";
+  VLOG(1) << "Input names:";
   for (auto input: input_names)
-      VLOG(0) << input;
-  VLOG(0) << "Output names:";
+      VLOG(1) << input;
+  VLOG(1) << "Output names:";
   for (auto output: output_names)
-      VLOG(0) << output;
+      VLOG(1) << output;
 
   // Create the local executor and the Rendezvous for fetching back the
   // constants.
@@ -176,12 +176,12 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
                                  kernel);
   };
   params.delete_kernel = [](OpKernel* kernel) { delete kernel; };
-  VLOG(0) << "Initialized runner/kernels/params";
+  VLOG(1) << "Initialized runner/kernels/params";
 
   Executor* executor;
   TF_RETURN_IF_ERROR(NewLocalExecutor(params, *graph_to_run, &executor));
   std::unique_ptr<Executor> executor_unref(executor);
-  VLOG(0) << "Prepared executor";
+  VLOG(1) << "Prepared executor";
 
   Executor::Args args;
   // NOTE: we could take a step id as an argument, but currently
@@ -199,7 +199,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
 
   // Run the graph.
   TF_RETURN_IF_ERROR(executor->Run(args));
-  VLOG(0) << "Executor ran";
+  VLOG(1) << "Executor ran";
 
   outputs->resize(output_names.size());
   for (size_t i = 0; i < output_names.size(); ++i) {
@@ -217,7 +217,7 @@ Status GraphRunner::Run(Graph* graph, FunctionLibraryRuntime* function_library,
     // deleted along with the device.
     (*outputs)[i] = tensor::DeepCopy(output_tensor);
   }
-  VLOG(0) << "Processed outputs";
+  VLOG(1) << "Processed outputs";
 
   return Status::OK();
 }

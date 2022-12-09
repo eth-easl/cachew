@@ -146,7 +146,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
         VLOG(0) << "Set predicate (a predicate existed)";
 
         // For now focus on ops that don't change the d_type and merely copy over the predicate as is
-        changes_dtype = true
+        changes_dtype = true;
         if (changes_dtype) {  // The node will figure the types out for itself (hopefully)
             (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
         }

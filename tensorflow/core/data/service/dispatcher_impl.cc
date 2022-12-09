@@ -1073,7 +1073,15 @@ Status DataServiceDispatcherImpl::CreateJob(
   std::shared_ptr<easl::JobMetrics> job_metrics;
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
 
-  if (trigger_scaling = s.ok() && is_ordering && existing_job_type == job_type){
+  // For now just order after the 1st epoch passes (later on place AutoOrder after AutoPlacement policy)
+  easl::MetricsHistory metrics_history;
+  easl::ModelMetrics model_metrics;
+  Status s_hist = job_metrics->GetMetricsHistory(metrics_history);
+  metrics_history = job_metrics->model_metrics_->metrics_history_;
+  int hist_size = metrics_history.size();
+  VLOG(0) << "History has length (should correspond to no. of epochs): " << hist_size;
+  if (hist_size==1) {
+  //if (trigger_scaling = s.ok() && is_ordering && existing_job_type == job_type){
     trigger_scaling = true;
     VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
     // TODO: Peform actual reordering HERE!!!
