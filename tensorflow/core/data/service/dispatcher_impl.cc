@@ -1074,10 +1074,10 @@ Status DataServiceDispatcherImpl::CreateJob(
   s = metadata_store_.GetJobMetrics(job_id, job_metrics);
 
   // For now just order after the 1st epoch passes (later on place AutoOrder after AutoPlacement policy)
-  easl::MetricsHistory metrics_history;
+  //easl::MetricsHistory metrics_history;
   easl::ModelMetrics model_metrics;
-  Status s_hist = job_metrics->GetMetricsHistory(metrics_history);
-  metrics_history = job_metrics->model_metrics_->metrics_history_;
+  //Status s_hist = job_metrics->GetMetricsHistory(metrics_history);
+  auto metrics_history = job_metrics->model_metrics_->metrics_history_;
   int hist_size = metrics_history.size();
   VLOG(0) << "History has length (should correspond to no. of epochs): " << hist_size;
   if (hist_size==1) {
