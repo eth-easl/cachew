@@ -61,7 +61,13 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (int i = 0; i < num_workers; ++i) {
     tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
     TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
-    elems_produced_final.push_back(final_node_worker_metrics.find(node_names[node_names.size()-1].num_elements());
+    auto it = worker_metrics.find(node_names[node_names.size()-1]);
+    if (it != worker_metrics.end()) {
+      elems_produced_final.push_back(it->second->num_elements();
+    } else {
+      elems_produced_final.push_back(0);
+    }
+    //elems_produced_final.push_back(final_node_worker_metrics.find(node_names[node_names.size()-1]).num_elements());
     total_elems_produced += elems_produced_final[i];
     VLOG(0) << "Worker " << worker_ips[i] << " produced " << elems_produced_final[i] << " elements";
   }
@@ -74,10 +80,10 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     for (int j = 0; j < nodes_in_pipeline; ++j) {
       // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
       auto it = worker_metrics.find(node_names[j]);
-      if (it != job_metadata_.end()) {
-        int bp = it->second.bytes_produced();
-        int bc = it->second.bytes_consumed();
-        float inflation_f = bp / pc;
+      if (it != worker_metrics.end()) {
+        int bp = it->second->bytes_produced();
+        int bc = it->second->bytes_consumed();
+        float inflation_f = bp / bc;
         inflationFactors[j] += elems_produced_final[i] * inflation_f;
       }
     }
