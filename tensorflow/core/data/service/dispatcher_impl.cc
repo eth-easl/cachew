@@ -1081,12 +1081,29 @@ Status DataServiceDispatcherImpl::CreateJob(
   //std::shared_ptr<data::easl::JobMetrics> job_metrics;
 
   Status s_seen = metadata_store_.GetJobMetricsByDatasetFingerprintAndName(dataset_fingerprint, job_name, job_metrics);
+  bool tmp_is_ordering;
   if (!s_seen.ok()){
     VLOG(0) << "We haven't seen this job/dataset before";
     metadata_store_.UnsetJobIsOrdering(job_id);
+    tmp_is_ordering = false;
   } else {
     VLOG(0) << "Found historical metrics for this job";
     metadata_store_.SetJobIsOrdering(job_id);
+    VLOG(0) << "In ordering state";
+    auto mm = job_metrics->model_metrics_;
+    VLOG(0) << "Got model metrics";
+    auto mh = job_metrics->model_metrics_->metrics_history_
+    VLOG(0) << "Got metrics history";
+    auto mh_l = job_metrics->model_metrics_->metrics_history_->back();
+    VLOG(0) << "Got last metrics from history";
+    float l_b_time = job_metrics->model_metrics_->metrics_history_->back()->last_x_batch_time_ms();
+    VLOG(0) << "Last batch time" << job_metrics->model_metrics_->metrics_history_->back()->last_x_batch_time_ms();
+    VLOG(0) << "History length" << job_metrics->model_metrics_->metrics_history_->size();
+    tmp_is_ordering = true;
+
+    // Check whether ordering policy is on
+    int o_policy = config_.ordering_policy();
+    VLOG(0) << "Ordering policy is " << o_policy;
   }
   // For now just order after the 1st epoch passes (later on place AutoOrder after AutoPlacement policy)
   //easl::MetricsHistory metrics_history;
@@ -1100,7 +1117,8 @@ Status DataServiceDispatcherImpl::CreateJob(
   //VLOG(0) << "History has length (should correspond to no. of epochs): " << hist_size;
   bool is_ordering;
   metadata_store_.IsJobOrdering(job_id, is_ordering);
-  if (is_ordering) {
+  VLOG(0) << "Job is ordering: " << is_ordering;
+  if (tmp_is_ordering) {
   //if (trigger_scaling = s.ok() && is_ordering && existing_job_type == job_type){
     trigger_scaling = true;
     VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
