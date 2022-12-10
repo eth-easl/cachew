@@ -22,6 +22,11 @@ namespace service {
 namespace easl{
 namespace ordering_utils {
 
+Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store,
+                                 std::vector<std::string> pipeline_nodes,
+                                 std::vector<float> inflationFactors,
+                                 int64 job_id) {
+
 
 Status OpOrderUpdate(
     const std::string& job_type,

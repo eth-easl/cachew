@@ -29,17 +29,23 @@ double kMinBatchTimeRelativeGrowth = 1.5; // +50%
 
 // Big assumption (TBC), this happens after the completion of an epoch (i.e. each op will process the same no. of elems (except for filtering))
 // TODO: Check what happens with batch!
-Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store, std::vector<float> inflationFactors, int64 job_id) {
+Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store,
+                                 std::vector<std::string> pipeline_nodes,
+                                 std::vector<float> inflationFactors,
+                                 int64 job_id) {
+  VLOG(0) << "Calculating inflation factors";
   std::shared_ptr<::tensorflow::data::easl::JobMetrics> job_metrics;
   TF_RETURN_IF_ERROR(metadata_store.GetJobMetrics(job_id, job_metrics));
-
+  VLOG(0) << "Got job metrics";
 
   std::shared_ptr<::tensorflow::data::easl::InputPipelineMetrics> i_p_metrics;
   metadata_store.GetInputPipelineMetrics(job_id, i_p_metrics);
+  VLOG(0) << "Got input piprlinr metrics";
 
   std::vector<std::string> worker_ips;
   std::shared_ptr<::tensorflow::data::easl::NodeMetrics> final_node_metrics;
   TF_RETURN_IF_ERROR(metadata_store.GetLastNodeMetrics(job_id, final_node_metrics));
+  VLOG(0) << "Got LastNodeMetrics";
   for (auto e : final_node_metrics->metrics_) {
     worker_ips.push_back(e.first);
   }
@@ -47,10 +53,9 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   VLOG(0) << "In total " << num_workers << " workers worked on this job";
 
   int nodes_in_pipeline = 0;
-  std::vector<std::string> node_names;
   for (auto e : i_p_metrics->metrics_) {
     nodes_in_pipeline++;
-    node_names.push_back(e.first);
+    pipeline_nodes.push_back(e.first);
     inflationFactors.push_back(0);
   }
   VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
@@ -61,13 +66,13 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (int i = 0; i < num_workers; ++i) {
     tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
     TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
-    auto it = final_node_worker_metrics.find(node_names[node_names.size()-1]);
+    auto it = final_node_worker_metrics.find(pipeline_nodes[pipeline_nodes.size()-1]);
     if (it != final_node_worker_metrics.end()) {
       elems_produced_final.push_back(it->second->num_elements());
     } else {
       elems_produced_final.push_back(0);
     }
-    //elems_produced_final.push_back(final_node_worker_metrics.find(node_names[node_names.size()-1]).num_elements());
+    //elems_produced_final.push_back(final_node_worker_metrics.find(pipeline_nodes[pipeline_nodes.size()-1]).num_elements());
     total_elems_produced += elems_produced_final[i];
     VLOG(0) << "Worker " << worker_ips[i] << " produced " << elems_produced_final[i] << " elements";
   }
@@ -79,7 +84,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
     for (int j = 0; j < nodes_in_pipeline; ++j) {
       // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
-      auto it = worker_metrics.find(node_names[j]);
+      auto it = worker_metrics.find(pipeline_nodes[j]);
       if (it != worker_metrics.end()) {
         int bp = it->second->bytes_produced();
         int bc = it->second->bytes_consumed();
@@ -92,27 +97,8 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // Divide inflation factors by the no. of elems
   for (int i = 0; i < nodes_in_pipeline; ++i) {
     inflationFactors[i] /= total_elems_produced;
-    VLOG(0) << "Node " << node_names[i] << " has inflation factor " << inflationFactors[i];
+    VLOG(0) << "Node " << pipeline_nodes[i] << " has inflation factor " << inflationFactors[i];
   }
-
-
-
-
-  /*std::shared_ptr<NodeMetrics> final_node_metrics;
-  TF_RETURN_IF_ERROR(metadata_store.GetLastNodeMetrics(job_id, final_node_metrics));
-  size_t num_workers = (final_node_metrics->metrics_).size();
-  int num_ops = 5; // Figure out from the node metrics
-  //for (int i)
-  int total_elems =
-  for (std::pair<std::string, std::shared_ptr<NodeMetrics::Metrics>> e : final_node_metrics->metrics_) {
-    VLOG(0) << "NodeMetrics first (string) is: " << e.first;
-    std::shared_ptr<NodeMetrics::Metrics> worker_metrics = e.second;
-
-    for (int j = 0 ; j < num_ops; ++j) {
-
-    }
-  }*/
-
   return Status::OK();
 }
 
@@ -176,7 +162,8 @@ Status OpOrderUpdate(
       tensorflow::grappler::easl::AutoOrder optimizer;
 
       std::vector<float> inflationFactors;
-      Status s1 = DetermineInflationFactors(metadata_store, inflationFactors, job_id);
+      std::vector<std::string> pipeline_nodes;
+      Status s1 = DetermineInflationFactors(metadata_store, pipeline_nodes, inflationFactors, job_id);
       
       tensorflow::grappler::MutableGraphView graph(graph_def);
       Status s = optimizer.ApplyOptimization(graph, *graph_def);

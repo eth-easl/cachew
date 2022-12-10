@@ -393,7 +393,7 @@ class MetadataStore {
   Status SetJobTargetRemoteWorkerCount(int64 job_id, int64 target_remote_worker_count);
   Status SetJobTargetLocalWorkerCount(int64 job_id, int64 target_local_worker_count);
 
-    // Update or create the metrics for the dataset key from the given job.
+  // Update or create the metrics for the dataset key from the given job.
   Status UpdateFingerprintKeyJobMetrics(int64 job_id);
   Status UpdateFingerprintNameKeyJobMetrics(int64 job_id);
 
