@@ -7,6 +7,8 @@
 
 #include "tensorflow/core/lib/core/status.h"
 #include "absl/container/flat_hash_map.h"
+#include <vector>
+#include <map>
 
 namespace tensorflow {
 namespace data {
@@ -40,9 +42,11 @@ class OrderState {
   // keyed by fingerprint
   absl::flat_hash_map<uint64, bool> is_ordered_;
   // keyed by fingerprint
-  absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<std::string>>> latest_pipeline_order;
+  //absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<std::string>>> latest_pipeline_order;
+  std::map<std::string, std::vector<std::string>> latest_pipeline_order;
   // keyed by fingerprint
-  absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<float>>> latest_inflation_factors;
+  //absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<float>>> latest_inflation_factors;
+  std::map<std::string, std::vector<float>> latest_inflation_factors;
   // keyed by fingerprint -> job_id
   absl::flat_hash_map<uint64, int64> fingerprint_to_ordering_job_;
 
