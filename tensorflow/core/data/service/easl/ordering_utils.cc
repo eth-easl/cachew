@@ -124,7 +124,7 @@ Status OpOrderUpdate(
     int64& worker_count,
     const DatasetDef& dataset,
     std::vector<std::string> latest_pipeline,
-    std::vector<std::float> inflation_factors,
+    std::vector<float> inflation_factors,
     DatasetDef& reordered_dataset) {
   using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;
@@ -133,7 +133,7 @@ Status OpOrderUpdate(
   // 0 == Fixed pipeline (no reordering)
   // 1 == AutoOrder policy
 
-  if(dispatcher_config.order_policy() == 0) {
+  if (dispatcher_config.order_policy() == 0) {
     VLOG(0) << "Not using AutoOrder Policy.";
     metadata_store.UnsetJobIsOrdering(job_id);
     return Status::OK();
@@ -160,7 +160,7 @@ Status OpOrderUpdate(
       VLOG(0) << "Already at 0 remote workers, no need to reorder.";
       return Status::OK();
     }
-    else{
+    else {
       VLOG(0) << "Currently using " << rwc << " remote workers.";
       return Status::OK();
 
