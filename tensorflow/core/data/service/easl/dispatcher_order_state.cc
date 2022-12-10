@@ -1,4 +1,4 @@
-#include "tensorflow/core/data/service/easl/dispatcher_cache_state.h"
+#include "tensorflow/core/data/service/easl/dispatcher_order_state.h"
 
 #include "tensorflow/core/platform/errors.h"
 
@@ -42,7 +42,7 @@ Status OrderState::GetLatestInfFactors(const uint64 fingerprint, std::vector<std
   auto it = is_ordered_.find(fingerprint);
   if (it == is_ordered_.end()) {
     return errors::NotFound(
-        "Dataset with fingerprint " + fingerprint + " does not jet have data for inlaftion factors!");
+        "Dataset with fingerprint " + fingerprint + std::string(" does not jet have data for inlaftion factors!"));
   }
   pipeline_nodes = latest_pipeline_order[fingerprint];
   inflation_factors = latest_inflation_factors[fingerprint];
