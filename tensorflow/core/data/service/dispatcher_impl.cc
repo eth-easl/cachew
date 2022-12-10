@@ -1124,7 +1124,7 @@ Status DataServiceDispatcherImpl::CreateJob(
     VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
     std::vector<std::string> latest_pipeline;
     std::vector<float> inflation_factors;
-    service::easl::cache_utils::GetLatestInfFactors(dataset_fingerprint, latest_pipeline, inflation_factors);
+    order_state_.GetLatestInfFactors(dataset_fingerprint, latest_pipeline, inflation_factors);
     // TODO: Peform actual reordering HERE!!!
     std::shared_ptr<const DatasetDef> dataset_def;
     TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, job_type, dataset_def));

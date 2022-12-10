@@ -133,6 +133,12 @@ Status OpOrderUpdate(
   // 0 == Fixed pipeline (no reordering)
   // 1 == AutoOrder policy
 
+  // Print out collected data
+  VLOG(0) << "Summary: Pipeline has " << latest_pipeline.size() << " nodes";
+  for (int i = 0; i < latest_pipeline.size(); ++i) {
+    VLOG(0) << "Node: " << latest_pipeline[i] << " Inflation factor: " << inflation_factors[i];
+  }
+
   if (dispatcher_config.order_policy() == 0) {
     VLOG(0) << "Not using AutoOrder Policy.";
     metadata_store.UnsetJobIsOrdering(job_id);
