@@ -1092,13 +1092,13 @@ Status DataServiceDispatcherImpl::CreateJob(
     VLOG(0) << "In ordering state";
     auto mm = job_metrics->model_metrics_;
     VLOG(0) << "Got model metrics";
-    auto mh = job_metrics->model_metrics_->metrics_history_
+    auto mh = job_metrics->model_metrics_->metrics_history_;
     VLOG(0) << "Got metrics history";
-    auto mh_l = job_metrics->model_metrics_->metrics_history_->back();
+    auto mh_l = job_metrics->model_metrics_->metrics_history_.back();
     VLOG(0) << "Got last metrics from history";
-    float l_b_time = job_metrics->model_metrics_->metrics_history_->back()->last_x_batch_time_ms();
-    VLOG(0) << "Last batch time" << job_metrics->model_metrics_->metrics_history_->back()->last_x_batch_time_ms();
-    VLOG(0) << "History length" << job_metrics->model_metrics_->metrics_history_->size();
+    float l_b_time = job_metrics->model_metrics_->metrics_history_.back()->last_x_batch_time_ms();
+    VLOG(0) << "Last batch time" << job_metrics->model_metrics_->metrics_history_.back()->last_x_batch_time_ms();
+    VLOG(0) << "History length" << job_metrics->model_metrics_->metrics_history_.size();
     tmp_is_ordering = true;
 
     // Check whether ordering policy is on
