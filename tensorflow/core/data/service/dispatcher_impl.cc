@@ -1078,9 +1078,9 @@ Status DataServiceDispatcherImpl::CreateJob(
   }
 
   // TODO: Find a way to figure out that an epoch has already run (or that that the AutoPlacement policy has finished)
-  std::shared_ptr<data::easl::JobMetrics> job_metrics;
+  //std::shared_ptr<data::easl::JobMetrics> job_metrics;
 
-  Status s_seen = metadata_store_.GetJobMetricsByDatasetFingerprintAndName(fingerprint, job_name, job_metrics);
+  Status s_seen = metadata_store_.GetJobMetricsByDatasetFingerprintAndName(dataset_fingerprint, job_name, job_metrics);
   if (!s_seen.ok()){
     VLOG(0) << "We haven't seen this job/dataset before";
     metadata_store_.UnsetJobIsOrdering(job_id);
