@@ -30,8 +30,9 @@ class OrderState {
 
   void UpdateLatestInfFactors(const uint64 fingerprint, std::vector<std::string> pipeline_nodes, std::vector<float> inflation_factors);
 
-  //Sets the job_id responsible for ordering the pipeline with this
-  // fingerprint
+  Status GetLatestInfFactors(const uint64 fingerprint, std::vector<std::string> pipeline_nodes, std::vector<float> inflation_factors);
+
+  //Sets the job_id responsible for ordering the pipeline with this fingerprint
   void RegisterOrderingJob(const uint64 fingerprint,
                            const int64 job_id);
 
@@ -39,9 +40,9 @@ class OrderState {
   // keyed by fingerprint
   absl::flat_hash_map<uint64, bool> is_ordered_;
   // keyed by fingerprint
-  absl::flat_hash_map<uint64, absl::flat_hash_map<string, std::vector<std::string>> latest_pipeline_order;
+  absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<std::string>>> latest_pipeline_order;
   // keyed by fingerprint
-  absl::flat_hash_map<uint64, absl::flat_hash_map<string, std::vector<float>> latest_inflation_factors;
+  absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<float>>> latest_inflation_factors;
   // keyed by fingerprint -> job_id
   absl::flat_hash_map<uint64, int64> fingerprint_to_ordering_job_;
 
