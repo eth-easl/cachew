@@ -123,6 +123,8 @@ Status OpOrderUpdate(
     ::tensorflow::data::easl::MetadataStore& metadata_store,
     int64& worker_count,
     const DatasetDef& dataset,
+    std::vector<std::string> latest_pipeline,
+    std::vector<std::float> inflation_factors,
     DatasetDef& reordered_dataset) {
   using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;

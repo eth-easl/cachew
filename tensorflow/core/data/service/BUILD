@@ -320,6 +320,7 @@ cc_library(
         ":credentials_factory",
         ":dataset_store",
         ":dispatcher_cache_state",
+        ":dispatcher_order_state",
         ":dispatcher_proto_cc",
         ":dispatcher_state",
         ":inter_arrival_time",
@@ -927,6 +928,20 @@ cc_library(
     srcs = ["easl/dispatcher_cache_state.cc"],
     hdrs = [
         "easl/dispatcher_cache_state.h",
+    ],
+    deps = [
+        ":common_proto_cc",
+        "//tensorflow/core:lib",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/memory",
+    ],
+)
+
+cc_library(
+    name = "dispatcher_order_state",
+    srcs = ["easl/dispatcher_order_state.cc"],
+    hdrs = [
+        "easl/dispatcher_order_state.h",
     ],
     deps = [
         ":common_proto_cc",

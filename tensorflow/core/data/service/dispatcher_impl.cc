@@ -1094,15 +1094,15 @@ Status DataServiceDispatcherImpl::CreateJob(
     VLOG(0) << "Got model metrics";
     auto mh = job_metrics->model_metrics_->metrics_history_;
     VLOG(0) << "Got metrics history";
-    auto mh_l = job_metrics->model_metrics_->metrics_history_.back();
-    VLOG(0) << "Got last metrics from history";
-    float l_b_time = job_metrics->model_metrics_->metrics_history_.back()->last_x_batch_time_ms();
-    VLOG(0) << "Last batch time" << job_metrics->model_metrics_->metrics_history_.back()->last_x_batch_time_ms();
-    VLOG(0) << "History length" << job_metrics->model_metrics_->metrics_history_.size();
-    tmp_is_ordering = true;
+    //auto mh_l = job_metrics->model_metrics_->metrics_history_.back();
+    //VLOG(0) << "Got last metrics from history";
+    //float l_b_time = job_metrics->model_metrics_->metrics_history_.back()->last_x_batch_time_ms();
+    //VLOG(0) << "Last batch time" << job_metrics->model_metrics_->metrics_history_.back()->last_x_batch_time_ms();
+    //VLOG(0) << "History length" << job_metrics->model_metrics_->metrics_history_.size();
+    //tmp_is_ordering = true;
 
     // Check whether ordering policy is on
-    int o_policy = config_.ordering_policy();
+    int o_policy = config_.order_policy();
     VLOG(0) << "Ordering policy is " << o_policy;
   }
   // For now just order after the 1st epoch passes (later on place AutoOrder after AutoPlacement policy)
@@ -1122,12 +1122,16 @@ Status DataServiceDispatcherImpl::CreateJob(
   //if (trigger_scaling = s.ok() && is_ordering && existing_job_type == job_type){
     trigger_scaling = true;
     VLOG(0) << "DISPATCHER TRIGGERING AUTOORDER POLICY (should happen max 1x)!";
+    std::vector<std::string> latest_pipeline;
+    std::vector<float> inflation_factors;
+    service::easl::cache_utils::GetLatestInfFactors(dataset_fingerprint, latest_pipeline, inflation_factors);
     // TODO: Peform actual reordering HERE!!!
     std::shared_ptr<const DatasetDef> dataset_def;
     TF_RETURN_IF_ERROR(GetDatasetDef(*dataset, job_type, dataset_def));
     DatasetDef reorderedDataset;
     service::easl::ordering_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
-                                                job_metrics->target_remote_worker_count_, *dataset_def, reorderedDataset);
+                                                 job_metrics->target_remote_worker_count_, *dataset_def,
+                                                 latest_pipeline, inflation_factors, reorderedDataset);
 
     // Only reorder once
     metadata_store_.UnsetJobIsOrdering(job_id);
