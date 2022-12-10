@@ -43,10 +43,10 @@ class OrderState {
   absl::flat_hash_map<uint64, bool> is_ordered_;
   // keyed by fingerprint
   //absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<std::string>>> latest_pipeline_order;
-  std::map<std::string, std::vector<std::string>> latest_pipeline_order;
+  std::map<uint64, std::vector<std::string>> latest_pipeline_order;
   // keyed by fingerprint
   //absl::flat_hash_map<uint64, absl::flat_hash_map<std::string, std::shared_ptr<std::vector<float>>> latest_inflation_factors;
-  std::map<std::string, std::vector<float>> latest_inflation_factors;
+  std::map<uint64, std::vector<float>> latest_inflation_factors;
   // keyed by fingerprint -> job_id
   absl::flat_hash_map<uint64, int64> fingerprint_to_ordering_job_;
 
