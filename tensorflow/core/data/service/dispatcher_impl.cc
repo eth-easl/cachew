@@ -1148,7 +1148,8 @@ Status DataServiceDispatcherImpl::CreateJob(
     DatasetDef reorderedDataset;
     service::easl::ordering_utils::OpOrderUpdate(job_type, job_id, config_, metadata_store_,
                                                  job_metrics->target_remote_worker_count_, *dataset_def,
-                                                 latest_pipeline, inflation_factors, reorderedDataset);
+                                                 latest_pipeline, inflation_factors, dataset_fingerprint,
+                                                 reorderedDataset);
 
     // Only reorder once
     metadata_store_.UnsetJobIsOrdering(job_id);

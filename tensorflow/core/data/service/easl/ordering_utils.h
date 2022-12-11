@@ -37,6 +37,7 @@ Status OpOrderUpdate(
     const DatasetDef& dataset,
     std::vector<std::string> latest_pipeline,
     std::vector<float> inflation_factors,
+    const uint64 fingerprint,
     DatasetDef& reordered_dataset
     );
 

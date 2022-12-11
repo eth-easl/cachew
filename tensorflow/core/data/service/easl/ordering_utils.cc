@@ -5,6 +5,7 @@
 #include "tensorflow/core/data/service/easl/ordering_utils.h"
 
 #include <queue>
+#include <vector>
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/core/framework/node_def_util.h"
@@ -25,6 +26,27 @@ double kMinBatchTimeRelativeImprovementDown = 0.03;
 uint32 kInStabilityBeforeScaling = 20;
 double kMinQueueSizeRelativeGrowth = 1.5; // +50%
 double kMinBatchTimeRelativeGrowth = 1.5; // +50%
+}
+
+Status FindReorderableIntervals(std::vector<std::string> pipeline_nodes,
+                                std::vector<float> inflationFactors,
+                                std::vector<std::vector<std::string>> reorderable_intervals,
+                                std::vector<std::vector<float>> inf_f_intervals
+                                ) {
+  // For now just return the whole pipeline
+  reorderable_intervals.push_back(pipeline_nodes);
+  inf_f_intervals.push_back(inflationFactors);
+  return Status::OK();
+}
+
+Status GetIntervalOrders(std::vector<std::vector<std::string>> reorderable_intervals,
+                         std::vector<std::vector<float>> inf_f_intervals,
+                         std::vector<std::vector<std::string>> target_interval_orders) {
+  for (int i = 0; i < reorderable_intervals.size(); ++i) {
+    // Get the wanted order of the reorderable intervals
+    target_interval_orders.push_back(reorderable_intervals(i));
+  }
+  return Status::OK();
 }
 
 // Big assumption (TBC), this happens after the completion of an epoch (i.e. each op will process the same no. of elems (except for filtering))
@@ -84,15 +106,22 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
     for (int j = 0; j < nodes_in_pipeline; ++j) {
       // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
+      VLOG(0) << "Node " << pipeline_nodes[j];
       auto it = worker_metrics.find(pipeline_nodes[j]);
       if (it != worker_metrics.end()) {
-        int bp = it->second->bytes_produced();
         int bc = it->second->bytes_consumed();
-        float inflation_f = bp / bc;
-        inflationFactors[j] += elems_produced_final[i] * inflation_f;
+        int bp = it->second->bytes_produced();
+        VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
+        if (bc == 0) {
+          float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
+        } else {
+          float inflation_f = bp / bc;
+          inflationFactors[j] += elems_produced_final[i] * inflation_f;
+        }
       }
     }
   }
+  VLOG(0) << "Calculated all inflation factors";
 
   // Divide inflation factors by the no. of elems
   for (int i = 0; i < nodes_in_pipeline; ++i) {
@@ -111,6 +140,7 @@ Status OpOrderUpdate(
     const DatasetDef& dataset,
     std::vector<std::string> latest_pipeline,
     std::vector<float> inflation_factors,
+    const uint64 fingerprint,
     DatasetDef& reordered_dataset) {
   using NodeMetrics = ::tensorflow::data::easl::NodeMetrics;
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;
@@ -129,8 +159,7 @@ Status OpOrderUpdate(
     VLOG(0) << "Not using AutoOrder Policy.";
     metadata_store.UnsetJobIsOrdering(job_id);
     return Status::OK();
-  } else if (dispatcher_config.order_policy() == 1)
-  {
+  } else if (dispatcher_config.order_policy() == 1) {
     VLOG(0) << "Using AutoOrder Policy.";
     metadata_store.SetJobIsOrdering(job_id);
 
@@ -151,8 +180,7 @@ Status OpOrderUpdate(
       // Later we might want to try adding reorder even in full local mode (for higher throughput)
       VLOG(0) << "Already at 0 remote workers, no need to reorder.";
       return Status::OK();
-    }
-    else {
+    } else {
       VLOG(0) << "Currently using " << rwc << " remote workers.";
       return Status::OK();
 
@@ -161,18 +189,31 @@ Status OpOrderUpdate(
       GraphDef* graph_def = reordered_dataset.mutable_graph();
       tensorflow::grappler::easl::AutoOrder optimizer;
 
-      std::vector<float> inflationFactors;
+      std::vector<float> inflation_factors;
       std::vector<std::string> pipeline_nodes;
-      Status s1 = DetermineInflationFactors(metadata_store, pipeline_nodes, inflationFactors, job_id);
-      
+      //Status s1 = DetermineInflationFactors(metadata_store, pipeline_nodes, inflation_factors, job_id);
+      VLOG(0) << "Fetching inflation factors ...";
+      GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
+
+      // TODO: Add logic to mark some nodes with flags
+      std::vector<std::vector<std::string>> reorderable_intervals;
+      std::vector<std::vector<float>> inf_f_intervals;
+      Status s = FindReorderableIntervals(pipeline_nodes, inflation_factors, reorderable_intervals, inf_f_intervals);
+
+      std::vector<std::vector<std::string>> target_interval_orders;
+      Status s1 = GetIntervalOrders(reorderable_intervals, inf_f_intervals, target_interval_orders);
+
+
+
+
       tensorflow::grappler::MutableGraphView graph(graph_def);
-      Status s = optimizer.ApplyOptimization(graph, *graph_def);
-      if(s.ok()) {
+      Status s2 = optimizer.ApplyOptimization(graph, *graph_def);
+      if(s2.ok()) {
         VLOG(0) << "AutoOrder policy succeeded!";
-        return s;
+        return s2;
       } else {
         VLOG(0) << "AutoOrder policy failed!";
-        return s;
+        return s2;
       }
     }
   } else {
