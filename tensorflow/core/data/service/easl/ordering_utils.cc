@@ -44,7 +44,7 @@ Status GetIntervalOrders(std::vector<std::vector<std::string>> reorderable_inter
                          std::vector<std::vector<std::string>> target_interval_orders) {
   for (int i = 0; i < reorderable_intervals.size(); ++i) {
     // Get the wanted order of the reorderable intervals
-    target_interval_orders.push_back(reorderable_intervals[i);
+    target_interval_orders.push_back(reorderable_intervals[i]);
   }
   return Status::OK();
 }
@@ -115,7 +115,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
         if (bc == 0) {
           float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
         } else {
-          float inflation_f = bp / bc;
+          float inflation_f = 1.0 * bp / bc;
           inflationFactors[j] += elems_produced_final[i] * inflation_f;
         }
       }
@@ -125,7 +125,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   // Divide inflation factors by the no. of elems
   for (int i = 0; i < nodes_in_pipeline; ++i) {
-    inflationFactors[i] /= total_elems_produced;
+    inflationFactors[i] /= 1.0 * total_elems_produced;
     VLOG(0) << "Node " << pipeline_nodes[i] << " has inflation factor " << inflationFactors[i];
   }
   return Status::OK();
