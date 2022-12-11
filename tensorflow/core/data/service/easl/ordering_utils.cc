@@ -44,7 +44,7 @@ Status GetIntervalOrders(std::vector<std::vector<std::string>> reorderable_inter
                          std::vector<std::vector<std::string>> target_interval_orders) {
   for (int i = 0; i < reorderable_intervals.size(); ++i) {
     // Get the wanted order of the reorderable intervals
-    target_interval_orders.push_back(reorderable_intervals(i));
+    target_interval_orders.push_back(reorderable_intervals[i);
   }
   return Status::OK();
 }
@@ -189,16 +189,16 @@ Status OpOrderUpdate(
       GraphDef* graph_def = reordered_dataset.mutable_graph();
       tensorflow::grappler::easl::AutoOrder optimizer;
 
-      std::vector<float> inflation_factors;
-      std::vector<std::string> pipeline_nodes;
+      //std::vector<float> inflation_factors;
+      //std::vector<std::string> pipeline_nodes;
       //Status s1 = DetermineInflationFactors(metadata_store, pipeline_nodes, inflation_factors, job_id);
       VLOG(0) << "Fetching inflation factors ...";
-      GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
+      //GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
 
       // TODO: Add logic to mark some nodes with flags
       std::vector<std::vector<std::string>> reorderable_intervals;
       std::vector<std::vector<float>> inf_f_intervals;
-      Status s = FindReorderableIntervals(pipeline_nodes, inflation_factors, reorderable_intervals, inf_f_intervals);
+      Status s = FindReorderableIntervals(latest_pipeline, inflation_factors, reorderable_intervals, inf_f_intervals);
 
       std::vector<std::vector<std::string>> target_interval_orders;
       Status s1 = GetIntervalOrders(reorderable_intervals, inf_f_intervals, target_interval_orders);
