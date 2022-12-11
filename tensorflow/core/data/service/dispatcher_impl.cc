@@ -446,6 +446,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
 
   // EASL - Update the metadata with the incoming metrics
   for (int i = 0; i < request->tasks_size(); ++i) {
+    VLOG(0) << "Updating metadata";
     auto task = request->tasks(i);
     
     // Get the job for this task
@@ -535,6 +536,22 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
                           job_type);
             }
           }
+        }
+
+        // If the job produced enough elements calculate the metrics for the AutoOrder policy
+        if (element_count >= kElementThreshold) {
+          // Update the info for the AutoOrder policy
+          std::vector<std::string> pipeline_nodes;
+          std::vector<float> inflation_factors;
+          VLOG(0) << "About to determine inflation factors";
+          service::easl::ordering_utils::DetermineInflationFactors(
+              metadata_store_, pipeline_nodes, inflation_factors, job_id);
+          std::shared_ptr<const Dataset> ds;
+          TF_RETURN_IF_ERROR(state_.DatasetFromId(task_object->job->dataset_id, ds));
+          VLOG(0) << "Going to update the 'order_state_";
+          order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
+                                              inflation_factors);
+          VLOG(0) << "Updated order state";
         }
       }
     }
@@ -1472,17 +1489,6 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
       VLOG(0) << errors::IsNotFound(s);
     }
     if (!s.ok() && !errors::IsNotFound(s)) { return s; }
-
-    // Update the info for the AutoOrder policy
-    std::vector<std::string> pipeline_nodes;
-    std::vector<float> inflation_factors;
-    VLOG(0) << "About to determine inflation factors";
-    service::easl::ordering_utils::DetermineInflationFactors(metadata_store_, pipeline_nodes, inflationFactors, job->job_id);
-    std::shared_ptr<const Dataset> ds;
-    TF_RETURN_IF_ERROR(state_.DatasetFromId(job->dataset_id, ds));
-    VLOG(0) << "Going to update the 'order_state_";
-    order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes, inflation_factors);
-    VLOG(0) << "Updated order state";
 
     // EASL - Determine updated target number of workers
     int64 target_worker_count;

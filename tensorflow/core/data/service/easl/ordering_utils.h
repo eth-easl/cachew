@@ -25,7 +25,7 @@ namespace ordering_utils {
 Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store,
                                  std::vector<std::string> pipeline_nodes,
                                  std::vector<float> inflationFactors,
-                                 int64 job_id) {
+                                 int64 job_id);
 
 
 Status OpOrderUpdate(

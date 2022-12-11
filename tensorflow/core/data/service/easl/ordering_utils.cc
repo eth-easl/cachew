@@ -40,7 +40,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   std::shared_ptr<::tensorflow::data::easl::InputPipelineMetrics> i_p_metrics;
   metadata_store.GetInputPipelineMetrics(job_id, i_p_metrics);
-  VLOG(0) << "Got input piprlinr metrics";
+  VLOG(0) << "Got input pipeline metrics";
 
   std::vector<std::string> worker_ips;
   std::shared_ptr<::tensorflow::data::easl::NodeMetrics> final_node_metrics;
