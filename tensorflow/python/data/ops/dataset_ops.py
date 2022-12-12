@@ -1865,7 +1865,8 @@ class DatasetV2(collections_abc.Iterable, tracking_base.Trackable,
           map_func,
           num_parallel_calls=None,
           deterministic=None,
-          name=None):
+          name=None,
+          keep_position=False):
     """Maps `map_func` across the elements of this dataset.
 
     This transformation applies `map_func` to each element of this dataset, and
@@ -2018,7 +2019,11 @@ name=None))
       if deterministic is not None and not DEBUG_MODE:
         warnings.warn("The `deterministic` argument has no effect unless the "
                       "`num_parallel_calls` argument is specified.")
-      return MapDataset(self, map_func, preserve_cardinality=True, name=name)
+      return MapDataset(self,
+                        map_func,
+                        preserve_cardinality=True,
+                        name=name,
+                        keep_position=keep_position)
     else:
       return ParallelMapDataset(
           self,
@@ -2026,7 +2031,8 @@ name=None))
           num_parallel_calls,
           deterministic,
           preserve_cardinality=True,
-          name=name)
+          name=name,
+          keep_position=keep_position)
 
   def flat_map(self, map_func, name=None):
     """Maps `map_func` across this dataset and flattens the result.
@@ -5197,7 +5203,8 @@ class MapDataset(UnaryDataset):
                use_inter_op_parallelism=True,
                preserve_cardinality=False,
                use_legacy_function=False,
-               name=None):
+               name=None,
+               keep_position=False):
     """See `Dataset.map()` for details."""
     self._input_dataset = input_dataset
     self._use_inter_op_parallelism = use_inter_op_parallelism
@@ -5210,12 +5217,14 @@ class MapDataset(UnaryDataset):
     self._metadata = dataset_metadata_pb2.Metadata()
     if name:
       self._metadata.name = _validate_and_encode(name)
+    self._keep_position = keep_position
     variant_tensor = gen_dataset_ops.map_dataset(
         input_dataset._variant_tensor,  # pylint: disable=protected-access
         self._map_func.function.captured_inputs,
         f=self._map_func.function,
         use_inter_op_parallelism=self._use_inter_op_parallelism,
         preserve_cardinality=self._preserve_cardinality,
+        keep_position=self._keep_position,
         **self._common_args)
     super(MapDataset, self).__init__(input_dataset, variant_tensor)
 
@@ -5241,7 +5250,8 @@ class ParallelMapDataset(UnaryDataset):
                use_inter_op_parallelism=True,
                preserve_cardinality=False,
                use_legacy_function=False,
-               name=None):
+               name=None,
+               keep_position=False):
     """See `Dataset.map()` for details."""
     self._input_dataset = input_dataset
     self._use_inter_op_parallelism = use_inter_op_parallelism
@@ -5262,6 +5272,7 @@ class ParallelMapDataset(UnaryDataset):
     self._metadata = dataset_metadata_pb2.Metadata()
     if name:
       self._metadata.name = _validate_and_encode(name)
+    self._keep_position = keep_position
     variant_tensor = gen_dataset_ops.parallel_map_dataset_v2(
         input_dataset._variant_tensor,  # pylint: disable=protected-access
         self._map_func.function.captured_inputs,
@@ -5270,6 +5281,7 @@ class ParallelMapDataset(UnaryDataset):
         deterministic=self._deterministic,
         use_inter_op_parallelism=self._use_inter_op_parallelism,
         preserve_cardinality=self._preserve_cardinality,
+        keep_position=self._keep_position
         **self._common_args)
     super(ParallelMapDataset, self).__init__(input_dataset, variant_tensor)
 

@@ -6,6 +6,7 @@
 
 #include <queue>
 #include <vector>
+#include <numeric>
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/core/framework/node_def_util.h"
@@ -42,9 +43,18 @@ Status FindReorderableIntervals(std::vector<std::string> pipeline_nodes,
 Status GetIntervalOrders(std::vector<std::vector<std::string>> reorderable_intervals,
                          std::vector<std::vector<float>> inf_f_intervals,
                          std::vector<std::vector<std::string>> target_interval_orders) {
+  VLOG(0) << "There are " << reorderable_intervals.size() << "Reorderable interval in this pipeline."
   for (int i = 0; i < reorderable_intervals.size(); ++i) {
     // Get the wanted order of the reorderable intervals
-    target_interval_orders.push_back(reorderable_intervals[i]);
+
+    vector<std::string> cur_interval = reorderable_intervals[i];
+    sort(cur_interval.begin(), cur_interval.end(), [&](int j,int k){return inf_f_intervals[j]<inf_f_intervals[k];});
+
+    VLOG(0) << "New order: ";
+    for (int j = 0; j < cur_interval.size(); ++j) {
+      VLOG(0) << cur_interval[j];
+    }
+    target_interval_orders.push_back(cur_interval);
   }
   return Status::OK();
 }
