@@ -43,12 +43,12 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
 
 }  // namespace
 
-Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_old_graph) {
+Status Summarize::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_old_graph) {
 
     return Status::OK();
 }
 
-Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
+Status Summarize::OptimizeAndCollectStats(Cluster* cluster,
                                           const GrapplerItem& item,
                                           GraphDef* output,
                                           OptimizationStats* stats) {
@@ -70,7 +70,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
     // Only proceed with optimization if we are in the 'right' pipeline (we see a Filter or Map op)
     if (std::find(op_types.begin(), op_types.end(), "MapDataset") == op_types.end() && std::find(op_types.begin(), op_types.end(), "FilterDataset") == op_types.end()) {
-        VLOG(0) << "No reorderable ops found! Not running AutoOrder optimization on this pipeline.";
+        VLOG(0) << "No reorderable ops found! Not running summarization on this pipeline.";
         return Status::OK();
     }
 
@@ -127,7 +127,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
             }
         }
     }
-    VLOG(0) << "Graph sumarization complete!";
+    VLOG(0) << "Graph summarization complete!";
 
     return ApplyOptimization(graph, sorted_old_graph);
 
@@ -136,7 +136,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
 
 }
 
-REGISTER_GRAPH_OPTIMIZER_AS(AutoOrder, "auto_order");
+REGISTER_GRAPH_OPTIMIZER_AS(Summarize, "summarize");
 
 }  // namespace easl
 }  // namespace grappler
