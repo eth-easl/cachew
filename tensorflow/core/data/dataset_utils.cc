@@ -89,6 +89,7 @@ constexpr char kAutotuneOpt[] = "autotune";
 constexpr char kSlackOpt[] = "slack";
 constexpr char kSlackPeriodOpt[] = "slack_period";
 constexpr char kMakeDeterministicOpt[] = "make_deterministic";
+constexpr char kSummarize[] = "summarize";
 
 void DefaultOptimizationGraphRewrites(
     const Options& options, absl::flat_hash_set<tstring>* optimization_enabled,
@@ -122,6 +123,11 @@ void DefaultOptimizationGraphRewrites(
         OptimizationOptions::kAutoOrder) {
       VLOG(0) << "DEBUG: Setting OptimizationOptions::kAutoOrder UPPER LOC";
       optimization_default->insert(kAutoOrderOpt);
+    }
+    if (optimization_options.optional_summarize_case() !=
+        OptimizationOptions::kSummarize) {
+      VLOG(0) << "DEBUG: Setting OptimizationOptions::kSummarize UPPER LOC";
+      optimization_default->insert(kSummarizeOpt);
     }
   }
   if (OpDeterminismRequired()) {
@@ -193,11 +199,20 @@ void DefaultOptimizationGraphRewrites(
   }
   if (optimization_options.optional_auto_order_case() ==
       OptimizationOptions::kAutoOrder) {
-    VLOG(0) << "DEBUG: Setting OptimizationOptions::kAutoOrder";
+    VLOG(0) << "DEBUG: Setting OptimizationOptions::kAutoOrder LOWER LOC";
     if (optimization_options.auto_order()) {
       optimization_enabled->insert(kAutoOrderOpt);
     } else {
       optimization_disabled->insert(kAutoOrderOpt);
+    }
+  }
+  if (optimization_options.optional_summarize_case() ==
+      OptimizationOptions::kSummarize) {
+    VLOG(0) << "DEBUG: Setting OptimizationOptions::kSummarize LOWER LOC";
+    if (optimization_options.summarize()) {
+      optimization_enabled->insert(kSummarizeOpt);
+    } else {
+      optimization_disabled->insert(kSummarizeOpt);
     }
   }
 }

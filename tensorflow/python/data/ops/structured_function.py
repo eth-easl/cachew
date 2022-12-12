@@ -51,7 +51,7 @@ def _should_pack(arg):
   """Determines whether the caller needs to pack the argument in a tuple.
 
   If user-defined function returns a list of tensors, `nest.flatten()` and
-  `ops.convert_to_tensor()` and would conspire to attempt to stack those tensors
+  `ops.convert_to_tensor()` would conspire to attempt to stack those tensors
   into a single tensor because the tf.data version of `nest.flatten()` does
   not recurse into lists. Since it is more likely that the list arose from
   returning the result of an operation (such as `tf.numpy_function()`) that

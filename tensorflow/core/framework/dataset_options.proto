@@ -82,7 +82,7 @@ message DistributeOptions {
   }
 }
 
-// next: 19
+// next: 20
 message OptimizationOptions {
   // Whether to apply default graph optimizations. If False, only graph
   // optimizations that have been explicitly enabled will be applied.
@@ -143,6 +143,9 @@ message OptimizationOptions {
   // Whether to use the AutoOrder policy to reorder the ops in the input pipeline.
   oneof optional_auto_order {
     bool auto_order = 18;
+  }
+  oneof optional_summarize {
+    bool summarize = 19;
   }
 }
 
