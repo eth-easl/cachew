@@ -62,7 +62,8 @@ constexpr std::array<const char*, 25> kTFDataOptimizations = {
     "add_get_op",
     "add_put_op_at_marker",
     "add_get_op_at_marker",
-    "make_deterministic"};
+    "make_deterministic",
+    "summarize"};
 
 // Parses a list of string optimizer configurations into a map from
 // optimizer name -> rewriter config for that optimizer.
