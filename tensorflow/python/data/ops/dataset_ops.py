@@ -5281,7 +5281,7 @@ class ParallelMapDataset(UnaryDataset):
         deterministic=self._deterministic,
         use_inter_op_parallelism=self._use_inter_op_parallelism,
         preserve_cardinality=self._preserve_cardinality,
-        keep_position=self._keep_position
+        keep_position=self._keep_position,
         **self._common_args)
     super(ParallelMapDataset, self).__init__(input_dataset, variant_tensor)
 

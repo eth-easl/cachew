@@ -151,7 +151,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     }
 
     // Check which nodes, the org node actually came from
-    ExperimentalDebugInfo debug_i = org_node.experimental_debug_info();
+    NodeDef_ExperimentalDebugInfo debug_i = org_node.experimental_debug_info();
     int num_org_nodes = debug_i.original_node_names_size();
     VLOG(0) << "The original NodeDef was made up from " << num_org_nodes << " nodes.";
     std::vector<std::string> org_names;
