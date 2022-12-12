@@ -89,7 +89,7 @@ constexpr char kAutotuneOpt[] = "autotune";
 constexpr char kSlackOpt[] = "slack";
 constexpr char kSlackPeriodOpt[] = "slack_period";
 constexpr char kMakeDeterministicOpt[] = "make_deterministic";
-constexpr char kSummarize[] = "summarize";
+constexpr char kSummarizeOpt[] = "summarize";
 
 void DefaultOptimizationGraphRewrites(
     const Options& options, absl::flat_hash_set<tstring>* optimization_enabled,
