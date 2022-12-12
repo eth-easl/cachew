@@ -48,13 +48,17 @@ Status GetIntervalOrders(std::vector<std::vector<std::string>> reorderable_inter
     // Get the wanted order of the reorderable intervals
 
     std::vector<std::string> cur_interval = reorderable_intervals[i];
-    std::sort(cur_interval.begin(), cur_interval.end(), [&](int j,int k){return inf_f_intervals[i][j]<inf_f_intervals[i][k];});
+    std::vector<int> idxs(cur_interval.size());
+    std::iota(idxs.begin(),idxs.end(),0); //Initializing
+    std::sort(idxs.begin(), idxs.end(), [&](int j,int k){return inf_f_intervals[i][j]<inf_f_intervals[i][k];});
 
     VLOG(0) << "New order: ";
+    std::vector<std::string> new_interval;
     for (int j = 0; j < cur_interval.size(); ++j) {
-      VLOG(0) << cur_interval[j];
+      new_interval.push_back(cur_interval[idxs[j]]);
+      VLOG(0) << new_interval[j];
     }
-    target_interval_orders.push_back(cur_interval);
+    target_interval_orders.push_back(new_interval);
   }
   return Status::OK();
 }
