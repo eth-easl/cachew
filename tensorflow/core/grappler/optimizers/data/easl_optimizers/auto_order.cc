@@ -1,5 +1,6 @@
 #include <queue>
 #include <algorithm>
+#include <vector>
 
 #include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
@@ -147,6 +148,17 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
         const AttrValue& filter_pred = org_node.attr().at("keep_position");
         VLOG(0) << SummarizeAttrValue(filter_pred);
         graph_utils::CopyAttribute("keep_position", org_node, &new_f_node);
+    }
+
+    // Check which nodes, the org node actually came from
+    ExperimentalDebugInfo debug_i = org_node.experimental_debug_info();
+    int num_org_nodes = debug_i.original_node_names_size();
+    VLOG(0) << "The original NodeDef was made up from " << num_org_nodes << " nodes.";
+    std::vector<std::string> org_names;
+    for (int i = 0 ; i < num_org_nodes; ++i) {
+        std::string name = debug_i.original_node_names(i);
+        VLOG(0) << "Org node " << i << " is called " << name;
+        org_names.push_back(name);
     }
 
     // Add corresponding predicate if present in the original node (i.e. it was a filter node)
