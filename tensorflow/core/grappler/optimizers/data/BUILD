@@ -41,6 +41,7 @@ cc_library(
         ":parallel_batch",
         ":shuffle_and_repeat_fusion",
         ":slack",
+        ":summarize",
         ":use_private_thread_pool",
     ],
 )
@@ -1035,6 +1036,30 @@ cc_library(
     name = "auto_order",
     srcs = ["easl_optimizers/auto_order.cc"],
     hdrs = ["easl_optimizers/auto_order.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":graph_utils",
+        ":fusion_utils",
+        ":optimizer_base",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "//tensorflow/core/grappler:mutable_graph_view",
+        "//tensorflow/core:lib",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler:op_types",
+        "//tensorflow/core/grappler:utils",
+        "//tensorflow/core/grappler/clusters:cluster",
+        "//tensorflow/core/grappler/utils:topological_sort",
+        "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
+        "//tensorflow/core/framework:types_proto_cc",
+        "//tensorflow/core:lib_internal",
+    ] + tf_protos_all(),
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "summarize",
+    srcs = ["easl_optimizers/summarize.cc"],
+    hdrs = ["easl_optimizers/summarize.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":graph_utils",

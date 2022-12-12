@@ -81,9 +81,10 @@ NodeDef AddGetOp::CreateGetOpNode(MutableGraphView* graph, NodeDef* input) {
   return get_op_node;
 }
 
-Status AddGetOp::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node, 
+Status AddGetOp::ApplyOptimization(MutableGraphView &graph,
+                                   NodeDef *sink_node,
                                    GraphDef *output) {
-  VLOG(1) << "In AddGetOp optimizer";
+  VLOG(0) << "In AddGetOp optimizer";
 
   // Define a filtering function which identifies target node
   auto is_target_node = [](const NodeDef* node) -> bool {
@@ -110,7 +111,7 @@ Status AddGetOp::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node,
       break;
     }
 
-    // Iterate throught the neighbors
+    // Iterate through the neighbors
     for (int i = 0; i < current_node->input_size(); ++i) {
       if (!visited.contains(current_node->input(i))) {
         int idx = graph_utils::FindGraphNodeWithName(current_node->input(i), 
@@ -156,7 +157,7 @@ Status AddGetOp::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node,
     inputs_bfs_queue.pop();
     inputs_visited.insert(current_node->name());
 
-    // Iterate throught the neighbors
+    // Iterate through the neighbors
     for (int i = 0; i < current_node->input_size(); ++i) {
       if (!visited.contains(current_node->input(i))) {
         int idx = graph_utils::FindGraphNodeWithName(current_node->input(i),

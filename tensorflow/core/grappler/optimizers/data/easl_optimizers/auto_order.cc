@@ -167,7 +167,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
         // For now focus on ops that don't change the d_type and merely copy over the predicate as is
         changes_dtype = true;
-        if (!changes_dtype) {  // The node will figure the types out for itself (hopefully)
+        if (changes_dtype) {  // The node will figure the types out for itself (hopefully)
             (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
         }
         else {
@@ -325,7 +325,7 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
             //function_library.AddFunctionDef(setup_ff);
             function_library.AddFunctionDef(*real_f);
 
-            VLOG(0) << "Summary of 'predicate attribute:'";
+            VLOG(0) << "Summary of 'predicate attribute':";
             VLOG(0) << SummarizeAttrValue(new_f_node.attr().at("predicate"));
             // END TRY (WILDCARD COPY)
 

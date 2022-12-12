@@ -3841,10 +3841,15 @@ class DatasetV1(DatasetV2):
           map_func,
           num_parallel_calls=None,
           deterministic=None,
-          name=None):
+          name=None,
+          keep_position=False):
     if num_parallel_calls is None or DEBUG_MODE:
       return DatasetV1Adapter(
-          MapDataset(self, map_func, preserve_cardinality=False))
+          MapDataset(
+              self,
+              map_func,
+              preserve_cardinality=False,
+              keep_position=keep_position))
     else:
       return DatasetV1Adapter(
           ParallelMapDataset(
@@ -3852,13 +3857,15 @@ class DatasetV1(DatasetV2):
               map_func,
               num_parallel_calls,
               deterministic,
-              preserve_cardinality=False))
+              preserve_cardinality=False,
+              keep_position=keep_position))
 
   @deprecation.deprecated(None, "Use `tf.data.Dataset.map()")
   def map_with_legacy_function(self,
                                map_func,
                                num_parallel_calls=None,
-                               deterministic=None):
+                               deterministic=None,
+                               keep_position=False):
     """Maps `map_func` across the elements of this dataset.
 
     Note: This is an escape hatch for existing uses of `map` that do not work
@@ -3893,7 +3900,8 @@ class DatasetV1(DatasetV2):
               self,
               map_func,
               preserve_cardinality=False,
-              use_legacy_function=True))
+              use_legacy_function=True,
+              keep_position=keep_position))
     else:
       return DatasetV1Adapter(
           ParallelMapDataset(
@@ -3902,7 +3910,8 @@ class DatasetV1(DatasetV2):
               num_parallel_calls,
               deterministic,
               preserve_cardinality=False,
-              use_legacy_function=True))
+              use_legacy_function=True,
+              keep_position=keep_position))
 
   @functools.wraps(DatasetV2.flat_map)
   def flat_map(self, map_func, name=None):
