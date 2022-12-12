@@ -67,6 +67,7 @@ void AddFakeSinksV2(FunctionDef* function_def, const FunctionDef* org_f_def, Dat
 
     for (const OpDef_ArgDef& output : org_f_def->signature().output_arg()) {
         VLOG(0) << "Org func output name: " << output.name();
+
     }
 
     for (int i = 0; i < org_f_def->node_def_size(); ++i) {
@@ -141,13 +142,20 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     VLOG(0) << "Summarized org_position input node";
     VLOG(0) << SummarizeNodeDef(*in_node, 100);
 
+    // Check if the node should be kept in its org position
+    if (summary.find("keep_position=") != std::string::npos) {
+        const AttrValue& filter_pred = org_node.attr().at("keep_position");
+        VLOG(0) << SummarizeAttrValue(filter_pred);
+        graph_utils::CopyAttribute("keep_position", org_node, &new_f_node);
+    }
+
     // Add corresponding predicate if present in the original node (i.e. it was a filter node)
     if (summary.find("predicate=") != std::string::npos) {
         VLOG(0) << "Set predicate (a predicate existed)";
 
         // For now focus on ops that don't change the d_type and merely copy over the predicate as is
         changes_dtype = true;
-        if (changes_dtype) {  // The node will figure the types out for itself (hopefully)
+        if (!changes_dtype) {  // The node will figure the types out for itself (hopefully)
             (*new_f_node.mutable_attr())["predicate"] = org_node.attr().at("predicate");
         }
         else {

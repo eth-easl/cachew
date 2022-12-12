@@ -47,8 +47,8 @@ Status GetIntervalOrders(std::vector<std::vector<std::string>> reorderable_inter
   for (int i = 0; i < reorderable_intervals.size(); ++i) {
     // Get the wanted order of the reorderable intervals
 
-    vector<std::string> cur_interval = reorderable_intervals[i];
-    sort(cur_interval.begin(), cur_interval.end(), [&](int j,int k){return inf_f_intervals[j]<inf_f_intervals[k];});
+    std::vector<std::string> cur_interval = reorderable_intervals[i];
+    std::sort(cur_interval.begin(), cur_interval.end(), [&](int j,int k){return inf_f_intervals[j]<inf_f_intervals[k];});
 
     VLOG(0) << "New order: ";
     for (int j = 0; j < cur_interval.size(); ++j) {
