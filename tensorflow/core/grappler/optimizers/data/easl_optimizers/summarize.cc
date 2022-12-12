@@ -131,10 +131,8 @@ Status Summarize::OptimizeAndCollectStats(Cluster* cluster,
 
     return ApplyOptimization(graph, sorted_old_graph);
 
-    }
-    return Status::OK();
-
 }
+
 
 REGISTER_GRAPH_OPTIMIZER_AS(Summarize, "summarize");
 
