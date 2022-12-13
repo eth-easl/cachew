@@ -329,7 +329,7 @@ class DataServiceDispatcherImpl {
   // Mapping from job id to the split providers for the job.
   absl::flat_hash_map<int64_t, std::vector<std::unique_ptr<SplitProvider>>>
       split_providers_ TF_GUARDED_BY(mu_);
-  // Mapping from round robin job id to the round the job is currently on. This
+  // Mapping from round-robin job id to the round the job is currently on. This
   // is based on the data provided by client heartbeats, and may be stale.
   absl::flat_hash_map<int64_t, int64_t> round_robin_rounds_ TF_GUARDED_BY(mu_);
   // Map from task id to a TaskRemover which determines when to remove the task.

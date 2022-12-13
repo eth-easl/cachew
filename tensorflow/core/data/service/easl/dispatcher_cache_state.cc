@@ -1,6 +1,8 @@
 #include "tensorflow/core/data/service/easl/dispatcher_cache_state.h"
 
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/framework/node_def.pb.h"
+#include "tensorflow/core/framework/node_def_util.h"
 
 namespace tensorflow {
 namespace data {

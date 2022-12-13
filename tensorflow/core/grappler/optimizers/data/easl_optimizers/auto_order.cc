@@ -5,6 +5,7 @@
 #include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
 #include "absl/container/flat_hash_set.h"
+#include "tensorflow/core/data/service/easl/dispatcher_order_state.h"
 #include "tensorflow/core/framework/dataset.h"
 #include "tensorflow/core/framework/attr_value_util.h"
 #include "tensorflow/core/framework/attr_value.pb.h"
@@ -697,14 +698,23 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     //std::vector<bool> node_changed_dtype = {false, true}; // remember we are going bottom up in the pipeline
     std::vector<bool> node_changed_dtype = {false, false}; // remember we are going bottom up in the pipeline
     std::vector<bool> node_changed_shape = {false, false};
+
+    std::vector<NodeDef> nodes_of_interest;
     
     while (!bfs_queue.empty()) {
         //VLOG(0) << "Trying another one";
         //VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
-        VLOG(0) << "Visiting " << current_node->op();
-        //VLOG(0) << "Current output_type is " << (*current_node->mutable_attr())["output_types"];
-        //VLOG(0) << "Current output_shape is " << (*current_node->mutable_attr())["output_shapes"];
+        std::string op = current_node->op();
+        VLOG(0) << "Visiting " << op;
+
+        if ((op.find("ParallelMap") != std::string::npos) ||
+            (op.find("Filter") != std::string::npos) ||
+            (op.find("Prefetch") != std::string::npos) ||
+            (op.find("ParallelInterleave") != std::string::npos)) {
+                nodes_of_interest.push_back(*current_node);
+        }
+
         bfs_queue.pop();
         //VLOG(0) << "popped elem";
         visited.insert(current_node->name());
@@ -889,9 +899,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         }
     }
 
-
-
-
+    tensorflow::data::service::easl::OrderState::AddOrgPipeline(nodes_of_interest);
 
     return ApplyOptimization(graph, sorted_old_graph);
 
