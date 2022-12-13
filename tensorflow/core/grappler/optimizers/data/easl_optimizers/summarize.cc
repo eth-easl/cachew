@@ -96,7 +96,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
 
             if (nd_summary.find("predicate=") != std::string::npos) {
                 VLOG(0) << "Node has a predicate!";
-                AttrValue& filter_pred = current_node->attr().at("predicate");
+                AttrValue& filter_pred = current_node->mutable_attr().at("predicate");
                 //FunctionDef func_def_direct = (*current_node.mutable_attr())["predicate"].func();
                 int num_funcs = filter_pred.func_size();
                 for (int i = 0; i < num_funcs; ++i) {
@@ -105,7 +105,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
                 }
             } else if (nd_summary.find("f=") != std::string::npos) {
                 VLOG(0) << "Node has a function!";
-                AttrValue& func_f = current_node->attr().at("f");
+                AttrValue& func_f = current_node->mutable_attr().at("f");
                 int num_funcs = func_f.func_size();
                 for (int i = 0; i < num_funcs; ++i) {
                   std::string func_name = func_f.func(i).name();
@@ -141,7 +141,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
                 if (!visited.contains(current_node->input(i))) {
                     int idx = graph_utils::FindGraphNodeWithName(current_node->input(i),
                                                                  sorted_old_graph);
-                    NodeDef* neighbor_node = output->mutable_node(idx);
+                    NodeDef* neighbor_node = sorted_old_graph.mutable_node(idx);
                     bfs_queue.push(neighbor_node);
                 }
             }
