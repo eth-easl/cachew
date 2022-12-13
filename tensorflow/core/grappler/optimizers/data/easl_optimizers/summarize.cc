@@ -44,7 +44,10 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
 
 }  // namespace
 
-Status Summarize::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_old_graph, uint64 fingerprint = NULL) {
+Status Summarize::ApplyOptimization(MutableGraphView &graph,
+                                    GraphDef &sorted_old_graph,
+                                    const GrapplerItem& item,
+                                    uint64 fingerprint) {
 
     std::vector<std::string> op_types;
     auto cost = GetOrderCost(sorted_old_graph, graph, op_types);
@@ -64,6 +67,9 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     // Get the output of the graph
     VLOG(0) << "Searching for sink node";
     NodeDef* sink_node;
+
+    std::vector<NodeDef> nodes_of_interest;
+
     if (item.fetch.size() == 1) {
         TF_RETURN_IF_ERROR(graph_utils::GetFetchNode(graph, item, &sink_node));
 
@@ -73,8 +79,6 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
         VLOG(0) << "Searching for wanted node";
         bfs_queue.push(sink_node);
         NodeDef* target = nullptr;
-
-        std::vector<NodeDef> nodes_of_interest;
 
         while (!bfs_queue.empty()) {
             NodeDef* current_node = bfs_queue.front();
@@ -92,7 +96,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
 
             if (nd_summary.find("predicate=") != std::string::npos) {
                 VLOG(0) << "Node has a predicate!";
-                const AttrValue& filter_pred = current_node.attr().at("predicate");
+                AttrValue& filter_pred = current_node->attr().at("predicate");
                 //FunctionDef func_def_direct = (*current_node.mutable_attr())["predicate"].func();
                 int num_funcs = filter_pred.func_size();
                 for (int i = 0; i < num_funcs; ++i) {
@@ -101,7 +105,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
                 }
             } else if (nd_summary.find("f=") != std::string::npos) {
                 VLOG(0) << "Node has a function!";
-                const AttrValue& func_f = current_node.attr().at("f");
+                AttrValue& func_f = current_node->attr().at("f");
                 int num_funcs = func_f.func_size();
                 for (int i = 0; i < num_funcs; ++i) {
                   std::string func_name = func_f.func(i).name();
@@ -136,7 +140,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
             for (int i = 0; i < current_node->input_size(); ++i) {
                 if (!visited.contains(current_node->input(i))) {
                     int idx = graph_utils::FindGraphNodeWithName(current_node->input(i),
-                                                                 *output);
+                                                                 sorted_old_graph);
                     NodeDef* neighbor_node = output->mutable_node(idx);
                     bfs_queue.push(neighbor_node);
                 }
@@ -168,7 +172,7 @@ Status Summarize::OptimizeAndCollectStats(Cluster* cluster,
     MutableGraphView graph(output);
     FunctionLibraryDefinition function_library(OpRegistry::Global(), output->library());
 
-    return ApplyOptimization(graph, sorted_old_graph);
+    return ApplyOptimization(graph, sorted_old_graph, item);
 }
 
 REGISTER_GRAPH_OPTIMIZER_AS(Summarize, "summarize");
