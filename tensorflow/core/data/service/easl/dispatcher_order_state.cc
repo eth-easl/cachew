@@ -49,7 +49,7 @@ Status OrderState::GetLatestInfFactors(const uint64 fingerprint, std::vector<std
     return Status::OK();
 }
 
-void AddOrgPipeline(std::vector<NodeDef> org_nodes) {
+void OrderState::AddOrgPipeline(std::vector<NodeDef> org_nodes) {
     if (org_graph_.size() == 0) {
         org_graph_.insert(std::end(org_graph_), std::begin(org_nodes), std::end(org_nodes));
         VLOG(0) << "Added original pipeline to the store.";
@@ -59,7 +59,7 @@ void AddOrgPipeline(std::vector<NodeDef> org_nodes) {
 }
 
 // Here there should be some check that we are matching the correct 2 org & final pipelines
-void AddFinalPipeline(const uint64 fingerprint, std::vector<NodeDef> final_nodes) {
+void OrderState::AddFinalPipeline(const uint64 fingerprint, std::vector<NodeDef> final_nodes) {
     auto it = final_graphs_.find(fingerprint);
     if (org_graph_.size() == 0) {
         VLOG(0) << "Couldn't find the original graph";
