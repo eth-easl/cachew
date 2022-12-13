@@ -899,7 +899,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         }
     }
 
-    tensorflow::data::service::easl::OrderState::AddOrgPipeline(nodes_of_interest);
+    tensorflow::data::easl::OrderState::AddOrgPipeline(nodes_of_interest);
 
     return ApplyOptimization(graph, sorted_old_graph);
 
