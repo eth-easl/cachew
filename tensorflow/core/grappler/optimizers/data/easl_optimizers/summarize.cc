@@ -96,21 +96,33 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
 
             if (nd_summary.find("predicate=") != std::string::npos) {
                 VLOG(0) << "Node has a predicate!";
-                AttrValue& filter_pred = current_node->mutable_attr().at("predicate");
+                AttrValue& filter_pred = current_node->mutable_attr()->at("predicate");
                 //FunctionDef func_def_direct = (*current_node.mutable_attr())["predicate"].func();
-                int num_funcs = filter_pred.func_size();
+
+                // Maybe needs to be done differently if we have a list
+
+                std::string func_name = filter_pred.func().name();
+                VLOG(0) << "Name of filter pred function: " << func_name;
+
+                /*int num_funcs = filter_pred.func_size();
                 for (int i = 0; i < num_funcs; ++i) {
-                  std::string func_name = filter_pred.func(i).name();
-                  VLOG(0) << "Name of filter pred function " << i << ": " << func_name;
-                }
+                    std::string func_name = filter_pred.func(i).name();
+                    VLOG(0) << "Name of filter pred function " << i << ": " << func_name;
+                }*/
             } else if (nd_summary.find("f=") != std::string::npos) {
                 VLOG(0) << "Node has a function!";
-                AttrValue& func_f = current_node->mutable_attr().at("f");
-                int num_funcs = func_f.func_size();
+                AttrValue& func_f = current_node->mutable_attr()->at("f");
+
+                // Maybe needs to be done differently if we have a list
+
+                std::string func_name = func_f.func().name();
+                VLOG(0) << "Name of map function: " << func_name;
+
+                /*int num_funcs = func_f.func_size();
                 for (int i = 0; i < num_funcs; ++i) {
                   std::string func_name = func_f.func(i).name();
                   VLOG(0) << "Name of map function " << i << ": " << func_name;
-                }
+                }*/
             }
 
             NodeDef_ExperimentalDebugInfo debug_i = current_node->experimental_debug_info();
