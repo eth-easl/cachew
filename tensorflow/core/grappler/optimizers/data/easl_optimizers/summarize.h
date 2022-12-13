@@ -25,6 +25,7 @@ class Summarize : public TFDataOptimizerBase {
 
         Status ApplyOptimization(MutableGraphView &graph,
                                  GraphDef &sorted_old_graph,
+                                 const GrapplerItem& item,
                                  uint64 fingerprint = NULL);
 
         Status OptimizeAndCollectStats(Cluster* cluster, const GrapplerItem& item,
