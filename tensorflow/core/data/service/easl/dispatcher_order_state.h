@@ -7,7 +7,7 @@
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/framework/node_def.pb.h"
-#include "tensorflow/core/framework/node_def_util.h"
+//#include "tensorflow/core/framework/node_def_util.h"
 #include "absl/container/flat_hash_map.h"
 #include <vector>
 #include <map>

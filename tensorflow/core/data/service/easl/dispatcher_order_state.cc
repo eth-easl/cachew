@@ -1,6 +1,7 @@
 #include "tensorflow/core/data/service/easl/dispatcher_order_state.h"
 
 #include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/framework/node_def.pb.h"
 
 namespace tensorflow {
 namespace data {
