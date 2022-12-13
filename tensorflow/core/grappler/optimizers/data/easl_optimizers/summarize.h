@@ -23,7 +23,9 @@ class Summarize : public TFDataOptimizerBase {
                 return Status::OK();
             }
 
-        Status ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_old_graph);
+        Status ApplyOptimization(MutableGraphView &graph,
+                                 GraphDef &sorted_old_graph,
+                                 uint64 fingerprint = NULL);
 
         Status OptimizeAndCollectStats(Cluster* cluster, const GrapplerItem& item,
                                        GraphDef* output,
