@@ -107,9 +107,18 @@ Status Summarize::OptimizeAndCollectStats(Cluster* cluster,
         VLOG(0) << "The the current NodeDef was made up from " << num_org_nodes << " nodes.";
         std::vector<std::string> org_names;
         for (int i = 0 ; i < num_org_nodes; ++i) {
-          std::string name = debug_i.original_node_names(i);
-          VLOG(0) << "Original node " << i << " is called " << name;
-          org_names.push_back(name);
+            std::string name = debug_i.original_node_names(i);
+            VLOG(0) << "Original node " << i << " is called " << name;
+            org_names.push_back(name);
+        }
+
+        int num_org_funcs = debug_i.original_func_names_size();
+        VLOG(0) << "Originally the node is made up of " << num_org_funcs << " functions";
+        std::vector<std::string> org_funcs;
+        for (int i = 0 ; i < num_org_funcs; ++i) {
+            std::string func = debug_i.original_func_names(i);
+            VLOG(0) << "Original func " << i << " is called " << func;
+            org_funcs.push_back(func);
         }
 
         bfs_queue.pop();
@@ -130,9 +139,7 @@ Status Summarize::OptimizeAndCollectStats(Cluster* cluster,
     VLOG(0) << "Graph summarization complete!";
 
     return ApplyOptimization(graph, sorted_old_graph);
-
 }
-
 
 REGISTER_GRAPH_OPTIMIZER_AS(Summarize, "summarize");
 
