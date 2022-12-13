@@ -164,7 +164,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
 
     if (fingerprint != NULL) {
         VLOG(0) << "Updating the op order state!";
-        tensorflow::data::easl::OrderState::AddFinalPipeline(fingerprint, nodes_of_interest);
+        tensorflow::data::OrderState::AddFinalPipeline(fingerprint, nodes_of_interest);
     }
 
     return Status::OK();
