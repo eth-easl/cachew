@@ -2062,30 +2062,31 @@ name=None))
         return new_ds
 
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
-      elif self._move_downstream and not keep_position and not self._keep_position:
-        new_self = MapDataset(self._input_dataset,
-                              map_func,
-                              preserve_cardinality=True,
-                              name=name,
-                              keep_position=keep_position)
-        if isinstance(self, MapDataset):
-          new_ds = MapDataset(new_self,
-                              self._map_func,
-                              preserve_cardinality=self._preserve_cardinality,
-                              name=self._metadata.name,
-                              keep_position=self._keep_position)
-        elif isinstance(self, ParallelMapDataset):
-          new_ds = ParallelMapDataset(new_self,
-                                      self._map_func,
-                                      self._use_inter_op_parallelism,
-                                      self._deterministic,
-                                      preserve_cardinality=self._preserve_cardinality,
-                                      name=self._metadata.name,
-                                      keep_position=self._keep_position)
+      if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
+        if self._move_downstream and not keep_position and not self._keep_position:
+          new_self = MapDataset(self._input_dataset,
+                                map_func,
+                                preserve_cardinality=True,
+                                name=name,
+                                keep_position=keep_position)
+          if isinstance(self, MapDataset):
+            new_ds = MapDataset(new_self,
+                                self._map_func,
+                                preserve_cardinality=self._preserve_cardinality,
+                                name=self._metadata.name,
+                                keep_position=self._keep_position)
+          elif isinstance(self, ParallelMapDataset):
+            new_ds = ParallelMapDataset(new_self,
+                                        self._map_func,
+                                        self._use_inter_op_parallelism,
+                                        self._deterministic,
+                                        preserve_cardinality=self._preserve_cardinality,
+                                        name=self._metadata.name,
+                                        keep_position=self._keep_position)
       else:
         if move_downstream and not keep_position:
           new_ds._move_downstream = True
-        return new_ds
+      return new_ds
 
         
     else:
@@ -2130,32 +2131,33 @@ name=None))
         return new_ds
       
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
-      elif self._move_downstream and not keep_position and not self._keep_position:
-        new_self = ParallelMapDataset(self._input_dataset,
-                                      map_func,
-                                      num_parallel_calls,
-                                      deterministic,
-                                      preserve_cardinality=True,
-                                      name=name,
-                                      keep_position=keep_position)
-        if isinstance(self, MapDataset):
-          new_ds = MapDataset(new_self,
-                              self._map_func,
-                              preserve_cardinality=self._preserve_cardinality,
-                              name=self._metadata.name,
-                              keep_position=self._keep_position)
-        elif isinstance(self, ParallelMapDataset):
-          new_ds = ParallelMapDataset(new_self,
-                                      self._map_func,
-                                      self._use_inter_op_parallelism,
-                                      self._deterministic,
-                                      preserve_cardinality=self._preserve_cardinality,
-                                      name=self._metadata.name,
-                                      keep_position=self._keep_position)
+      if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
+        if self._move_downstream and not keep_position and not self._keep_position:
+          new_self = ParallelMapDataset(self._input_dataset,
+                                        map_func,
+                                        num_parallel_calls,
+                                        deterministic,
+                                        preserve_cardinality=True,
+                                        name=name,
+                                        keep_position=keep_position)
+          if isinstance(self, MapDataset):
+            new_ds = MapDataset(new_self,
+                                self._map_func,
+                                preserve_cardinality=self._preserve_cardinality,
+                                name=self._metadata.name,
+                                keep_position=self._keep_position)
+          elif isinstance(self, ParallelMapDataset):
+            new_ds = ParallelMapDataset(new_self,
+                                        self._map_func,
+                                        self._use_inter_op_parallelism,
+                                        self._deterministic,
+                                        preserve_cardinality=self._preserve_cardinality,
+                                        name=self._metadata.name,
+                                        keep_position=self._keep_position)
       else:
         if move_downstream and not keep_position:
           new_ds._move_downstream = True
-        return new_ds
+      return new_ds
 
   def flat_map(self, map_func, name=None):
     """Maps `map_func` across this dataset and flattens the result.
