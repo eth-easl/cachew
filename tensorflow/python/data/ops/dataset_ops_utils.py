@@ -95,14 +95,14 @@ from tensorflow.python.util.tf_export import tf_export
                    tf2.uint64
                    ]'''
 
-dtypes_by_bytes = ["<dtype: 'tf2.int8'>",
-                   "<dtype: 'tf2.bfloat16'>",
-                   "<dtype: 'tf2.float16'>",
-                   "<dtype: 'tf2.int16'>",
+dtypes_by_bytes = ["<dtype: 'int8'>",
+                   "<dtype: 'bfloat16'>",
+                   "<dtype: 'float16'>",
+                   "<dtype: 'int16'>",
                    "<dtype: 'float32'>",
-                   "<dtype: 'tf2.int32'>",
-                   "<dtype: 'tf2.float64'>",
-                   "<dtype: 'tf2.int64'>"
+                   "<dtype: 'int32'>",
+                   "<dtype: 'float64'>",
+                   "<dtype: 'int64'>"
                    ]
 
 def get_ds_dtypes_shapes(dataset):
@@ -130,19 +130,23 @@ def get_ds_dtypes_shapes(dataset):
 def should_reorder(org_types, org_shapes, new_types, new_shapes):
   if org_shapes != new_shapes:
     # This op changes the shape => not a casting op
-    return False
+    return False, False
   else:
     for t in org_types:
       if t not in dtypes_by_bytes:
-        return False
+        return False, False
     for t in new_types:
       if t not in dtypes_by_bytes:
-        return False
+        return False, False
     if org_types != new_types:
       for i in range(len(org_types)):
         # At least some component changed to a 'cheaper' dtype
         if dtypes_by_bytes.index(str(new_types[i])) < dtypes_by_bytes.index(str(org_types[i])):
-          return True
-      return False
+          return True, False
+      for i in range(len(org_types)):
+        # At least some component changed to a more expensive dtype
+        if dtypes_by_bytes.index(str(new_types[i])) > dtypes_by_bytes.index(str(org_types[i])):
+          return False, True
+      return False, False
     else:
-      return False
+      return False, False
