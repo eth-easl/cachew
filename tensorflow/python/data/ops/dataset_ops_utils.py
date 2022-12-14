@@ -24,7 +24,7 @@ import numpy as np
 import six
 from six.moves import queue as Queue  # pylint: disable=redefined-builtin
 
-import tensorflow as tf
+
 
 from tensorflow.core.framework import dataset_metadata_pb2
 from tensorflow.core.framework import dataset_options_pb2
@@ -75,24 +75,24 @@ from tensorflow.python.util.compat import collections_abc
 from tensorflow.python.util.tf_export import tf_export
 
 # TODO: Find place for tf.variant
-dtypes_by_bytes = [tf.int8,
-                   tf.qint8,
-                   tf.quint8,
-                   tf.uint8,
-                   tf.bfloat16,
-                   tf.float16,
-                   tf.half,
-                   tf.int16,
-                   tf.qint16,
-                   tf.quint16,
-                   tf.uint16,
-                   tf.float32,
-                   tf.int32,
-                   tf.qint32,
-                   tf.uint32,
-                   tf.float64,
-                   tf.int64,
-                   tf.uint64
+dtypes_by_bytes = [tf2.int8,
+                   tf2.qint8,
+                   tf2.quint8,
+                   tf2.uint8,
+                   tf2.bfloat16,
+                   tf2.float16,
+                   tf2.half,
+                   tf2.int16,
+                   tf2.qint16,
+                   tf2.quint16,
+                   tf2.uint16,
+                   tf2.float32,
+                   tf2.int32,
+                   tf2.qint32,
+                   tf2.uint32,
+                   tf2.float64,
+                   tf2.int64,
+                   tf2.uint64
                    ]
 
 def get_ds_dtypes_shapes(self, dataset):
