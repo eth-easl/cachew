@@ -117,7 +117,7 @@ def get_ds_dtypes_shapes(dataset):
       shapes += list(elem_spec[i].shape)
   else:
     types.append(elem_spec.dtype)
-    cur_s = list(elem_spec.shapes)
+    cur_s = list(elem_spec.shape)
     shapes += cur_s
   return types, shapes
 
