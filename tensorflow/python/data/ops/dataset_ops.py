@@ -31,6 +31,7 @@ from tensorflow.python import tf2
 from tensorflow.python.data.ops import iterator_ops
 from tensorflow.python.data.ops import options as options_lib
 from tensorflow.python.data.ops import structured_function
+from tensorflow.python.data.ops import dataset_ops_utils as dsu
 from tensorflow.python.data.util import nest
 from tensorflow.python.data.util import random_seed
 from tensorflow.python.data.util import structure
@@ -2019,13 +2020,31 @@ name=None))
       if deterministic is not None and not DEBUG_MODE:
         warnings.warn("The `deterministic` argument has no effect unless the "
                       "`num_parallel_calls` argument is specified.")
-      return MapDataset(self,
-                        map_func,
-                        preserve_cardinality=True,
-                        name=name,
-                        keep_position=keep_position)
+      new_ds = MapDataset(self,
+                          map_func,
+                          preserve_cardinality=True,
+                          name=name,
+                          keep_position=keep_position)
+      org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
+      new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
+      should_reorder = False
+      should_reorder = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
+      if should_reorder and not keep_position and not self._input_dataset._keep_position:
+        new_self = MapDataset(self._input_dataset,
+                              map_func,
+                              preserve_cardinality=True,
+                              name=name,
+                              keep_position=keep_position)
+        new_ds = MapDataset(new_self,
+                            self._map_func,
+                            preserve_cardinality=self._preserve_cardinality,
+                            name=self._metadata.name,
+                            keep_position=self._keep_position)
+        return new_ds
+      else:
+        return new_ds
     else:
-      return ParallelMapDataset(
+      new_ds = ParallelMapDataset(
           self,
           map_func,
           num_parallel_calls,
@@ -2033,6 +2052,28 @@ name=None))
           preserve_cardinality=True,
           name=name,
           keep_position=keep_position)
+      org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
+      new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
+      should_reorder = False
+      should_reorder = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
+      if should_reorder and not keep_position and not self._input_dataset._keep_position:
+        new_self = ParallelMapDataset(self._input_dataset,
+                                      map_func,
+                                      num_parallel_calls,
+                                      deterministic,
+                                      preserve_cardinality=True,
+                                      name=name,
+                                      keep_position=keep_position)
+        new_ds = ParallelMapDataset(new_self,
+                                    self._map_func,
+                                    self._use_inter_op_parallelism,
+                                    self._deterministic
+                                    preserve_cardinality=self._preserve_cardinality,
+                                    name=self._metadata.name,
+                                    keep_position=self._keep_position)
+        return new_ds
+      else:
+        return new_ds
 
   def flat_map(self, map_func, name=None):
     """Maps `map_func` across this dataset and flattens the result.

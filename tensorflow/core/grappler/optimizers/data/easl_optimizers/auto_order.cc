@@ -899,6 +899,9 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         }
     }
 
+    for (int i = 0; i < nodes_of_interest.size(); ++i) {
+        VLOG(0) << nodes_of_interest[i].name();
+    }
     //tensorflow::data::OrderState::AddOrgPipeline(nodes_of_interest);
 
     return ApplyOptimization(graph, sorted_old_graph);
