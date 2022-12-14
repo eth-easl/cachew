@@ -2029,6 +2029,8 @@ name=None))
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       should_reorder = False
       should_reorder = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
+      print("Should we reorder: ")
+      print(should_reorder)
       if should_reorder and not keep_position and not self._input_dataset._keep_position:
         new_self = MapDataset(self._input_dataset,
                               map_func,
@@ -2056,6 +2058,8 @@ name=None))
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       should_reorder = False
       should_reorder = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
+      print("Should we reorder: ")
+      print(should_reorder)
       if should_reorder and not keep_position and not self._input_dataset._keep_position:
         new_self = ParallelMapDataset(self._input_dataset,
                                       map_func,
