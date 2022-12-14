@@ -1044,6 +1044,7 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "//tensorflow/core/grappler:mutable_graph_view",
         "//tensorflow/core:lib",
+        "//tensorflow/core/data/service:dispatcher_order_state",
         "//tensorflow/core/grappler:grappler_item",
         "//tensorflow/core/grappler:op_types",
         "//tensorflow/core/grappler:utils",
