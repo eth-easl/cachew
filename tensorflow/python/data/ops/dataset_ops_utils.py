@@ -75,7 +75,7 @@ from tensorflow.python.util.compat import collections_abc
 from tensorflow.python.util.tf_export import tf_export
 
 # TODO: Find place for tf.variant
-dtypes_by_bytes = [tf2.int8,
+'''dtypes_by_bytes = [tf2.int8,
                    tf2.qint8,
                    tf2.quint8,
                    tf2.uint8,
@@ -93,6 +93,16 @@ dtypes_by_bytes = [tf2.int8,
                    tf2.float64,
                    tf2.int64,
                    tf2.uint64
+                   ]'''
+
+dtypes_by_bytes = ["<dtype: 'tf2.int8'>",
+                   "<dtype: 'tf2.bfloat16'>",
+                   "<dtype: 'tf2.float16'>",
+                   "<dtype: 'tf2.int16'>",
+                   "<dtype: 'float32'>",
+                   "<dtype: 'tf2.int32'>",
+                   "<dtype: 'tf2.float64'>",
+                   "<dtype: 'tf2.int64'>"
                    ]
 
 def get_ds_dtypes_shapes(self, dataset):
@@ -125,7 +135,7 @@ def should_reorder(self, org_types, org_shapes, new_types, new_shapes):
     if org_types != new_types:
       for i in range(len(org_types)):
         # At least some component changed to a 'cheaper' dtype
-        if dtypes_by_bytes.index(new_types[i]) < dtypes_by_bytes.index(org_types[i]):
+        if dtypes_by_bytes.index(str(new_types[i])) < dtypes_by_bytes.index(str(org_types[i])):
           return True
       return False
     else:
