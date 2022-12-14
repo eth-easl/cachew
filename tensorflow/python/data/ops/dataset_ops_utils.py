@@ -105,7 +105,7 @@ dtypes_by_bytes = ["<dtype: 'tf2.int8'>",
                    "<dtype: 'tf2.int64'>"
                    ]
 
-def get_ds_dtypes_shapes(self, dataset):
+def get_ds_dtypes_shapes(dataset):
   types = []
   shapes = []
 
@@ -121,7 +121,7 @@ def get_ds_dtypes_shapes(self, dataset):
     shapes += cur_s
   return types, shapes
 
-def should_reorder(self, org_types, org_shapes, new_types, new_shapes):
+def should_reorder(org_types, org_shapes, new_types, new_shapes):
   if org_shapes != new_shapes:
     # This op changes the shape => not a casting op
     return False
