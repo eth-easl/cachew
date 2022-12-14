@@ -2067,7 +2067,7 @@ name=None))
         new_ds = ParallelMapDataset(new_self,
                                     self._map_func,
                                     self._use_inter_op_parallelism,
-                                    self._deterministic
+                                    self._deterministic,
                                     preserve_cardinality=self._preserve_cardinality,
                                     name=self._metadata.name,
                                     keep_position=self._keep_position)
