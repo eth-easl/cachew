@@ -267,7 +267,7 @@ void MapDatasetOp::MakeDataset(OpKernelContext* ctx, DatasetBase* input,
                                           &captured_func));
 
   *output = new Dataset(ctx, input, std::move(captured_func), output_types_,
-                        output_shapes_, preserve_cardinality_);
+                        output_shapes_, preserve_cardinality_, keep_position_);
 }
 
 namespace {
