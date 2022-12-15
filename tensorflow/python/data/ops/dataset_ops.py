@@ -2035,31 +2035,32 @@ name=None))
 
       # TODO: MOVE BUBBLE THE 'CHEAPER' CASTS FURTHER UP (not just by 1 op)
       # Case where the new op decrease the size of the data and should be move upstream.
-      if move_upstream and not keep_position and not self._input_dataset._keep_position:
-        new_self = MapDataset(self._input_dataset,
-                              map_func,
-                              preserve_cardinality=True,
-                              name=name,
-                              keep_position=keep_position)
-        # Currently only swapping with map ops and parallelMap ops is supported
-        if isinstance(self, MapDataset):
-          new_ds = MapDataset(new_self,
-                              self._map_func,
-                              preserve_cardinality=self._preserve_cardinality,
-                              name=self._metadata.name,
-                              keep_position=self._keep_position)
-        elif isinstance(self, ParallelMapDataset):
-          new_ds = ParallelMapDataset(new_self,
-                                      self._map_func,
-                                      self._use_inter_op_parallelism,
-                                      self._deterministic,
-                                      preserve_cardinality=self._preserve_cardinality,
-                                      name=self._metadata.name,
-                                      keep_position=self._keep_position)
-        else: # TODO: I think this can be removed
+      if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
+        if move_upstream and not keep_position and not self._input_dataset._keep_position:
+          new_self = MapDataset(self._input_dataset,
+                                map_func,
+                                preserve_cardinality=True,
+                                name=name,
+                                keep_position=keep_position)
+          # Currently only swapping with map ops and parallelMap ops is supported
+          if isinstance(self, MapDataset):
+            new_ds = MapDataset(new_self,
+                                self._map_func,
+                                preserve_cardinality=self._preserve_cardinality,
+                                name=self._metadata.name,
+                                keep_position=self._keep_position)
+          elif isinstance(self, ParallelMapDataset):
+            new_ds = ParallelMapDataset(new_self,
+                                        self._map_func,
+                                        self._use_inter_op_parallelism,
+                                        self._deterministic,
+                                        preserve_cardinality=self._preserve_cardinality,
+                                        name=self._metadata.name,
+                                        keep_position=self._keep_position)
+          else: # TODO: I think this can be removed
+            return new_ds
+          
           return new_ds
-        
-        return new_ds
 
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
       if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
@@ -2105,31 +2106,32 @@ name=None))
       print(move_upstream)
       print("Should we move downstream: ")
       print(move_downstream)
-      if move_upstream and not keep_position and not self._input_dataset._keep_position:
-        new_self = ParallelMapDataset(self._input_dataset,
-                                      map_func,
-                                      num_parallel_calls,
-                                      deterministic,
-                                      preserve_cardinality=True,
-                                      name=name,
-                                      keep_position=keep_position)
-        # Currently only swapping with map ops and parallelMap ops is supported
-        if isinstance(self, MapDataset):
-          new_ds = MapDataset(new_self,
-                              self._map_func,
-                              preserve_cardinality=self._preserve_cardinality,
-                              name=self._metadata.name,
-                              keep_position=self._keep_position)
-        elif isinstance(self, ParallelMapDataset):
-          new_ds = ParallelMapDataset(new_self,
-                                      self._map_func,
-                                      self._use_inter_op_parallelism,
-                                      self._deterministic,
-                                      preserve_cardinality=self._preserve_cardinality,
-                                      name=self._metadata.name,
-                                      keep_position=self._keep_position)
-        return new_ds
-      
+      if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
+        if move_upstream and not keep_position and not self._input_dataset._keep_position:
+          new_self = ParallelMapDataset(self._input_dataset,
+                                        map_func,
+                                        num_parallel_calls,
+                                        deterministic,
+                                        preserve_cardinality=True,
+                                        name=name,
+                                        keep_position=keep_position)
+          # Currently only swapping with map ops and parallelMap ops is supported
+          if isinstance(self, MapDataset):
+            new_ds = MapDataset(new_self,
+                                self._map_func,
+                                preserve_cardinality=self._preserve_cardinality,
+                                name=self._metadata.name,
+                                keep_position=self._keep_position)
+          elif isinstance(self, ParallelMapDataset):
+            new_ds = ParallelMapDataset(new_self,
+                                        self._map_func,
+                                        self._use_inter_op_parallelism,
+                                        self._deterministic,
+                                        preserve_cardinality=self._preserve_cardinality,
+                                        name=self._metadata.name,
+                                        keep_position=self._keep_position)
+          return new_ds
+        
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
       if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
         if self._move_downstream and not keep_position and not self._keep_position:
