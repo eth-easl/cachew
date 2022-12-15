@@ -96,6 +96,7 @@ from tensorflow.python.util.tf_export import tf_export
                    ]'''
 
 dtypes_by_bytes = ["<dtype: 'int8'>",
+                   "<dtype: 'uint8'>",
                    "<dtype: 'bfloat16'>",
                    "<dtype: 'float16'>",
                    "<dtype: 'int16'>",
