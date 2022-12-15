@@ -106,6 +106,17 @@ dtypes_by_bytes = ["<dtype: \'int8\'>",
                    "<dtype: \'int64\'>"
                    ]
 
+dtypes_by_bytes = ["int8",
+                   "uint8",
+                   "bfloat16",
+                   "float16",
+                   "int16",
+                   "float32",
+                   "int32",
+                   "float64",
+                   "int64"
+                   ]
+
 def get_ds_dtypes_shapes(dataset):
   types = []
   shapes = []
@@ -114,16 +125,16 @@ def get_ds_dtypes_shapes(dataset):
   if isinstance(elem_spec, tuple):
     num_elems = len(dataset.element_spec)
     for i in range(num_elems):
-      types.append(elem_spec[i].dtype)
-      print(elem_spec[i].dtype)
+      types.append(elem_spec[i].dtype.split('\'')[1])
+      print(elem_spec[i].dtype.split('\'')[1])
       shapes += list(elem_spec[i].shape)
       print(elem_spec[i].shape)
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
-    types.append(elem_spec.dtype)
+    types.append(elem_spec.dtype.split('\'')[1])
     print(elem_spec.dtype)
     cur_s = list(elem_spec.shape)
     shapes += cur_s
-    print(elem_spec.dtype)
+    print(elem_spec.dtype.split('\'')[1])
   else:
     print(elem_spec)
   return types, shapes
