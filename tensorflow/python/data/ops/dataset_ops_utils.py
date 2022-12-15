@@ -137,10 +137,12 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
     for t in org_types:
       if t not in dtypes_by_bytes:
         print("not num type")
+        print(t)
         return False, False
     for t in new_types:
       if t not in dtypes_by_bytes:
         print("not num type")
+        print(t)
         return False, False
     if org_types != new_types:
       for i in range(len(org_types)):
