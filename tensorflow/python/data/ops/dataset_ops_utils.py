@@ -95,15 +95,15 @@ from tensorflow.python.util.tf_export import tf_export
                    tf2.uint64
                    ]'''
 
-dtypes_by_bytes = ["<dtype: 'int8'>",
-                   "<dtype: 'uint8'>",
-                   "<dtype: 'bfloat16'>",
-                   "<dtype: 'float16'>",
-                   "<dtype: 'int16'>",
-                   "<dtype: 'float32'>",
-                   "<dtype: 'int32'>",
-                   "<dtype: 'float64'>",
-                   "<dtype: 'int64'>"
+dtypes_by_bytes = ["<dtype: \'int8\'>",
+                   "<dtype: \'uint8\'>",
+                   "<dtype: \'bfloat16\'>",
+                   "<dtype: \'float16\'>",
+                   "<dtype: \'int16\'>",
+                   "<dtype: \'float32\'>",
+                   "<dtype: \'int32\'>",
+                   "<dtype: \'float64\'>",
+                   "<dtype: \'int64\'>"
                    ]
 
 def get_ds_dtypes_shapes(dataset):
