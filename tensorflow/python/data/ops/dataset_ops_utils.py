@@ -172,5 +172,5 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
           return False, True
       return False, False
     else:
-      print("input output type were identical")
+      print("input output types were identical")
       return False, False
