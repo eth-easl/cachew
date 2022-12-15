@@ -125,16 +125,16 @@ def get_ds_dtypes_shapes(dataset):
   if isinstance(elem_spec, tuple):
     num_elems = len(dataset.element_spec)
     for i in range(num_elems):
-      types.append(elem_spec[i].dtype.split('\'')[1])
-      print(elem_spec[i].dtype.split('\'')[1])
+      types.append(str(elem_spec[i].dtype).split('\'')[1])
+      print(str(elem_spec[i].dtype).split('\'')[1])
       shapes += list(elem_spec[i].shape)
       print(elem_spec[i].shape)
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
-    types.append(elem_spec.dtype.split('\'')[1])
+    types.append(str(elem_spec.dtype).split('\'')[1])
     print(elem_spec.dtype)
     cur_s = list(elem_spec.shape)
     shapes += cur_s
-    print(elem_spec.dtype.split('\'')[1])
+    print(str(elem_spec.dtype).split('\'')[1])
   else:
     print(elem_spec)
   return types, shapes
