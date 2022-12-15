@@ -130,23 +130,29 @@ def get_ds_dtypes_shapes(dataset):
 def should_reorder(org_types, org_shapes, new_types, new_shapes):
   if org_shapes != new_shapes:
     # This op changes the shape => not a casting op
+    print("different shape")
     return False, False
   else:
     for t in org_types:
       if t not in dtypes_by_bytes:
+        print("not num type")
         return False, False
     for t in new_types:
       if t not in dtypes_by_bytes:
+        print("not num type")
         return False, False
     if org_types != new_types:
       for i in range(len(org_types)):
+        print(dtypes_by_bytes.index(str(new_types[i])))
+        print(dtypes_by_bytes.index(str(org_types[i])))
         # At least some component changed to a 'cheaper' dtype
-        if dtypes_by_bytes.index(str(new_types[i])) < dtypes_by_bytes.index(str(org_types[i])):
+        if (dtypes_by_bytes.index(str(new_types[i])) < dtypes_by_bytes.index(str(org_types[i]))):
           return True, False
       for i in range(len(org_types)):
         # At least some component changed to a more expensive dtype
-        if dtypes_by_bytes.index(str(new_types[i])) > dtypes_by_bytes.index(str(org_types[i])):
+        if (dtypes_by_bytes.index(str(new_types[i])) > dtypes_by_bytes.index(str(org_types[i]))):
           return False, True
       return False, False
     else:
+      print("input output type were identical")
       return False, False
