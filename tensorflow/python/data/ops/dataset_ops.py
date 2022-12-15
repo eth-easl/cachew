@@ -2045,13 +2045,13 @@ name=None))
         # Currently only swapping with map ops and parallelMap ops is supported
         if isinstance(self, MapDataset):
           new_ds = MapDataset(new_self,
-                              self._map_func,
+                              self._map_func._func,
                               preserve_cardinality=self._preserve_cardinality,
                               name=self._metadata.name,
                               keep_position=self._keep_position)
         elif isinstance(self, ParallelMapDataset):
           new_ds = ParallelMapDataset(new_self,
-                                      self._map_func,
+                                      self._map_func._func,
                                       self._use_inter_op_parallelism,
                                       self._deterministic,
                                       preserve_cardinality=self._preserve_cardinality,
@@ -2072,13 +2072,13 @@ name=None))
                                 keep_position=keep_position)
           if isinstance(self, MapDataset):
             new_ds = MapDataset(new_self,
-                                self._map_func,
+                                self._map_func._func,
                                 preserve_cardinality=self._preserve_cardinality,
                                 name=self._metadata.name,
                                 keep_position=self._keep_position)
           elif isinstance(self, ParallelMapDataset):
             new_ds = ParallelMapDataset(new_self,
-                                        self._map_func,
+                                        self._map_func._func,
                                         self._use_inter_op_parallelism,
                                         self._deterministic,
                                         preserve_cardinality=self._preserve_cardinality,
@@ -2118,13 +2118,13 @@ name=None))
         # Currently only swapping with map ops and parallelMap ops is supported
         if isinstance(self, MapDataset):
           new_ds = MapDataset(new_self,
-                              self._map_func,
+                              self._map_func._func,
                               preserve_cardinality=self._preserve_cardinality,
                               name=self._metadata.name,
                               keep_position=self._keep_position)
         elif isinstance(self, ParallelMapDataset):
           new_ds = ParallelMapDataset(new_self,
-                                      self._map_func,
+                                      self._map_func._func,
                                       self._use_inter_op_parallelism,
                                       self._deterministic,
                                       preserve_cardinality=self._preserve_cardinality,
@@ -2144,13 +2144,13 @@ name=None))
                                         keep_position=keep_position)
           if isinstance(self, MapDataset):
             new_ds = MapDataset(new_self,
-                                self._map_func,
+                                self._map_func._func,
                                 preserve_cardinality=self._preserve_cardinality,
                                 name=self._metadata.name,
                                 keep_position=self._keep_position)
           elif isinstance(self, ParallelMapDataset):
             new_ds = ParallelMapDataset(new_self,
-                                        self._map_func,
+                                        self._map_func._func,
                                         self._use_inter_op_parallelism,
                                         self._deterministic,
                                         preserve_cardinality=self._preserve_cardinality,
