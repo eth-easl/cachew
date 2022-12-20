@@ -2042,7 +2042,7 @@ name=None))
                                             name=dataset._metadata.name,
                                             keep_position=dataset._keep_position)
 
-        final_input_ds = move_upstream(new_input_ds)
+        final_input_ds = move_op_upstream(new_input_ds)
 
 
         # Construct the outermost dataset and return it
