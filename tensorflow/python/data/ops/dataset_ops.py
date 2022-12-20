@@ -2090,7 +2090,7 @@ name=None))
       in_ds_keep_pos = self._keep_position if hasattr(self, "_keep_position") else False
       if move_upstream and not keep_position and not in_ds_keep_pos:
 
-        new_ds = move_downstream(new_ds)
+        new_ds = move_upstream(new_ds)
         
         '''new_self = MapDataset(self._input_dataset,
                               map_func,
@@ -2119,7 +2119,10 @@ name=None))
 
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
       if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
+        print("Checking if we should move downstream")
+        print(self._move_downstream)
         if self._move_downstream and not keep_position and not self._keep_position:
+          print("Moving downstream")
           new_self = MapDataset(self._input_dataset,
                                 map_func,
                                 preserve_cardinality=True,
@@ -2163,7 +2166,7 @@ name=None))
       print(move_downstream)
       in_ds_keep_pos = self._input_dataset._keep_position if hasattr(self._input_dataset, "_keep_position") else False
       if move_upstream and not keep_position and not in_ds_keep_pos:
-        new_ds = move_downstream(new_ds)
+        new_ds = move_upstream(new_ds)
         
         '''new_ds = dsu.move_upstream(new_ds)
         new_self = ParallelMapDataset(self._input_dataset,
