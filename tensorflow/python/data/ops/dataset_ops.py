@@ -2139,7 +2139,7 @@ name=None))
 
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
       if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
-        print("Checking if we should move downstream")
+        print("Checking if we should move the previous op downstream")
         print(self._move_downstream)
         if self._move_downstream and not keep_position and not self._keep_position:
           print("Moving downstream")
@@ -2148,6 +2148,10 @@ name=None))
                                 preserve_cardinality=True,
                                 name=name,
                                 keep_position=keep_position)
+          print("New self is a:")
+          print(new_self.__class__.__name__)
+          ts, ss = dsu.get_ds_dtypes_shapes(new_self)
+          print("Now creating op after new self")
           if isinstance(self, MapDataset):
             new_ds = MapDataset(new_self,
                                 self._map_func._func,
@@ -2162,6 +2166,9 @@ name=None))
                                         preserve_cardinality=self._preserve_cardinality,
                                         name=self._metadata.name,
                                         keep_position=self._keep_position)
+          print("Summarizing NEW dataset:")
+          nts, nss = dsu.get_ds_dtypes_shapes(new_ds)
+          print("End")
       else:
         if move_downstream and not keep_position:
           new_ds._move_downstream = True
