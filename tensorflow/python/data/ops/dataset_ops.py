@@ -2034,10 +2034,11 @@ name=None))
                                     name=dataset._metadata.name,
                                     keep_position=dataset._keep_position)
         else:
+          deter = dataset._deterministic if hasattr(dataset, "_deterministic") else False
           new_input_ds = ParallelMapDataset(dataset._input_dataset._input_dataset,
                                             dataset._map_func._func,
                                             dataset._use_inter_op_parallelism,
-                                            dataset._deterministic,
+                                            deter,
                                             preserve_cardinality=dataset._preserve_cardinality,
                                             name=dataset._metadata.name,
                                             keep_position=dataset._keep_position)
