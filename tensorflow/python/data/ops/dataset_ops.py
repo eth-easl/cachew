@@ -2016,6 +2016,58 @@ name=None))
     Returns:
       Dataset: A `Dataset`.
     """
+
+    def move_upstream(dataset):
+      org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
+      new_types, new_shapes = dsu.get_ds_dtypes_shapes(dataset)
+      move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
+
+      in_ds_keep_pos = dataset._input_dataset._keep_position if hasattr(dataset._input_dataset, "_keep_position") else False
+      if move_upstream and not dataset._keep_position and not in_ds_keep_pos:
+        new_input_ds = dataset._input_dataset
+
+        if isinstance(dataset._input_dataset, MapDataset):
+          new_input_ds = MapDataset(dataset._input_dataset._input_dataset,
+                                    dataset._map_func._func,
+                                    preserve_cardinality=dataset._preserve_cardinality,
+                                    name=dataset._metadata.name,
+                                    keep_position=dataset._keep_position)
+        else:
+          new_input_ds = ParallelMapDataset(dataset._input_dataset._input_dataset,
+                                            dataset._map_func._func,
+                                            dataset._use_inter_op_parallelism,
+                                            dataset._deterministic,
+                                            preserve_cardinality=dataset._preserve_cardinality,
+                                            name=dataset._metadata.name,
+                                            keep_position=dataset._keep_position)
+
+        final_input_ds = move_upstream(new_input_ds)
+
+
+        # Construct the outermost dataset and return it
+        if isinstance(dataset, MapDataset):
+          new_ds = MapDataset(final_input_ds,
+                              dataset._input_dataset._map_func._func,
+                              preserve_cardinality=dataset._input_dataset._preserve_cardinality,
+                              name=dataset._input_dataset._metadata.name)
+                              #keep_position=dataset._input_dataset._keep_position)
+        else:
+          new_ds = ParallelMapDataset(final_input_ds,
+                                      dataset._input_dataset._map_func._func,
+                                      dataset._input_dataset._use_inter_op_parallelism,
+                                      dataset._input_dataset._deterministic,
+                                      preserve_cardinality=dataset._input_dataset._preserve_cardinality,
+                                      name=dataset._input_dataset._metadata.name)
+                                      #keep_position=dataset._input_dataset._keep_position)
+        if hasattr(dataset._input_dataset, "_keep_position"):
+          new_ds._keep_position = dataset._input_dataset._keep_position
+        else:
+          new_ds._keep_position = False
+        return new_ds
+
+      return dataset
+
+    # Start of actual map function
     if num_parallel_calls is None or DEBUG_MODE:
       if deterministic is not None and not DEBUG_MODE:
         warnings.warn("The `deterministic` argument has no effect unless the "
@@ -2035,9 +2087,12 @@ name=None))
 
       # TODO: MOVE BUBBLE THE 'CHEAPER' CASTS FURTHER UP (not just by 1 op)
       # Case where the new op decrease the size of the data and should be move upstream.
-      in_ds_keep_pos = self._input_dataset._keep_position if hasattr(self._input_dataset, "_keep_position") else False
+      in_ds_keep_pos = self._keep_position if hasattr(self, "_keep_position") else False
       if move_upstream and not keep_position and not in_ds_keep_pos:
-        new_self = MapDataset(self._input_dataset,
+
+        new_ds = move_downstream(new_ds)
+        
+        '''new_self = MapDataset(self._input_dataset,
                               map_func,
                               preserve_cardinality=True,
                               name=name,
@@ -2058,7 +2113,7 @@ name=None))
                                       name=self._metadata.name,
                                       keep_position=self._keep_position)
         else: # TODO: I think this can be removed
-          return new_ds
+          return new_ds'''
         
         return new_ds
 
@@ -2108,6 +2163,9 @@ name=None))
       print(move_downstream)
       in_ds_keep_pos = self._input_dataset._keep_position if hasattr(self._input_dataset, "_keep_position") else False
       if move_upstream and not keep_position and not in_ds_keep_pos:
+        new_ds = move_downstream(new_ds)
+        
+        '''new_ds = dsu.move_upstream(new_ds)
         new_self = ParallelMapDataset(self._input_dataset,
                                       map_func,
                                       num_parallel_calls,
@@ -2129,7 +2187,7 @@ name=None))
                                       self._deterministic,
                                       preserve_cardinality=self._preserve_cardinality,
                                       name=self._metadata.name,
-                                      keep_position=self._keep_position)
+                                      keep_position=self._keep_position)'''
         return new_ds
       
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
