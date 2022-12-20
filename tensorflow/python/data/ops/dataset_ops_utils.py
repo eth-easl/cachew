@@ -175,3 +175,14 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
       print("input output types were identical")
       return False, False
 
+def op_preserves_shape(dataset):
+  
+
+  cur_tyes, cur_shapes = get_ds_dtypes_shapes(dataset)
+
+  org_tyes, org_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+
+  if len(cur_shapes == org_shapes):
+    return True
+  else:
+    return False

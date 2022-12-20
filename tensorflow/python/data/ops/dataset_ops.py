@@ -2023,6 +2023,11 @@ name=None))
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(dataset)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
 
+      # Check that the 1st map function doesn't manipulate the shape
+      preserves_shape = dsu.op_preserves_shape(dataset._input_dataset)
+      if not preserves_shape:
+        move_upstream = False
+
       in_ds_keep_pos = dataset._input_dataset._keep_position if hasattr(dataset._input_dataset, "_keep_position") else False
       if move_upstream and not dataset._keep_position and not in_ds_keep_pos:
         new_input_ds = dataset._input_dataset
