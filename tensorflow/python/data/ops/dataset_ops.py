@@ -2017,7 +2017,8 @@ name=None))
       Dataset: A `Dataset`.
     """
 
-    def move_upstream(dataset):
+    def move_op_upstream(dataset):
+      print("Inside move op upstream")
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(dataset)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
@@ -2090,7 +2091,7 @@ name=None))
       in_ds_keep_pos = self._keep_position if hasattr(self, "_keep_position") else False
       if move_upstream and not keep_position and not in_ds_keep_pos:
 
-        new_ds = move_upstream(new_ds)
+        new_ds = move_op_upstream(new_ds)
         
         '''new_self = MapDataset(self._input_dataset,
                               map_func,
@@ -2166,7 +2167,7 @@ name=None))
       print(move_downstream)
       in_ds_keep_pos = self._input_dataset._keep_position if hasattr(self._input_dataset, "_keep_position") else False
       if move_upstream and not keep_position and not in_ds_keep_pos:
-        new_ds = move_upstream(new_ds)
+        new_ds = move_op_upstream(new_ds)
         
         '''new_ds = dsu.move_upstream(new_ds)
         new_self = ParallelMapDataset(self._input_dataset,
