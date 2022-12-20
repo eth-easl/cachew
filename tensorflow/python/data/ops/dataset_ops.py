@@ -2053,19 +2053,32 @@ name=None))
 
         # Construct the outermost dataset and return it
         if isinstance(dataset, MapDataset):
-          new_ds = MapDataset(final_input_ds,
-                              dataset._input_dataset._map_func._func,
-                              preserve_cardinality=dataset._input_dataset._preserve_cardinality,
-                              name=dataset._input_dataset._metadata.name)
-                              #keep_position=dataset._input_dataset._keep_position)
+          if (isinstance(dataset._input_dataset, MapDataset) or isinstance(dataset._input_dataset, ParallelMapDataset)):
+            new_ds = MapDataset(final_input_ds,
+                                dataset._input_dataset._map_func._func,
+                                preserve_cardinality=dataset._input_dataset._preserve_cardinality,
+                                name=dataset._input_dataset._metadata.name)
+          else:
+            new_ds = MapDataset(final_input_ds,
+                                dataset._map_func._func,
+                                preserve_cardinality=dataset._preserve_cardinality,
+                                name=dataset._metadata.name)
         else:
-          new_ds = ParallelMapDataset(final_input_ds,
-                                      dataset._input_dataset._map_func._func,
-                                      dataset._input_dataset._use_inter_op_parallelism,
-                                      dataset._input_dataset._deterministic,
-                                      preserve_cardinality=dataset._input_dataset._preserve_cardinality,
-                                      name=dataset._input_dataset._metadata.name)
-                                      #keep_position=dataset._input_dataset._keep_position)
+          if (isinstance(dataset._input_dataset, MapDataset) or isinstance(dataset._input_dataset, ParallelMapDataset)):
+            deter = dataset._input_dataset._deterministic if hasattr(dataset._input_dataset, "_deterministic") else False
+            new_ds = ParallelMapDataset(final_input_ds,
+                                        dataset._input_dataset._map_func._func,
+                                        dataset._input_dataset._use_inter_op_parallelism,
+                                        deter,
+                                        preserve_cardinality=dataset._input_dataset._preserve_cardinality,
+                                        name=dataset._input_dataset._metadata.name)
+          else:
+            new_ds = ParallelMapDataset(final_input_ds,
+                                        dataset._map_func._func,
+                                        dataset._use_inter_op_parallelism,
+                                        deter,
+                                        preserve_cardinality=dataset._preserve_cardinality,
+                                        name=dataset._metadata.name)
         if hasattr(dataset._input_dataset, "_keep_position"):
           new_ds._keep_position = dataset._input_dataset._keep_position
         else:
