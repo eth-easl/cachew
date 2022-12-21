@@ -582,7 +582,10 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
         }
         last_seen = op_name;
 
-        VLOG(0) << op_name;
+        if (op_name != "Const" && op_name != "SparseToDense" && op_name != "Identity") {
+            VLOG(0) << op_name;
+        }
+
         //VLOG(0) << output_s;
         VLOG(1) << input_s;
         //VLOG(0) << inf_factor;

@@ -128,10 +128,10 @@ Status ApplyRewrites(OpKernelContext* ctx,
   // TODO(b/118820916): When MetaOptimizer adds provisions for function retvals
   // to be optimizable, we will no longer need this.
   for (auto& function_def : *graph_def->mutable_library()->mutable_function()) {
-    VLOG(0) << "Removing Fake sinks for function: ";
-    VLOG(0) << SummarizeOpDef(function_def.signature());
+    VLOG(1) << "Removing Fake sinks for function: ";
+    VLOG(1) << SummarizeOpDef(function_def.signature());
     RemoveFakeSinks(&function_def);
-    VLOG(0) << "Function after deleting fake sinks " << SummarizeOpDef(function_def.signature());
+    VLOG(1) << "Function after deleting fake sinks " << SummarizeOpDef(function_def.signature());
   }
 
   return Status::OK();

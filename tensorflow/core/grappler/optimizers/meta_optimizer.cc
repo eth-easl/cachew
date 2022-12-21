@@ -911,7 +911,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
       tensorflow::metrics::GetGraphOptimizationCounter(),
       {kGrapplerCategory, "*"});
 
-  VLOG(0) << "Starting optimization for grappler item: " << item.id;
+  VLOG(1) << "Starting optimization for grappler item: " << item.id;
   optimization_results_.clear();
 
   // Constructs a FunctionLibraryDefinition with functions that are reachable
@@ -932,7 +932,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
   *item.graph.mutable_library() = minimized_flib(item.graph).ToProto();
   int new_library_size = item.graph.library().function_size();
 
-  VLOG(0) << absl::Substitute(
+  VLOG(1) << absl::Substitute(
       "Deleted $0 unreachable functions from the graph (library size = $1)",
       old_library_size - new_library_size, new_library_size);
 
@@ -943,7 +943,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
 
   // 1. Optimize main graph
   TF_RETURN_IF_ERROR(OptimizeGraph(cluster, std::move(item), optimized_graph));
-  VLOG(0) << "Optimized main graph.";
+  VLOG(1) << "Optimized main graph.";
   GRAPPLER_RETURN_IF_DEADLINE_EXCEEDED();
 
   // 2. Optimize functions reachable from the optimized graph.
@@ -969,7 +969,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
   for (const FunctionDef& function : optimized_graph->library().function()) {
     find_differentiable_functions(function.node_def());
   }
-  VLOG(0) << "Optimizing reachable functions";
+  VLOG(1) << "Optimizing reachable functions";
 
   // Find functions that will be compiled by XLA later
   // We do it by looking for XlaLaunch ops that call functions,
@@ -1018,7 +1018,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
   // Propagate `_tf_data_function` attributes from functions to their callees.
   PropagateTFDataAttrs(flib, *optimized_graph->mutable_library());
 
-  VLOG(0) << "Found functions to compile";
+  VLOG(1) << "Found functions to compile";
 
   // Optimize each function only once.
   absl::flat_hash_set<string> optimized_funcs;
@@ -1137,7 +1137,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
     }
   }
 
-  VLOG(0) << "Optimized " << optimized_funcs.size()
+  VLOG(1) << "Optimized " << optimized_funcs.size()
           << " functions: " << absl::StrJoin(optimized_funcs, ", ");
   VLOG(3) << "Optimized graph =\n" << optimized_graph->DebugString();
   if (VLOG_IS_ON(1)) {
