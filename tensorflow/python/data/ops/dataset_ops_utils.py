@@ -142,7 +142,7 @@ def get_ds_dtypes_shapes(dataset):
 
       val = i[1]
       if str(type(val)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
-        types.append(str(val.dtype.split('\'')[1]))
+        types.append(str(val.dtype).split('\'')[1])
         print(types[-1])
         shapes += list(val.shape)
         print(val.shape)
