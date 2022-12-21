@@ -122,13 +122,22 @@ def get_ds_dtypes_shapes(dataset):
   shapes = []
 
   elem_spec = dataset.element_spec
+  print(elem_spec)
   if isinstance(elem_spec, tuple):
-    num_elems = len(dataset.element_spec)
+    print("Elem spec is a tuple!")
+    num_elems = len(elem_spec)
     for i in range(num_elems):
       types.append(str(elem_spec[i].dtype).split('\'')[1])
       print(str(elem_spec[i].dtype).split('\'')[1])
       shapes += list(elem_spec[i].shape)
       print(elem_spec[i].shape)
+  elif isinstance(elem_spec, dict):
+    print("Elem spec is a dict!")
+    num_elems = len(elem_spec)
+    for i in sorted(elem_spec.iteritems()):
+      print("Key is: " + i)
+      types.append(str(elem_spec[i].dtype))
+      shapes += list(elem_spec[i].shape)
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
     types.append(str(elem_spec.dtype).split('\'')[1])
     print(elem_spec.dtype)
@@ -136,7 +145,7 @@ def get_ds_dtypes_shapes(dataset):
     shapes += cur_s
     print(str(elem_spec.dtype).split('\'')[1])
   else:
-    print(elem_spec)
+    print("Unsupported spec type")
   return types, shapes
 
 def should_reorder(org_types, org_shapes, new_types, new_shapes):
