@@ -134,7 +134,7 @@ def get_ds_dtypes_shapes(dataset):
   elif isinstance(elem_spec, dict):
     print("Elem spec is a dict!")
     num_elems = len(elem_spec)
-    for i in sorted(elem_spec.iteritems()):
+    for i in sorted(elem_spec.items()):
       print("Key is: " + i)
       types.append(str(elem_spec[i].dtype))
       shapes += list(elem_spec[i].shape)
