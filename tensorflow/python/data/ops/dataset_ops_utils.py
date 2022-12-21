@@ -127,6 +127,8 @@ def get_ds_dtypes_shapes(dataset):
     print("Elem spec is a tuple!")
     num_elems = len(elem_spec)
     for i in range(num_elems):
+      print(elem_spec[i])
+
       types.append(str(elem_spec[i].dtype).split('\'')[1])
       print(str(elem_spec[i].dtype).split('\'')[1])
       shapes += list(elem_spec[i].shape)
@@ -135,9 +137,17 @@ def get_ds_dtypes_shapes(dataset):
     print("Elem spec is a dict!")
     num_elems = len(elem_spec)
     for i in sorted(elem_spec.items()):
-      print("Key is: " + i)
-      types.append(str(elem_spec[i].dtype))
-      shapes += list(elem_spec[i].shape)
+      print("Key is: " + i[0])
+      print(i)
+
+      val = i[1]
+      if str(type(val)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
+        types.append(str(val.dtype.split('\'')[1]))
+        print(types[-1])
+        shapes += list(val.shape)
+        print(val.shape)
+      
+
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
     types.append(str(elem_spec.dtype).split('\'')[1])
     print(elem_spec.dtype)
