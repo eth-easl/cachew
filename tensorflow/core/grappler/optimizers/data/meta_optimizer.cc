@@ -37,8 +37,9 @@ using ConfigMap =
 
 // tf.data optimizations, in the order we want to perform them.
 // TBD: Where exactly should the auto_order optimizer go!!!!!!!!
-constexpr std::array<const char*, 26> kTFDataOptimizations = {
-    "auto_order",
+constexpr std::array<const char*, 24> kTFDataOptimizations = {
+//constexpr std::array<const char*, 26> kTFDataOptimizations = {
+    //"auto_order",
     "noop_elimination",
     "disable_intra_op_parallelism",
     "use_private_thread_pool",
@@ -62,8 +63,9 @@ constexpr std::array<const char*, 26> kTFDataOptimizations = {
     "add_get_op",
     "add_put_op_at_marker",
     "add_get_op_at_marker",
-    "make_deterministic",
-    "summarize"};
+    "make_deterministic"//,
+    //"summarize"
+};
 
 // Parses a list of string optimizer configurations into a map from
 // optimizer name -> rewriter config for that optimizer.

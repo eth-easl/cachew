@@ -582,7 +582,9 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
         }
         last_seen = op_name;
 
-        if (op_name != "Const" && op_name != "SparseToDense" && op_name != "Identity") {
+        if (op_name != "Const" && op_name != "SparseToDense" && op_name != "Identity" &&
+            op_name != "StridedSlice" && op_name != "GatherV2" && op_name != "Pack" &&
+            op_name != "AddV2" && op_name != "Reshape") {
             VLOG(0) << op_name;
         }
 

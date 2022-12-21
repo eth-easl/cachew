@@ -539,7 +539,10 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         }
 
         // If the job produced enough elements calculate the metrics for the AutoOrder policy
-        if (element_count >= kElementThreshold) {
+
+        // TODO: Find a way to reduce the amount of metric updates
+
+        /*if (element_count >= kElementThreshold) {
           // Update the info for the AutoOrder policy
           std::vector<std::string> pipeline_nodes;
           std::vector<float> inflation_factors;
@@ -552,7 +555,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
                                               inflation_factors);
           VLOG(0) << "Updated order state";
-        }
+        }*/
       }
     }
   }
