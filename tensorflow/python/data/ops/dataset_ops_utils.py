@@ -129,10 +129,16 @@ def get_ds_dtypes_shapes(dataset):
     for i in range(num_elems):
       print(elem_spec[i])
 
-      types.append(str(elem_spec[i].dtype).split('\'')[1])
-      print(str(elem_spec[i].dtype).split('\'')[1])
-      shapes += list(elem_spec[i].shape)
-      print(elem_spec[i].shape)
+      if isinstance(elem_spec[i], dict):
+        print("Nested dicts are currently not supported!")
+        types.append('dict')
+        shapes += []
+
+      else:
+        types.append(str(elem_spec[i].dtype).split('\'')[1])
+        print(str(elem_spec[i].dtype).split('\'')[1])
+        shapes += list(elem_spec[i].shape)
+        print(elem_spec[i].shape)
   elif isinstance(elem_spec, dict):
     print("Elem spec is a dict!")
     num_elems = len(elem_spec)
@@ -165,19 +171,29 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
     return False, False
   else:
     for t in org_types:
-      if t not in dtypes_by_bytes:
+      if t == 'dict':
+        print("Dict type")
+        pass
+      elif t not in dtypes_by_bytes:
         print("not num type")
         print(t)
         print("Num types are: ")
         print(dtypes_by_bytes)
         return False, False
     for t in new_types:
-      if t not in dtypes_by_bytes:
+      if t == 'dict':
+        print("Dict type")
+        pass
+      elif t not in dtypes_by_bytes:
         print("not num type")
         print(t)
         print("Num types are: ")
         print(dtypes_by_bytes)
         return False, False
+    
+    org_types = [i for i in org_types if i != 'dict']
+    new_types = [i for i in new_types if i != 'dict']
+    
     if org_types != new_types:
       for i in range(len(org_types)):
         print(dtypes_by_bytes.index(str(new_types[i])))
