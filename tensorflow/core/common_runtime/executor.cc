@@ -1380,7 +1380,7 @@ void ExecutorImpl::RunAsync(const Args& args, DoneCallback done) {
 Status NewLocalExecutor(const LocalExecutorParams& params, const Graph& graph,
                         Executor** executor) {
   ExecutorImpl* impl = new ExecutorImpl(params);
-  VLOG(0) << "Make Executor from params";
+  VLOG(1) << "Make Executor from params";
   const Status s = impl->Initialize(graph);
   if (s.ok()) {
     *executor = impl;
