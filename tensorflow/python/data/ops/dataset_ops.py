@@ -2139,7 +2139,9 @@ name=None))
         return new_ds
 
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
-      if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
+      print("Self is a: " + str(type(self)))
+      print(isinstance(self, MapDataset))
+      if ((isinstance(self, MapDataset)) or (isinstance(self, ParallelMapDataset))):
         print("Checking if we should move the previous op downstream")
         print(self._move_downstream)
         if self._move_downstream and not keep_position and not self._keep_position:
@@ -2172,6 +2174,7 @@ name=None))
           print("End")
       else:
         if move_downstream and not keep_position:
+          print("Setting _move_downstream flag (1)")
           new_ds._move_downstream = True
       return new_ds
 
@@ -2222,7 +2225,11 @@ name=None))
         return new_ds
       
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
-      if ((isinstance(self, MapDataset) or isinstance(self, ParallelMapDataset))):
+      print("Self is a: " + str(type(self)))
+      print(isinstance(self, MapDataset))
+      if ((isinstance(self, MapDataset)) or isinstance(self, ParallelMapDataset)):
+        print("Checking if we should move the previous op downstream (2)")
+        print(self._move_downstream)
         if self._move_downstream and not keep_position and not self._keep_position:
           new_self = ParallelMapDataset(self._input_dataset,
                                         map_func,
@@ -2247,6 +2254,7 @@ name=None))
                                         keep_position=self._keep_position)
       else:
         if move_downstream and not keep_position:
+          print("Setting _move_downstream flag (2)")
           new_ds._move_downstream = True
       return new_ds
 
