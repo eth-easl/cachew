@@ -2101,9 +2101,9 @@ name=None))
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
-      print("Should we move upstream: ")
+      print("Should we move upstream (1): ")
       print(move_upstream)
-      print("Should we move downstream: ")
+      print("Should we move downstream (1): ")
       print(move_downstream)
 
       # TODO: MOVE BUBBLE THE 'CHEAPER' CASTS FURTHER UP (not just by 1 op)
@@ -2112,29 +2112,6 @@ name=None))
       if move_upstream and not keep_position and not in_ds_keep_pos:
 
         new_ds = move_op_upstream(new_ds)
-        
-        '''new_self = MapDataset(self._input_dataset,
-                              map_func,
-                              preserve_cardinality=True,
-                              name=name,
-                              keep_position=keep_position)
-        # Currently only swapping with map ops and parallelMap ops is supported
-        if isinstance(self, MapDataset):
-          new_ds = MapDataset(new_self,
-                              self._map_func._func,
-                              preserve_cardinality=self._preserve_cardinality,
-                              name=self._metadata.name,
-                              keep_position=self._keep_position)
-        elif isinstance(self, ParallelMapDataset):
-          new_ds = ParallelMapDataset(new_self,
-                                      self._map_func._func,
-                                      self._use_inter_op_parallelism,
-                                      self._deterministic,
-                                      preserve_cardinality=self._preserve_cardinality,
-                                      name=self._metadata.name,
-                                      keep_position=self._keep_position)
-        else: # TODO: I think this can be removed
-          return new_ds'''
         
         return new_ds
 
@@ -2172,6 +2149,10 @@ name=None))
           print("Summarizing NEW dataset:")
           nts, nss = dsu.get_ds_dtypes_shapes(new_ds)
           print("End")
+        else:
+          if move_downstream and not keep_position:
+            print("Setting _move_downstream flag (1)")
+            new_ds._move_downstream = True
       else:
         if move_downstream and not keep_position:
           print("Setting _move_downstream flag (1)")
@@ -2191,37 +2172,14 @@ name=None))
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
-      print("Should we move upstream: ")
+      print("Should we move upstream (2): ")
       print(move_upstream)
-      print("Should we move downstream: ")
+      print("Should we move downstream (2): ")
       print(move_downstream)
       in_ds_keep_pos = self._input_dataset._keep_position if hasattr(self._input_dataset, "_keep_position") else False
       if move_upstream and not keep_position and not in_ds_keep_pos:
         new_ds = move_op_upstream(new_ds)
         
-        '''new_ds = dsu.move_upstream(new_ds)
-        new_self = ParallelMapDataset(self._input_dataset,
-                                      map_func,
-                                      num_parallel_calls,
-                                      deterministic,
-                                      preserve_cardinality=True,
-                                      name=name,
-                                      keep_position=keep_position)
-        # Currently only swapping with map ops and parallelMap ops is supported
-        if isinstance(self, MapDataset):
-          new_ds = MapDataset(new_self,
-                              self._map_func._func,
-                              preserve_cardinality=self._preserve_cardinality,
-                              name=self._metadata.name,
-                              keep_position=self._keep_position)
-        elif isinstance(self, ParallelMapDataset):
-          new_ds = ParallelMapDataset(new_self,
-                                      self._map_func._func,
-                                      self._use_inter_op_parallelism,
-                                      self._deterministic,
-                                      preserve_cardinality=self._preserve_cardinality,
-                                      name=self._metadata.name,
-                                      keep_position=self._keep_position)'''
         return new_ds
       
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
@@ -2252,7 +2210,12 @@ name=None))
                                         preserve_cardinality=self._preserve_cardinality,
                                         name=self._metadata.name,
                                         keep_position=self._keep_position)
+        else:
+          if move_downstream and not keep_position:
+            print("Setting _move_downstream flag (1)")
+            new_ds._move_downstream = True
       else:
+        print("In last else branch (2)")
         if move_downstream and not keep_position:
           print("Setting _move_downstream flag (2)")
           new_ds._move_downstream = True
