@@ -2131,13 +2131,15 @@ name=None))
           print("New self is a:")
           print(new_self.__class__.__name__)
           ts, ss = dsu.get_ds_dtypes_shapes(new_self)
-          print("Now creating op after new self")
+          print("Now creating op after new self (1)")
           if isinstance(self, MapDataset):
             new_ds = MapDataset(new_self,
                                 self._map_func._func,
                                 preserve_cardinality=self._preserve_cardinality,
                                 name=self._metadata.name,
                                 keep_position=self._keep_position)
+            new_ds._move_downstream = True
+            print("Used previous map func for newst outer element (1)")
           elif isinstance(self, ParallelMapDataset):
             new_ds = ParallelMapDataset(new_self,
                                         self._map_func._func,
@@ -2146,6 +2148,8 @@ name=None))
                                         preserve_cardinality=self._preserve_cardinality,
                                         name=self._metadata.name,
                                         keep_position=self._keep_position)
+            new_ds._move_downstream = True
+            print("Used previous map func for newst outer element (1)")
           print("Summarizing NEW dataset:")
           nts, nss = dsu.get_ds_dtypes_shapes(new_ds)
           print("End")
@@ -2196,12 +2200,15 @@ name=None))
                                         preserve_cardinality=True,
                                         name=name,
                                         keep_position=keep_position)
+          print("Moved neutral op upwards (2)")
           if isinstance(self, MapDataset):
             new_ds = MapDataset(new_self,
                                 self._map_func._func,
                                 preserve_cardinality=self._preserve_cardinality,
                                 name=self._metadata.name,
                                 keep_position=self._keep_position)
+            new_ds._move_downstream = True
+            print("Used previous map func for newst outer element (2)")
           elif isinstance(self, ParallelMapDataset):
             new_ds = ParallelMapDataset(new_self,
                                         self._map_func._func,
@@ -2210,9 +2217,10 @@ name=None))
                                         preserve_cardinality=self._preserve_cardinality,
                                         name=self._metadata.name,
                                         keep_position=self._keep_position)
+            new_ds._move_downstream = True
         else:
           if move_downstream and not keep_position:
-            print("Setting _move_downstream flag (1)")
+            print("Setting _move_downstream flag (2)")
             new_ds._move_downstream = True
       else:
         print("In last else branch (2)")
