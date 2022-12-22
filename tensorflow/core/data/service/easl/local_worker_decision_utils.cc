@@ -76,7 +76,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal_INCDEC) - Target metrics count not fulfilled:\n"
             << " > target: " << current_target_remote_worker_count << ", " << current_target_local_worker_count <<  "\n"
             << " > actual: " << last_metrics->remote_worker_count() << ", " << last_metrics->local_worker_count();
-    if (current_target_remote_worker_count != last_metrics->remote_worker_count() && available_workers < 0) {
+    if (current_target_remote_worker_count != last_metrics->remote_worker_count() && available_workers > 0) {
       remote_worker_count = current_target_remote_worker_count;
       local_worker_count = current_target_local_worker_count;
       return Status::OK();

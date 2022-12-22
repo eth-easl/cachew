@@ -671,7 +671,7 @@ void DispatcherState::UpdateJobTargetWorkerCountRemoteAndLocal(
   VLOG(0) << "EASL (UpdateJobTargetWorkerCountRemoteAndLocal) - "
           << "Remote Tasks currently being ended: "
           << remote_tasks_currently_being_ended
-          << "; Local Tasks currently being ended"
+          << "; Local Tasks currently being ended "
           << local_tasks_currently_being_ended
           << ", so looking to end: " << num_remote_tasks_to_end
           << ", and " << num_local_tasks_to_end << " respectively";
