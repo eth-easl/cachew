@@ -332,7 +332,8 @@ JobMetrics::JobMetrics(int64 job_id,
                        std::string& dataset_key,
                        bool is_scaling,
                        const string& name,
-                       bool is_ordering)
+                       bool is_ordering,
+                       bool is_ordered)
       : job_id_(job_id),
         job_type_(job_type),
         dataset_id_(dataset_id),
@@ -343,6 +344,7 @@ JobMetrics::JobMetrics(int64 job_id,
         input_pipeline_metrics_(),
         is_scaling_(is_scaling),
         is_ordering_(is_ordering),
+        is_ordered_(is_ordered),
         scaling_state_(JobScalingState::ONLY_REMOTE),
         target_worker_count_(1),
         target_remote_worker_count_(1),
@@ -365,7 +367,8 @@ JobMetrics::JobMetrics(
                        int64 target_remote_worker_count,
                        int64 target_local_worker_count,
                        JobScalingState scaling_state,
-                       bool is_ordering
+                       bool is_ordering,
+                       bool is_ordered
                        )
         : job_id_(job_id),
           job_type_(job_type),
@@ -377,6 +380,7 @@ JobMetrics::JobMetrics(
           input_pipeline_metrics_(),
           is_scaling_(is_scaling),
           is_ordering_(is_ordering),
+          is_ordered_(is_ordered),
           scaling_state_(scaling_state),
           target_worker_count_(1),
           target_remote_worker_count_(target_remote_worker_count),
@@ -880,7 +884,7 @@ Status MetadataStore::SetJobIsOrdered(int64 job_id) {
 Status MetadataStore::IsJobOrdered(int64 job_id, bool& is_ordered) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
-  is_ordering = jobMetrics->is_ordered_;
+  is_ordered = jobMetrics->is_ordered_;
   return Status::OK();
 }
 
