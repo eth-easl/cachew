@@ -507,8 +507,11 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         Status s2 = metadata_store_.GetNumberOfProducedElements(job_id,
                                                                 element_count);
 
+        // Maybe move AutoOrder inflation metric calculation here
         if (s1.ok() && s2.ok() && job_type == "PROFILE" &&
             element_count >= kElementThreshold) {
+
+
           VLOG(0) << "(WorkerHeartbeat) At least "
                   << kElementThreshold << " elements have been produced";
           // Will change the job_type of job with job_id to something else
@@ -541,8 +544,11 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         // If the job produced enough elements calculate the metrics for the AutoOrder policy
 
         // TODO: Find a way to reduce the amount of metric updates
+        bool is_ordered;
+        metadata_store_.IsJobOrdered(job_id, is ordered);
+        if (element_count >= kElementThreshold && !is_ordered) {
+          metadata_store_.SetJobIsOrdered(job_id);
 
-        /*if (element_count >= kElementThreshold) {
           // Update the info for the AutoOrder policy
           std::vector<std::string> pipeline_nodes;
           std::vector<float> inflation_factors;
@@ -555,7 +561,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
                                               inflation_factors);
           VLOG(0) << "Updated order state";
-        }*/
+        }
       }
     }
   }

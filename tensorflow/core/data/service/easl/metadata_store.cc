@@ -870,6 +870,20 @@ Status MetadataStore::IsJobOrdering(int64 job_id, bool& is_ordering) {
   return Status::OK();
 }
 
+Status MetadataStore::SetJobIsOrdered(int64 job_id) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  jobMetrics->is_ordered_ = true;
+  return Status::OK();
+}
+
+Status MetadataStore::IsJobOrdered(int64 job_id, bool& is_ordered) {
+  std::shared_ptr<JobMetrics> jobMetrics;
+  TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
+  is_ordering = jobMetrics->is_ordered_;
+  return Status::OK();
+}
+
 Status MetadataStore::GetJobScalingState(int64 job_id, JobScalingState& scaling_state) {
   std::shared_ptr<JobMetrics> jobMetrics;
   TF_RETURN_IF_ERROR(GetJobMetrics(job_id, jobMetrics));
