@@ -54,6 +54,8 @@ namespace data {
 /* static */ constexpr const char* const ParallelMapDatasetOp::kSloppy;
 /* static */ constexpr const char* const
     ParallelMapDatasetOp::kPreserveCardinality;
+/* static */ constexpr const char* const ParallelMapDatasetOp::kKeepPosition;
+/* static */ constexpr const char* const ParallelMapDatasetOp::kPosition;
 
 namespace {
 
@@ -79,17 +81,19 @@ class ParallelMapDatasetOp::Dataset : public DatasetBase {
           const std::vector<PartialTensorShape>& output_shapes,
           DeterminismPolicy deterministic,
           std::unique_ptr<CapturedFunction> captured_func,
-          bool preserve_cardinality, int op_version)
+          bool preserve_cardinality, int op_version, bool keep_position,
+          int position)
       : Dataset(DatasetContext(ctx), input, num_parallel_calls, output_types,
                 output_shapes, deterministic, std::move(captured_func),
-                preserve_cardinality, op_version) {}
+                preserve_cardinality, op_version, keep_postion, position) {}
 
   Dataset(DatasetContext dataset_context, const DatasetBase* input,
           int64_t num_parallel_calls, const DataTypeVector& output_types,
           const std::vector<PartialTensorShape>& output_shapes,
           DeterminismPolicy deterministic,
           std::unique_ptr<CapturedFunction> captured_func,
-          bool preserve_cardinality, int op_version)
+          bool preserve_cardinality, int op_version, bool keep_position,
+          int position)
       : DatasetBase(std::move(dataset_context)),
         input_(input),
         num_parallel_calls_(num_parallel_calls),
@@ -98,7 +102,9 @@ class ParallelMapDatasetOp::Dataset : public DatasetBase {
         deterministic_(deterministic),
         preserve_cardinality_(preserve_cardinality),
         captured_func_(std::move(captured_func)),
-        op_version_(op_version) {
+        op_version_(op_version),
+        keep_position_(keep_position),
+        position_(position) {
     input_->Ref();
   }
 
@@ -715,6 +721,8 @@ class ParallelMapDatasetOp::Dataset : public DatasetBase {
   const bool preserve_cardinality_;
   const std::unique_ptr<CapturedFunction> captured_func_;
   const int op_version_;
+  const bool keep_position_;
+  const bool position_;
   // This is used for random access provided by Get().
   mutable std::unique_ptr<InstantiatedCapturedFunction>
       instantiated_captured_func_;
@@ -729,6 +737,8 @@ ParallelMapDatasetOp::ParallelMapDatasetOp(OpKernelConstruction* ctx)
                  FunctionMetadata::Create(ctx, kFunc, params, &func_metadata_));
   OP_REQUIRES_OK(ctx, ctx->GetAttr(kOutputTypes, &output_types_));
   OP_REQUIRES_OK(ctx, ctx->GetAttr(kOutputShapes, &output_shapes_));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &keep_position_));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &position_));
   if (op_version_ == 1) {
     bool sloppy;
     OP_REQUIRES_OK(ctx, ctx->GetAttr(kSloppy, &sloppy));
@@ -784,7 +794,7 @@ void ParallelMapDatasetOp::MakeDataset(OpKernelContext* ctx, DatasetBase* input,
   *output =
       new Dataset(ctx, input, num_parallel_calls, output_types_, output_shapes_,
                   deterministic_, std::move(captured_func),
-                  preserve_cardinality_, op_version_);
+                  preserve_cardinality_, op_version_, keep_position_, position);
 }
 
 std::unique_ptr<DatasetBase> MakeDataServiceUncompressDataset(

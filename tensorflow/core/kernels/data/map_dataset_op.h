@@ -35,6 +35,7 @@ class MapDatasetOp : public UnaryDatasetOpKernel {
   static constexpr const char* const kPreserveCardinality =
       "preserve_cardinality";
   static constexpr const char* const kKeepPosition = "keep_position";
+  static constexpr const char* const kPosition = "position";
 
   explicit MapDatasetOp(OpKernelConstruction* ctx);
 
@@ -49,6 +50,7 @@ class MapDatasetOp : public UnaryDatasetOpKernel {
   std::vector<PartialTensorShape> output_shapes_;
   bool preserve_cardinality_;
   bool keep_position_;
+  bool position;
 };
 
 }  // namespace data

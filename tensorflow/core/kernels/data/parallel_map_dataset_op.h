@@ -38,6 +38,8 @@ class ParallelMapDatasetOp : public UnaryDatasetOpKernel {
   static constexpr const char* const kSloppy = "sloppy";
   static constexpr const char* const kPreserveCardinality =
       "preserve_cardinality";
+  static constexpr const char* const kKeepPosition = "keep_position";
+  static constexpr const char* const kPosition = "position";
 
   explicit ParallelMapDatasetOp(OpKernelConstruction* ctx);
 
@@ -54,6 +56,8 @@ class ParallelMapDatasetOp : public UnaryDatasetOpKernel {
   bool sloppy_;
   bool preserve_cardinality_;
   DeterminismPolicy deterministic_;
+  bool keep_position_;
+  bool position;
 
   friend std::unique_ptr<DatasetBase> MakeDataServiceUncompressDataset(
       DatasetBase* input, std::unique_ptr<CapturedFunction> captured_function,

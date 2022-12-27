@@ -39,6 +39,7 @@ namespace data {
 /* static */ constexpr const char* const MapDatasetOp::kUseInterOpParallelism;
 /* static */ constexpr const char* const MapDatasetOp::kPreserveCardinality;
 /* static */ constexpr const char* const MapDatasetOp::kKeepPosition;
+/* static */ constexpr const char* const MapDatasetOp::kPosition;
 
 class MapDatasetOp::Dataset : public DatasetBase {
  public:
@@ -47,11 +48,13 @@ class MapDatasetOp::Dataset : public DatasetBase {
           const DataTypeVector& output_types,
           const std::vector<PartialTensorShape>& output_shapes,
           bool preserve_cardinality,
-          bool keep_position)
+          bool keep_position,
+          bool position)
       : DatasetBase(DatasetContext(ctx)),
         input_(input),
         preserve_cardinality_(preserve_cardinality),
         keep_position_(keep_position),
+        position_(position)
         captured_func_(std::move(captured_func)),
         output_types_(output_types),
         output_shapes_(output_shapes) {
@@ -148,6 +151,10 @@ class MapDatasetOp::Dataset : public DatasetBase {
     AttrValue keep_position_attr;
     b->BuildAttrValue(keep_position_, &keep_position_attr);
 
+    // Attr: position
+    AttrValue position_attr;
+    b->BuildAttrValue(position_, &position_attr);
+
     TF_RETURN_IF_ERROR(b->AddDataset(
         this, {std::make_pair(0, input_graph_node)},  // Single tensor inputs.
         {std::make_pair(1, other_arguments)},         // Tensor list inputs.
@@ -156,7 +163,8 @@ class MapDatasetOp::Dataset : public DatasetBase {
          std::make_pair(kUseInterOpParallelism, use_inter_op_parallelism_attr),
          std::make_pair(kPreserveCardinality,
                         preserve_cardinality_attr),
-         std::make_pair(kKeepPosition, keep_position_attr)},// Attrs
+         std::make_pair(kKeepPosition, keep_position_attr),
+         std::make_pair(kPosition, position)},// Attrs
         output));
     return Status::OK();
   }
@@ -237,6 +245,7 @@ class MapDatasetOp::Dataset : public DatasetBase {
   const DatasetBase* const input_;
   const bool preserve_cardinality_;
   const bool keep_position_;
+  const bool position_;
   const std::unique_ptr<CapturedFunction> captured_func_;
   const DataTypeVector output_types_;
   const std::vector<PartialTensorShape> output_shapes_;
@@ -257,6 +266,7 @@ MapDatasetOp::MapDatasetOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx,
                  ctx->GetAttr(kPreserveCardinality, &preserve_cardinality_));
   OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &keep_position_));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &position_));
 }
 
 void MapDatasetOp::MakeDataset(OpKernelContext* ctx, DatasetBase* input,
@@ -267,7 +277,8 @@ void MapDatasetOp::MakeDataset(OpKernelContext* ctx, DatasetBase* input,
                                           &captured_func));
 
   *output = new Dataset(ctx, input, std::move(captured_func), output_types_,
-                        output_shapes_, preserve_cardinality_, keep_position_);
+                        output_shapes_, preserve_cardinality_, keep_position_,
+                        position);
 }
 
 namespace {

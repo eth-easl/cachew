@@ -2090,6 +2090,9 @@ name=None))
 
     # Start of actual map function
     print("ADDING NEW MAP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    pos = dsu.get_op_position(self) + 1
+    print("It was the " + str(pos) + ". map op in the user's original code")
+
     if num_parallel_calls is None or DEBUG_MODE:
       if deterministic is not None and not DEBUG_MODE:
         warnings.warn("The `deterministic` argument has no effect unless the "
@@ -5416,6 +5419,7 @@ class MapDataset(UnaryDataset):
                use_legacy_function=False,
                name=None,
                keep_position=False,
+               position=-1,
                move_downstream=False):
     """See `Dataset.map()` for details."""
     self._input_dataset = input_dataset
@@ -5430,6 +5434,7 @@ class MapDataset(UnaryDataset):
     if name:
       self._metadata.name = _validate_and_encode(name)
     self._keep_position = keep_position
+    self._position = position
     self._move_downstream = move_downstream
     variant_tensor = gen_dataset_ops.map_dataset(
         input_dataset._variant_tensor,  # pylint: disable=protected-access
@@ -5438,6 +5443,7 @@ class MapDataset(UnaryDataset):
         use_inter_op_parallelism=self._use_inter_op_parallelism,
         preserve_cardinality=self._preserve_cardinality,
         keep_position=self._keep_position,
+        position=self._position
         **self._common_args)
     super(MapDataset, self).__init__(input_dataset, variant_tensor)
 
@@ -5465,6 +5471,7 @@ class ParallelMapDataset(UnaryDataset):
                use_legacy_function=False,
                name=None,
                keep_position=False,
+               position=-1,
                move_downstream=False):
     """See `Dataset.map()` for details."""
     self._input_dataset = input_dataset
@@ -5487,6 +5494,7 @@ class ParallelMapDataset(UnaryDataset):
     if name:
       self._metadata.name = _validate_and_encode(name)
     self._keep_position = keep_position
+    self._position = position
     self._move_downstream = move_downstream
     variant_tensor = gen_dataset_ops.parallel_map_dataset_v2(
         input_dataset._variant_tensor,  # pylint: disable=protected-access
@@ -5497,6 +5505,7 @@ class ParallelMapDataset(UnaryDataset):
         use_inter_op_parallelism=self._use_inter_op_parallelism,
         preserve_cardinality=self._preserve_cardinality,
         keep_position=self._keep_position,
+        position=self._position
         **self._common_args)
     super(ParallelMapDataset, self).__init__(input_dataset, variant_tensor)
 

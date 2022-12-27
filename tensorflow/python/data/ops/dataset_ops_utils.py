@@ -240,3 +240,15 @@ def op_preserves_shape(dataset):
     return True
   else:
     return False
+
+# get position of the op w.r.t the user's order. This position corresponds to the position after the dtype reordering
+def get_op_position(dataset):
+
+  pos = 0
+
+  if hasattr(dataset, _position):
+    return dataset._position
+  if hasattr(dataset, _input_dataset):
+    return get_op_position(dataset._input_dataset)
+
+  return pos
