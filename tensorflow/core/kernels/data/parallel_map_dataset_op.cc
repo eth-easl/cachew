@@ -819,7 +819,8 @@ std::unique_ptr<DatasetBase> MakeDataServiceUncompressDataset(
       /*num_parallel_calls=*/model::kAutotune, output_types, output_shapes,
       DeterminismPolicy(DeterminismPolicy::Type::kDefault),
       std::move(captured_function),
-      /*preserve_cardinality=*/true, /*op_version=*/2);
+      /*preserve_cardinality=*/true, /*op_version=*/2,
+      /*keep_position=*/true, /*position=*/-1);
 }
 
 namespace {
