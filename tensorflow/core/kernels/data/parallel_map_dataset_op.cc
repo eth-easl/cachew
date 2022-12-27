@@ -804,7 +804,7 @@ void ParallelMapDatasetOp::MakeDataset(OpKernelContext* ctx, DatasetBase* input,
   *output =
       new Dataset(ctx, input, num_parallel_calls, output_types_, output_shapes_,
                   deterministic_, std::move(captured_func),
-                  preserve_cardinality_, op_version_, keep_position_, position);
+                  preserve_cardinality_, op_version_, keep_position_, position_);
 }
 
 std::unique_ptr<DatasetBase> MakeDataServiceUncompressDataset(
