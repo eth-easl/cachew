@@ -545,7 +545,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
 
         // TODO: Find a way to reduce the amount of metric updates
         bool is_ordered;
-        metadata_store_.IsJobOrdered(job_id, is ordered);
+        metadata_store_.IsJobOrdered(job_id, is_ordered);
         if (element_count >= kElementThreshold && !is_ordered) {
           metadata_store_.SetJobIsOrdered(job_id);
 

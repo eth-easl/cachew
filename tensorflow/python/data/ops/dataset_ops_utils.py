@@ -118,13 +118,15 @@ dtypes_by_bytes = ["int8",
                    ]
 
 def get_ds_dtypes_shapes(dataset):
-  types = []
+  types = [] # First type will be the outer type (dict, tuple, single elem_spec)
   shapes = []
 
   elem_spec = dataset.element_spec
   print(elem_spec)
   if isinstance(elem_spec, tuple):
     print("Elem spec is a tuple!")
+    types.append('tuple')
+
     num_elems = len(elem_spec)
     for i in range(num_elems):
       print(elem_spec[i])
@@ -141,6 +143,8 @@ def get_ds_dtypes_shapes(dataset):
         print(elem_spec[i].shape)
   elif isinstance(elem_spec, dict):
     print("Elem spec is a dict!")
+    types.append('dict')
+
     num_elems = len(elem_spec)
     for i in sorted(elem_spec.items()):
       print("Key is: " + i[0])
@@ -155,6 +159,8 @@ def get_ds_dtypes_shapes(dataset):
       
 
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
+    types.append('Elem_spec')
+
     types.append(str(elem_spec.dtype).split('\'')[1])
     print(elem_spec.dtype)
     cur_s = list(elem_spec.shape)
@@ -165,6 +171,14 @@ def get_ds_dtypes_shapes(dataset):
   return types, shapes
 
 def should_reorder(org_types, org_shapes, new_types, new_shapes):
+  print("Inside should_reorder()")
+  if new_types[0] != org_types[0]:
+    print("Not matching outer types")
+    print(org_types[0], new_types[0])
+    return False, False
+  org_types = org_types[1:]
+  new_types = new_types[1:]
+
   if org_shapes != new_shapes:
     # This op changes the shape => not a casting op
     print("different shape")

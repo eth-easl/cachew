@@ -2030,6 +2030,7 @@ name=None))
 
       in_ds_keep_pos = dataset._input_dataset._keep_position if hasattr(dataset._input_dataset, "_keep_position") else False
       if move_upstream and not dataset._keep_position and not in_ds_keep_pos:
+        print("We indeed should move upstream and the op preserves the shape!")
         new_input_ds = dataset._input_dataset
 
         if isinstance(dataset._input_dataset, MapDataset):
