@@ -228,6 +228,16 @@ class ParallelMapDatasetOp::Dataset : public DatasetBase {
     b->BuildAttrValue(preserve_cardinality_, &preserve_cardinality_attr);
     attrs.emplace_back(kPreserveCardinality, preserve_cardinality_attr);
 
+    // Attr: keep_position
+    AttrValue keep_position_attr;
+    b->BuildAttrValue(keep_position_, &keep_position_attr);
+    attrs.emplace_back(kKeepPosition, keep_position_attr);
+
+    // Attr: position
+    AttrValue position_attr;
+    b->BuildAttrValue(position_, &position_attr);
+    attrs.emplace_back(kPosition, position_attr);
+
     TF_RETURN_IF_ERROR(b->AddDataset(
         this,
         {std::make_pair(0, input_graph_node),

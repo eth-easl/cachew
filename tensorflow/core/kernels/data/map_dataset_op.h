@@ -50,7 +50,7 @@ class MapDatasetOp : public UnaryDatasetOpKernel {
   std::vector<PartialTensorShape> output_shapes_;
   bool preserve_cardinality_;
   bool keep_position_;
-  bool position;
+  int position_;
 };
 
 }  // namespace data
