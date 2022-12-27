@@ -57,7 +57,7 @@ class ParallelMapDatasetOp : public UnaryDatasetOpKernel {
   bool preserve_cardinality_;
   DeterminismPolicy deterministic_;
   bool keep_position_;
-  bool position;
+  bool position_;
 
   friend std::unique_ptr<DatasetBase> MakeDataServiceUncompressDataset(
       DatasetBase* input, std::unique_ptr<CapturedFunction> captured_function,

@@ -85,7 +85,7 @@ class ParallelMapDatasetOp::Dataset : public DatasetBase {
           int position)
       : Dataset(DatasetContext(ctx), input, num_parallel_calls, output_types,
                 output_shapes, deterministic, std::move(captured_func),
-                preserve_cardinality, op_version, keep_postion, position) {}
+                preserve_cardinality, op_version, keep_position, position) {}
 
   Dataset(DatasetContext dataset_context, const DatasetBase* input,
           int64_t num_parallel_calls, const DataTypeVector& output_types,
