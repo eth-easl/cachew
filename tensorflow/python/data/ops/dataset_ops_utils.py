@@ -124,12 +124,12 @@ def get_ds_dtypes_shapes(dataset):
   elem_spec = dataset.element_spec
   print(elem_spec)
   if isinstance(elem_spec, tuple):
-    print("Elem spec is a tuple!")
+    #print("Elem spec is a tuple!")
     types.append('tuple')
 
     num_elems = len(elem_spec)
     for i in range(num_elems):
-      print(elem_spec[i])
+      #print(elem_spec[i])
 
       if isinstance(elem_spec[i], dict):
         print("Nested dicts are currently not supported!")
@@ -138,36 +138,38 @@ def get_ds_dtypes_shapes(dataset):
 
       else:
         types.append(str(elem_spec[i].dtype).split('\'')[1])
-        print(str(elem_spec[i].dtype).split('\'')[1])
+        #print(str(elem_spec[i].dtype).split('\'')[1])
         shapes += list(elem_spec[i].shape)
-        print(elem_spec[i].shape)
+        #print(elem_spec[i].shape)
   elif isinstance(elem_spec, dict):
-    print("Elem spec is a dict!")
+    #print("Elem spec is a dict!")
     types.append('dict')
 
     num_elems = len(elem_spec)
     for i in sorted(elem_spec.items()):
-      print("Key is: " + i[0])
-      print(i)
+      #print("Key is: " + i[0])
+      #print(i)
 
       val = i[1]
       if str(type(val)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
         types.append(str(val.dtype).split('\'')[1])
-        print(types[-1])
+        #print(types[-1])
         shapes += list(val.shape)
-        print(val.shape)
+        #print(val.shape)
       
 
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
     types.append('Elem_spec')
 
     types.append(str(elem_spec.dtype).split('\'')[1])
-    print(elem_spec.dtype)
+    #print(elem_spec.dtype)
     cur_s = list(elem_spec.shape)
     shapes += cur_s
-    print(str(elem_spec.dtype).split('\'')[1])
+    #print(str(elem_spec.dtype).split('\'')[1])
   else:
     print("Unsupported spec type")
+  print(types)
+  print(shapes)
   return types, shapes
 
 def should_reorder(org_types, org_shapes, new_types, new_shapes):
@@ -226,9 +228,13 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
 
 def op_preserves_shape(dataset):
   
-  cur_tyes, cur_shapes = get_ds_dtypes_shapes(dataset)
+  cur_types, cur_shapes = get_ds_dtypes_shapes(dataset)
 
-  org_tyes, org_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+  org_types, org_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+
+  if cur_types[0] != org_types[0]:
+    print("Outer elem types don't match!")
+    return False
 
   if (len(cur_shapes) == len(org_shapes)):
     return True
