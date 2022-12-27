@@ -2122,7 +2122,10 @@ name=None))
       if ((isinstance(self, MapDataset)) or (isinstance(self, ParallelMapDataset))):
         print("Checking if we should move the previous op downstream")
         print(self._move_downstream)
-        if self._move_downstream and not keep_position and not self._keep_position:
+        cur_preserves_shape = dsu.op_preserves_shape(new_ds)
+        if not cur_preserves_shape:
+            print(".. but the current op changes the shape, aborting!")
+        if self._move_downstream and not keep_position and not self._keep_position and cur_preserves_shape:
           print("Moving downstream")
           new_self = MapDataset(self._input_dataset,
                                 map_func,
@@ -2193,7 +2196,10 @@ name=None))
       if ((isinstance(self, MapDataset)) or isinstance(self, ParallelMapDataset)):
         print("Checking if we should move the previous op downstream (2)")
         print(self._move_downstream)
-        if self._move_downstream and not keep_position and not self._keep_position:
+        cur_preserves_shape = dsu.op_preserves_shape(new_ds)
+        if not cur_preserves_shape:
+          print(".. but the current op changes the shape, aborting! (2)")
+        if self._move_downstream and not keep_position and not self._keep_position and cur_preserves_shape:
           new_self = ParallelMapDataset(self._input_dataset,
                                         map_func,
                                         num_parallel_calls,
