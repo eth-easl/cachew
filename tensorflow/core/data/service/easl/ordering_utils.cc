@@ -99,7 +99,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // 1. Sort the pipeline nodes by id
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (auto n : pipeline_nodes) {
-    int pos = n.substr(n.find(":"), n.length() - n.find(delimiter) - 1);
+    int pos = n.substr(n.find(":"), n.length() - n.find(":") - 1);
     pipeline_nodes_sorted[pos] = n;
   }
 
@@ -111,7 +111,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       break;
     }
   }
-  pipeline_nodes_sorted_filtered = std::vector<std::string>(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.begin() + tf_rec_pos);
+  std::vector<std::string>pipeline_nodes_sorted_filtered = std::vector<std::string>(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.begin() + tf_rec_pos);
   VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.length() << " nodes";
 
   // 3. Remove any Prefetch, MemoryCache, MemoryCacheImpl, AssertCardinality, TensorSlice, ParallelInterleaveV4 nodes
