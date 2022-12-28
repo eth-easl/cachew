@@ -732,7 +732,7 @@ class ParallelMapDatasetOp::Dataset : public DatasetBase {
   const std::unique_ptr<CapturedFunction> captured_func_;
   const int op_version_;
   const bool keep_position_;
-  const bool position_;
+  const int position_;
   // This is used for random access provided by Get().
   mutable std::unique_ptr<InstantiatedCapturedFunction>
       instantiated_captured_func_;
