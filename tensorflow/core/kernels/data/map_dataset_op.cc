@@ -266,7 +266,7 @@ MapDatasetOp::MapDatasetOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx,
                  ctx->GetAttr(kPreserveCardinality, &preserve_cardinality_));
   OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &keep_position_));
-  OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &position_));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr(kPosition, &position_));
 }
 
 void MapDatasetOp::MakeDataset(OpKernelContext* ctx, DatasetBase* input,

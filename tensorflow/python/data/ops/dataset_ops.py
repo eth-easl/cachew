@@ -2038,7 +2038,8 @@ name=None))
                                     dataset._map_func._func,
                                     preserve_cardinality=dataset._preserve_cardinality,
                                     name=dataset._metadata.name,
-                                    keep_position=dataset._keep_position)
+                                    keep_position=dataset._keep_position,
+                                    position=dataset._input_dataset._position)
         else:
           deter = dataset._deterministic if hasattr(dataset, "_deterministic") else False
           new_input_ds = ParallelMapDataset(dataset._input_dataset._input_dataset,
@@ -2047,7 +2048,8 @@ name=None))
                                             deter,
                                             preserve_cardinality=dataset._preserve_cardinality,
                                             name=dataset._metadata.name,
-                                            keep_position=dataset._keep_position)
+                                            keep_position=dataset._keep_position,
+                                            position=dataset._input_dataset._position)
 
         final_input_ds = move_op_upstream(new_input_ds)
 
@@ -2058,12 +2060,14 @@ name=None))
             new_ds = MapDataset(final_input_ds,
                                 dataset._input_dataset._map_func._func,
                                 preserve_cardinality=dataset._input_dataset._preserve_cardinality,
-                                name=dataset._input_dataset._metadata.name)
+                                name=dataset._input_dataset._metadata.name,
+                                position=dataset._position)
           else:
             new_ds = MapDataset(final_input_ds,
                                 dataset._map_func._func,
                                 preserve_cardinality=dataset._preserve_cardinality,
-                                name=dataset._metadata.name)
+                                name=dataset._metadata.name,
+                                position=dataset._position)
         else:
           if (isinstance(dataset._input_dataset, MapDataset) or isinstance(dataset._input_dataset, ParallelMapDataset)):
             deter = dataset._input_dataset._deterministic if hasattr(dataset._input_dataset, "_deterministic") else False
@@ -2072,14 +2076,16 @@ name=None))
                                         dataset._input_dataset._use_inter_op_parallelism,
                                         deter,
                                         preserve_cardinality=dataset._input_dataset._preserve_cardinality,
-                                        name=dataset._input_dataset._metadata.name)
+                                        name=dataset._input_dataset._metadata.name,
+                                        position=dataset._position)
           else:
             new_ds = ParallelMapDataset(final_input_ds,
                                         dataset._map_func._func,
                                         dataset._use_inter_op_parallelism,
                                         deter,
                                         preserve_cardinality=dataset._preserve_cardinality,
-                                        name=dataset._metadata.name)
+                                        name=dataset._metadata.name,
+                                        position=dataset._position)
         if hasattr(dataset._input_dataset, "_keep_position"):
           new_ds._keep_position = dataset._input_dataset._keep_position
         else:
@@ -2101,7 +2107,8 @@ name=None))
                           map_func,
                           preserve_cardinality=True,
                           name=name,
-                          keep_position=keep_position)
+                          keep_position=keep_position,
+                          position=pos)
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
@@ -2134,7 +2141,8 @@ name=None))
                                 map_func,
                                 preserve_cardinality=True,
                                 name=name,
-                                keep_position=keep_position)
+                                keep_position=keep_position
+                                position=self._position)
           print("New self is a:")
           print(new_self.__class__.__name__)
           ts, ss = dsu.get_ds_dtypes_shapes(new_self)
@@ -2144,7 +2152,8 @@ name=None))
                                 self._map_func._func,
                                 preserve_cardinality=self._preserve_cardinality,
                                 name=self._metadata.name,
-                                keep_position=self._keep_position)
+                                keep_position=self._keep_position,
+                                position=pos)
             new_ds._move_downstream = True
             print("Used previous map func for newst outer element (1)")
           elif isinstance(self, ParallelMapDataset):
@@ -2154,7 +2163,8 @@ name=None))
                                         self._deterministic,
                                         preserve_cardinality=self._preserve_cardinality,
                                         name=self._metadata.name,
-                                        keep_position=self._keep_position)
+                                        keep_position=self._keep_position,
+                                        position=pos)
             new_ds._move_downstream = True
             print("Used previous map func for newst outer element (1)")
           print("Summarizing NEW dataset:")
@@ -2179,7 +2189,8 @@ name=None))
           deterministic,
           preserve_cardinality=True,
           name=name,
-          keep_position=keep_position)
+          keep_position=keep_position,
+            position=pos)
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
@@ -2209,14 +2220,16 @@ name=None))
                                         deterministic,
                                         preserve_cardinality=True,
                                         name=name,
-                                        keep_position=keep_position)
+                                        keep_position=keep_position,
+                                        position=self.position)
           print("Moved neutral op upwards (2)")
           if isinstance(self, MapDataset):
             new_ds = MapDataset(new_self,
                                 self._map_func._func,
                                 preserve_cardinality=self._preserve_cardinality,
                                 name=self._metadata.name,
-                                keep_position=self._keep_position)
+                                keep_position=self._keep_position,
+                                position=pos)
             new_ds._move_downstream = True
             print("Used previous map func for newst outer element (2)")
           elif isinstance(self, ParallelMapDataset):
@@ -2226,7 +2239,8 @@ name=None))
                                         self._deterministic,
                                         preserve_cardinality=self._preserve_cardinality,
                                         name=self._metadata.name,
-                                        keep_position=self._keep_position)
+                                        keep_position=self._keep_position,
+                                        position=pos)
             new_ds._move_downstream = True
         else:
           if move_downstream and not keep_position:
@@ -5443,7 +5457,7 @@ class MapDataset(UnaryDataset):
         use_inter_op_parallelism=self._use_inter_op_parallelism,
         preserve_cardinality=self._preserve_cardinality,
         keep_position=self._keep_position,
-        position=self._position
+        position=self._position,
         **self._common_args)
     super(MapDataset, self).__init__(input_dataset, variant_tensor)
 

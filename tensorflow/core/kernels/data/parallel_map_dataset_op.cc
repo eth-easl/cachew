@@ -748,7 +748,7 @@ ParallelMapDatasetOp::ParallelMapDatasetOp(OpKernelConstruction* ctx)
   OP_REQUIRES_OK(ctx, ctx->GetAttr(kOutputTypes, &output_types_));
   OP_REQUIRES_OK(ctx, ctx->GetAttr(kOutputShapes, &output_shapes_));
   OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &keep_position_));
-  OP_REQUIRES_OK(ctx, ctx->GetAttr(kKeepPosition, &position_));
+  OP_REQUIRES_OK(ctx, ctx->GetAttr(kPosition, &position_));
   if (op_version_ == 1) {
     bool sloppy;
     OP_REQUIRES_OK(ctx, ctx->GetAttr(kSloppy, &sloppy));
