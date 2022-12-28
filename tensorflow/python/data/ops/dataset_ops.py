@@ -2141,7 +2141,7 @@ name=None))
                                 map_func,
                                 preserve_cardinality=True,
                                 name=name,
-                                keep_position=keep_position
+                                keep_position=keep_position,
                                 position=self._position)
           print("New self is a:")
           print(new_self.__class__.__name__)
@@ -2190,7 +2190,7 @@ name=None))
           preserve_cardinality=True,
           name=name,
           keep_position=keep_position,
-            position=pos)
+          position=pos)
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
