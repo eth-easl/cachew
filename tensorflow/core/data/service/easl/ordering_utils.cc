@@ -99,19 +99,19 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // 1. Sort the pipeline nodes by id
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (auto n : pipeline_nodes) {
-    int pos = n.substr(n.find(":"), s.length() - s.find(delimiter) - 1);
+    int pos = n.substr(n.find(":"), n.length() - n.find(delimiter) - 1);
     pipeline_nodes_sorted[pos] = n;
   }
 
   // 2. Remove any nodes after 1st TFRecord node
-  tf_rec_pos = 0
+  int tf_rec_pos = 0;
   for (int i = 0; i < nodes_in_pipeline; ++i) {
     if (pipeline_nodes_sorted[i].find("TFRecord") != std::string::npos) {
       tf_rec_pos = i;
       break;
     }
   }
-  pipeline_nodes_sorted_filtered = pipeline_nodes_sorted[0:tf_rec_pos+1];
+  pipeline_nodes_sorted_filtered = std::vector<std::string>(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.begin() + tf_rec_pos);
   VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.length() << " nodes";
 
   // 3. Remove any Prefetch, MemoryCache, MemoryCacheImpl, AssertCardinality, TensorSlice, ParallelInterleaveV4 nodes
@@ -181,7 +181,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   }
 
   // 4. Filter out node with inflation factor 0 (clearly input nodes)
-  for (int i = inflationFactors.length() - 1; i >= 0; --i) {
+  for (int i = inflationFactors.size() - 1; i >= 0; --i) {
     if (inflationFactors[i] == 0) {
       inflationFactors.erase(inflationFactors.begin() + i);
       pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
