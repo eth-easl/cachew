@@ -137,15 +137,21 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   std::vector<int> elems_produced_final;
   int total_elems_produced = 0;
   for (int i = 0; i < num_workers; ++i) {
+    VLOG(0) << "Worker " << i;
     tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
     TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
+    VLOG(0) << "Got final node worker metrics";
     auto it = final_node_worker_metrics.find(pipeline_nodes[pipeline_nodes.size()-1]);
+    VLOG(0) << "Found corresponding pipeline node";
     if (it != final_node_worker_metrics.end()) {
+      VLOG(0) << "Produced at least 1 element"
       elems_produced_final.push_back(it->second->num_elements());
     } else {
+      VLOG(0) << "Didn't produce any elements";
       elems_produced_final.push_back(0);
     }
     //elems_produced_final.push_back(final_node_worker_metrics.find(pipeline_nodes_sorted_filtered[pipeline_nodes_sorted_filtered.size()-1]).num_elements());
+    VLOG(0) << "Adding up all elements produced";
     total_elems_produced += elems_produced_final[i];
     VLOG(0) << "Worker " << worker_ips[i] << " produced " << elems_produced_final[i] << " elements";
   }
