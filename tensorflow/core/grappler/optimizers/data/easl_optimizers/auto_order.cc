@@ -711,7 +711,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
         //VLOG(0) << bfs_queue.size();
         NodeDef* current_node = bfs_queue.front();
         std::string op = current_node->op();
-        VLOG(0) << "Visiting " << op;
+        //VLOG(0) << "Visiting " << op;
 
         if ((op.find("ParallelMap") != std::string::npos) ||
             (op.find("Filter") != std::string::npos) ||

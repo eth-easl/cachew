@@ -92,9 +92,46 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (auto e : i_p_metrics->metrics_) {
     nodes_in_pipeline++;
     pipeline_nodes.push_back(e.first);
-    inflationFactors.push_back(0);
+    //inflationFactors.push_back(0);
   }
   VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
+
+  // 1. Sort the pipeline nodes by id
+  std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
+  for (auto n : pipeline_nodes) {
+    int pos = n.substr(n.find(":"), s.length() - s.find(delimiter) - 1);
+    pipeline_nodes_sorted[pos] = n;
+  }
+
+  // 2. Remove any nodes after 1st TFRecord node
+  tf_rec_pos = 0
+  for (int i = 0; i < nodes_in_pipeline; ++i) {
+    if (pipeline_nodes_sorted[i].find("TFRecord") != std::string::npos) {
+      tf_rec_pos = i;
+      break;
+    }
+  }
+  pipeline_nodes_sorted_filtered = pipeline_nodes_sorted[0:tf_rec_pos+1];
+  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.length() << " nodes";
+
+  // 3. Remove any Prefetch, MemoryCache, MemoryCacheImpl, AssertCardinality, TensorSlice, ParallelInterleaveV4 nodes
+  //    (we aren't interested in those)
+  for (int i = pipeline_nodes_sorted_filtered.length() - 1; i >= 0; --i) {
+    std::string cur_node = pipeline_nodes_sorted_filtered[i];
+    if (
+        pipeline_nodes_sorted_filtered[i].find("TFRecord") != std::string::npos ||
+        pipeline_nodes_sorted_filtered[i].find("Prefetch") != std::string::npos ||
+        pipeline_nodes_sorted_filtered[i].find("MemoryCache") != std::string::npos ||
+        pipeline_nodes_sorted_filtered[i].find("MemoryCacheImpl") != std::string::npos ||
+        pipeline_nodes_sorted_filtered[i].find("AssertCardinality") != std::string::npos ||
+        pipeline_nodes_sorted_filtered[i].find("ParallelInterleaveV4") != std::string::npos ||
+        pipeline_nodes_sorted_filtered[i].find("TensorSlice") != std::string::npos
+
+    ) {
+      pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
+    }
+  }
+  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.length() << " nodes of interest";
 
   // Use the num elems produced by a specific worker's last node as a weighting means
   std::vector<int> elems_produced_final;
@@ -102,13 +139,13 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (int i = 0; i < num_workers; ++i) {
     tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
     TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
-    auto it = final_node_worker_metrics.find(pipeline_nodes[pipeline_nodes.size()-1]);
+    auto it = final_node_worker_metrics.find(pipeline_nodes_sorted_filtered[pipeline_nodes_sorted_filtered.size()-1]);
     if (it != final_node_worker_metrics.end()) {
       elems_produced_final.push_back(it->second->num_elements());
     } else {
       elems_produced_final.push_back(0);
     }
-    //elems_produced_final.push_back(final_node_worker_metrics.find(pipeline_nodes[pipeline_nodes.size()-1]).num_elements());
+    //elems_produced_final.push_back(final_node_worker_metrics.find(pipeline_nodes_sorted_filtered[pipeline_nodes_sorted_filtered.size()-1]).num_elements());
     total_elems_produced += elems_produced_final[i];
     VLOG(0) << "Worker " << worker_ips[i] << " produced " << elems_produced_final[i] << " elements";
   }
@@ -120,8 +157,8 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
     for (int j = 0; j < nodes_in_pipeline; ++j) {
       // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
-      VLOG(1) << "Node " << pipeline_nodes[j];
-      auto it = worker_metrics.find(pipeline_nodes[j]);
+      VLOG(1) << "Node " << pipeline_nodes_sorted_filtered[j];
+      auto it = worker_metrics.find(pipeline_nodes_sorted_filtered[j]);
       if (it != worker_metrics.end()) {
         int bc = it->second->bytes_consumed();
         int bp = it->second->bytes_produced();
@@ -140,8 +177,21 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // Divide inflation factors by the no. of elems
   for (int i = 0; i < nodes_in_pipeline; ++i) {
     inflationFactors[i] /= 1.0 * total_elems_produced;
-    VLOG(0) << "Node " << pipeline_nodes[i] << " has inflation factor " << inflationFactors[i];
+    VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[i] << " has inflation factor " << inflationFactors[i];
   }
+
+  // 4. Filter out node with inflation factor 0 (clearly input nodes)
+  for (int i = inflationFactors.length() - 1; i >= 0; --i) {
+    if (inflationFactors[i] == 0) {
+      inflationFactors.erase(inflationFactors.begin() + i);
+      pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
+    }
+  }
+
+  for (int i = 0; i < pipeline_nodes_sorted_filtered.length(); ++i) {
+    VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[i] << " has inflation factor " << inflationFactors[i];
+  }
+
   return Status::OK();
 }
 
