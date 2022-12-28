@@ -246,9 +246,9 @@ def get_op_position(dataset):
 
   pos = 0
 
-  if hasattr(dataset, _position):
+  if hasattr(dataset, '_position'):
     return dataset._position
-  if hasattr(dataset, _input_dataset):
+  if hasattr(dataset, '_input_dataset'):
     return get_op_position(dataset._input_dataset)
 
   return pos
