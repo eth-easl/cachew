@@ -102,6 +102,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     int pos = std::stoi(n.substr(n.find(":")+1, n.length() - n.find(":") - 1));
     pipeline_nodes_sorted[pos] = n;
   }
+  VLOG(0) << "Sorted the pipeline nodes";
 
   // 2. Remove any nodes after 1st TFRecord node
   int tf_rec_pos = 0;
@@ -116,6 +117,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   // 3. Remove any Prefetch, MemoryCache, MemoryCacheImpl, AssertCardinality, TensorSlice, ParallelInterleaveV4 nodes
   //    (we aren't interested in those)
+  std::vector<int> nodes_to_remove;
   for (int i = pipeline_nodes_sorted_filtered.size() - 1; i >= 0; --i) {
     std::string cur_node = pipeline_nodes_sorted_filtered[i];
     if (
@@ -128,8 +130,13 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
         pipeline_nodes_sorted_filtered[i].find("TensorSlice") != std::string::npos
 
     ) {
-      pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
+      nodes_to_remove.push_back(i);
+      //pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
     }
+  }
+  VLOG(0) << nodes_to_remove.size() << " nodes are not interesting to us";
+  for (int i = nodes_to_remove.size()-1; i >= 0; --i) {
+    pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin()+nodes_to_remove[i]);
   }
   VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.size() << " nodes of interest";
 
@@ -144,7 +151,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     auto it = final_node_worker_metrics.find(pipeline_nodes[pipeline_nodes.size()-1]);
     VLOG(0) << "Found corresponding pipeline node";
     if (it != final_node_worker_metrics.end()) {
-      VLOG(0) << "Produced at least 1 element"
+      VLOG(0) << "Produced at least 1 element";
       elems_produced_final.push_back(it->second->num_elements());
     } else {
       VLOG(0) << "Didn't produce any elements";
