@@ -99,7 +99,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // 1. Sort the pipeline nodes by id
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (auto n : pipeline_nodes) {
-    int pos = n.substr(n.find(":"), n.length() - n.find(":") - 1);
+    int pos = std::stoi(n.substr(n.find(":")+1, n.length() - n.find(":") - 1));
     pipeline_nodes_sorted[pos] = n;
   }
 
@@ -112,11 +112,11 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     }
   }
   std::vector<std::string>pipeline_nodes_sorted_filtered = std::vector<std::string>(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.begin() + tf_rec_pos);
-  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.length() << " nodes";
+  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.size() << " nodes";
 
   // 3. Remove any Prefetch, MemoryCache, MemoryCacheImpl, AssertCardinality, TensorSlice, ParallelInterleaveV4 nodes
   //    (we aren't interested in those)
-  for (int i = pipeline_nodes_sorted_filtered.length() - 1; i >= 0; --i) {
+  for (int i = pipeline_nodes_sorted_filtered.size() - 1; i >= 0; --i) {
     std::string cur_node = pipeline_nodes_sorted_filtered[i];
     if (
         pipeline_nodes_sorted_filtered[i].find("TFRecord") != std::string::npos ||
@@ -131,7 +131,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
     }
   }
-  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.length() << " nodes of interest";
+  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.size() << " nodes of interest";
 
   // Use the num elems produced by a specific worker's last node as a weighting means
   std::vector<int> elems_produced_final;
@@ -188,7 +188,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     }
   }
 
-  for (int i = 0; i < pipeline_nodes_sorted_filtered.length(); ++i) {
+  for (int i = 0; i < pipeline_nodes_sorted_filtered.size(); ++i) {
     VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[i] << " has inflation factor " << inflationFactors[i];
   }
 
