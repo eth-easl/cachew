@@ -552,6 +552,10 @@ Status GetGraphNodesOfInterest(const GraphDef& sorted_old_graph, std::vector<std
             graph_nodes_of_interest.push_back(node.name());
         }
     }
+    VLOG(0) << "graph_nodes_of_interest has " << graph_nodes_of_interest.size() << " elements";
+    for (int i = 0; i < graph_nodes_of_interest.size(); ++i) {
+        VLOG(0) << graph_nodes_of_interest[i];
+    }
     return Status::OK();
 }
 
@@ -580,7 +584,7 @@ Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest,
     std::vector<float> cur_if;
     for (int i = 0; i < graph_nodes_of_interest.size(); ++i) {
         int idx = graph_utils::FindGraphNodeWithName(graph_nodes_of_interest[i], sorted_old_graph);
-        NodeDef* cur_node = sorted_old_graph->mutable_node(idx);
+        NodeDef* cur_node = sorted_old_graph.mutable_node(idx);
         //NodeDef cur_node = graph_nodes_of_interest[i];
         std::string keep_pos_attr = SummarizeAttrValue(cur_node->attr().at("keep_position"));
         VLOG(0) << "Current node is " << cur_node->name();
@@ -657,10 +661,10 @@ Status FixIntervalOrder(std::vector<std::string> node_names, std::vector<int> de
     for (int i = 0; i < node_names.size(); ++i) {
         VLOG(0) << "Moving the " << i << ". (new order) node in interval";
         int idx = graph_utils::FindGraphNodeWithName(node_names[i], sorted_old_graph);
-        NodeDef* org_position_node = sorted_old_graph->mutable_node(idx);
+        NodeDef* org_position_node = sorted_old_graph.mutable_node(idx);
         int idx2 = graph_utils::FindGraphNodeWithName(node_names[desired_order[i]], sorted_old_graph);
-        NodeDef* org_node = sorted_old_graph->mutable_node(idx2);
-        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, graph);
+        NodeDef* org_node = sorted_old_graph.mutable_node(idx2);
+        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, *graph);
     }
 
     return Status::OK();
