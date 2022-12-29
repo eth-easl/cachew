@@ -543,7 +543,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
     return cost;
 }
 
-Status GetGraphNodesOfInterest(const GraphDef& sorted_old_graph, std::vector<std::string> graph_nodes_of_interest) {
+Status GetGraphNodesOfInterest(const GraphDef& sorted_old_graph, std::vector<std::string>& graph_nodes_of_interest) {
     VLOG(0) << "Collecting nodes of interest from the computation graph";
     for (const NodeDef& node : sorted_old_graph.node()) {
         std::string op_name = node.op();
@@ -576,8 +576,8 @@ bool NodeChangesTypeOrDims(NodeDef node, GraphDef &sorted_old_graph, MutableGrap
     }
 }
 
-Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest, std::vector<std::vector<std::string>> reorderable_intervals,
-                               std::vector<float> inflation_factors, std::vector<std::vector<float>> reorderable_interval_inf_factors,
+Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest, std::vector<std::vector<std::string>>& reorderable_intervals,
+                               std::vector<float> inflation_factors, std::vector<std::vector<float>>& reorderable_interval_inf_factors,
                                GraphDef &sorted_old_graph, MutableGraphView &graph) {
     VLOG(0) << "Collecting nodes of interest from the computation graph";
     std::vector<std::string> cur_interval;
@@ -625,8 +625,8 @@ Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest,
     return Status::OK();
 }
 
-Status GetIdealIntervalOrders(std::vector<std::vector<float>> reorderable_interval_inf_factors,
-                              std::vector<std::vector<int>> ideal_interval_orders) {
+Status GetIdealIntervalOrders(std::vector<std::vector<float>>& reorderable_interval_inf_factors,
+                              std::vector<std::vector<int>>& ideal_interval_orders) {
 
     VLOG(0) << "Getting the ideal interval orders";
     for (int i = 0; i < reorderable_interval_inf_factors.size(); ++i) {
@@ -664,7 +664,7 @@ Status FixIntervalOrder(std::vector<std::string> node_names, std::vector<int> de
         NodeDef* org_position_node = sorted_old_graph.mutable_node(idx);
         int idx2 = graph_utils::FindGraphNodeWithName(node_names[desired_order[i]], sorted_old_graph);
         NodeDef* org_node = sorted_old_graph.mutable_node(idx2);
-        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, *graph);
+        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, &graph);
     }
 
     return Status::OK();
