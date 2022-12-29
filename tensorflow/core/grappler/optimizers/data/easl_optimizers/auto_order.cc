@@ -656,33 +656,6 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     }
 
     VLOG(0) << "Now we try to optimize";
-
-    auto get_filter_node = [](const NodeDef& node) -> const NodeDef* {
-        // TODO(b/148614315): Support captured inputs.
-        if (node.op() == "FilterDataset" && node.input_size() == 1) return &node;
-        return nullptr;
-    };
-
-    auto make_fused_function = [&](const NodeDef* first_filter_node,
-                                   const NodeDef* second_filter_node) -> FunctionDef* {
-        const auto& parent_fun = first_filter_node->attr().at("predicate");
-        const FunctionDef* first_func =
-            function_library.Find(parent_fun.func().name());
-        const auto& fun = second_filter_node->attr().at("predicate");
-        const FunctionDef* second_func = function_library.Find(fun.func().name());
-
-        if (!fusion_utils::HasSameSignature(first_func->signature(),
-                                            second_func->signature())) {
-            VLOG(1) << "Can't fuse Filters because they have different signature\n";
-            return nullptr;
-        }
-
-        return fusion_utils::FuseFunctions(
-            *first_func, *second_func, "fused_predicate",
-            fusion_utils::SameSignature, fusion_utils::SameInput,
-            fusion_utils::LazyConjunctionOutput, fusion_utils::LazyConjunctionNodes,
-            output->mutable_library());
-    };
         
     // Get the output of the graph
     VLOG(0) << "Searching for sink node";
