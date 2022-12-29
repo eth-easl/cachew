@@ -102,9 +102,9 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (std::string n : pipeline_nodes) {
     std::string pos_str = n.substr(n.find(":")+1, n.length() - n.find(":") - 2);
-    VLOG(0) << "Pos_str was " << pos_str;
+    //VLOG(0) << "Pos_str was " << pos_str;
     int pos = std::stoi(pos_str) - 1;
-    VLOG(0) << "Pos was " << pos;
+    //VLOG(0) << "Pos was " << pos;
     pipeline_nodes_sorted[pos] = n;
   }
   VLOG(0) << "Sorted the pipeline nodes";
@@ -123,22 +123,24 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // 3. Remove any Prefetch, MemoryCache, MemoryCacheImpl, AssertCardinality, TensorSlice, ParallelInterleaveV4 nodes
   //    (we aren't interested in those)
   std::vector<int> nodes_to_remove;
+  std::vector<std::string>pipeline_nodes_sorted_filtered_2;
   for (int i = pipeline_nodes_sorted_filtered.size() - 1; i >= 0; --i) {
     std::string cur_node = pipeline_nodes_sorted_filtered[i];
     if (
-        pipeline_nodes_sorted_filtered[i].find("TFRecord") != std::string::npos ||
-        pipeline_nodes_sorted_filtered[i].find("Prefetch") != std::string::npos ||
-        pipeline_nodes_sorted_filtered[i].find("MemoryCache") != std::string::npos ||
-        pipeline_nodes_sorted_filtered[i].find("MemoryCacheImpl") != std::string::npos ||
-        pipeline_nodes_sorted_filtered[i].find("AssertCardinality") != std::string::npos ||
-        pipeline_nodes_sorted_filtered[i].find("ParallelInterleaveV4") != std::string::npos ||
-        pipeline_nodes_sorted_filtered[i].find("TensorSlice") != std::string::npos
+        cur_node.find("TFRecord") != std::string::npos ||
+        cur_node.find("Prefetch") != std::string::npos ||
+        cur_node.find("MemoryCache") != std::string::npos ||
+        cur_node.find("MemoryCacheImpl") != std::string::npos ||
+        cur_node.find("AssertCardinality") != std::string::npos ||
+        cur_node.find("ParallelInterleaveV4") != std::string::npos ||
+        cur_node.find("TensorSlice") != std::string::npos
 
     ) {
       nodes_to_remove.push_back(i);
       //pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
     }
     else {
+      pipeline_nodes_sorted_filtered_2.push_back(cur_node);
       inflationFactors.push_back(0);
     }
   }
@@ -146,7 +148,11 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (int i = nodes_to_remove.size()-1; i >= 0; --i) {
     pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin()+nodes_to_remove[i]);
   }
-  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.size() << " nodes of interest";
+  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered_2.size() << " nodes of interest. They are:";
+
+  for (int i = 0; i < pipeline_nodes_sorted_filtered_2.size(); ++i) {
+    VLOG(0) << pipeline_nodes_sorted_filtered_2[i];
+  }
 
   // Use the num elems produced by a specific worker's last node as a weighting means
   std::vector<int> elems_produced_final;
@@ -165,7 +171,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       VLOG(0) << "Didn't produce any elements";
       elems_produced_final.push_back(0);
     }
-    //elems_produced_final.push_back(final_node_worker_metrics.find(pipeline_nodes_sorted_filtered[pipeline_nodes_sorted_filtered.size()-1]).num_elements());
+    //elems_produced_final.push_back(final_node_worker_metrics.find(pipeline_nodes_sorted_filtered_2[pipeline_nodes_sorted_filtered_2.size()-1]).num_elements());
     VLOG(0) << "Adding up all elements produced";
     total_elems_produced += elems_produced_final[i];
     VLOG(0) << "Worker " << worker_ips[i] << " produced " << elems_produced_final[i] << " elements";
@@ -176,15 +182,15 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
-    VLOG(0) << "Worker " << i;
-    for (int j = 0; j < pipeline_nodes_sorted_filtered.size(); ++j) {
-      // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
-      VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[j];
-      auto it = worker_metrics.find(pipeline_nodes_sorted_filtered[j]);
+    VLOG(1) << "Worker " << i;
+    for (int j = 0; j < pipeline_nodes_sorted_filtered_2.size(); ++j) {
+      // TODO: Use the elements produced by the worker on the current node (otherwise filter nodes may be problematic)
+      VLOG(1) << "Node " << pipeline_nodes_sorted_filtered_2[j];
+      auto it = worker_metrics.find(pipeline_nodes_sorted_filtered_2[j]);
       if (it != worker_metrics.end()) {
         int bc = it->second->bytes_consumed();
         int bp = it->second->bytes_produced();
-        VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
+        VLOG(1) << "consumed " << bc << " bytes, produced " << bp << " bytes";
         if (bc == 0) {
           float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
         } else {
@@ -192,27 +198,28 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
           inflationFactors[j] += elems_produced_final[i] * inflation_f;
         }
       }
-      VLOG(0) << "Done";
+      //VLOG(0) << "Done";
     }
   }
   VLOG(0) << "Calculated all inflation factors";
 
   // Divide inflation factors by the no. of elems
-  for (int i = 0; i < pipeline_nodes_sorted_filtered.size(); ++i) {
+  for (int i = 0; i < pipeline_nodes_sorted_filtered_2.size(); ++i) {
     inflationFactors[i] /= 1.0 * total_elems_produced;
-    VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[i] << " has inflation factor " << inflationFactors[i];
+    //VLOG(0) << "Node " << pipeline_nodes_sorted_filtered_2[i] << " has inflation factor " << inflationFactors[i];
   }
 
   // 4. Filter out node with inflation factor 0 (clearly input nodes)
   for (int i = inflationFactors.size() - 1; i >= 0; --i) {
     if (inflationFactors[i] == 0) {
+      VLOG(0) << "Node " << pipeline_nodes_sorted_filtered_2[i] << " had 0 inflation factor";
       inflationFactors.erase(inflationFactors.begin() + i);
-      pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
+      pipeline_nodes_sorted_filtered_2.erase(pipeline_nodes_sorted_filtered_2.begin() + i);
     }
   }
 
-  for (int i = 0; i < pipeline_nodes_sorted_filtered.size(); ++i) {
-    VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[i] << " has inflation factor " << inflationFactors[i];
+  for (int i = 0; i < pipeline_nodes_sorted_filtered_2.size(); ++i) {
+    VLOG(0) << "Node " << pipeline_nodes_sorted_filtered_2[i] << " has inflation factor " << inflationFactors[i];
   }
 
   return Status::OK();
