@@ -438,6 +438,25 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 NodeDef MakeNewNodeV2(const NodeDef& org_position_node,
                       const NodeDef& org_node,
                       MutableGraphView* graph) {
+    VLOG(0) << "Moving (org node) " << org_node.name() << " to the original position of node " << org_position_node.name();
+
+    NodeDef new_node;
+    VLOG(0) << "Node is a " << org_node.op();
+    graph_utils::SetUniqueGraphNodeName("new_node", graph->graph(),
+                                        &new_node);
+
+    // What about all the Const, etc. nodes ??
+    new_node.set_op(org_node.op());
+    VLOG(0) << "Set op: " << org_node.op();
+    new_node.add_input(org_position_node.input(0));
+    VLOG(0) << "Set input: " << org_position_node.input(0);
+
+    // new_f_node doesn't work as arg for next line for some reason! Maybe new_f_node not set up correctly yet?
+    NodeDef* in_node = graph_utils::GetInputNode(org_position_node, *graph);
+    VLOG(0) << "Got the input node";
+
+    
+
     return org_position_node;
 }
 
@@ -606,7 +625,9 @@ Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest,
             VLOG(0) << "The node changes the type or dimensions, do not reorder";
             if (cur_interval.size() > 1) {
                 std::vector<std::string> new_interval = cur_interval;
+                std::vector<float> new_inf_factors = cur_if;
                 reorderable_intervals.push_back(new_interval);
+                reorderable_interval_inf_factors.push_back(new_inf_factors);
             }
             cur_interval.clear();
             cur_if.clear();
@@ -658,7 +679,7 @@ Status FixIntervalOrder(std::vector<std::string> node_names, std::vector<int> de
                         MutableGraphView &graph, GraphDef &sorted_old_graph) {
     VLOG(0) << "Fixing new interval";
 
-    for (int i = 0; i < node_names.size(); ++i) {
+    for (int i = 0; i < desired_order.size(); ++i) {
         VLOG(0) << "Moving the " << i << ". (new order) node in interval";
         int idx = graph_utils::FindGraphNodeWithName(node_names[i], sorted_old_graph);
         NodeDef* org_position_node = sorted_old_graph.mutable_node(idx);
