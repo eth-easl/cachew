@@ -138,6 +138,9 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       nodes_to_remove.push_back(i);
       //pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
     }
+    else {
+      inflationFactors.push_back(0);
+    }
   }
   VLOG(0) << nodes_to_remove.size() << " nodes are not interesting to us";
   for (int i = nodes_to_remove.size()-1; i >= 0; --i) {
@@ -173,14 +176,15 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
-    for (int j = 0; j < nodes_in_pipeline; ++j) {
+    VLOG(0) << "Worker " << i;
+    for (int j = 0; j < pipeline_nodes_sorted_filtered.size(); ++j) {
       // TODO: Use the elements produeced by the worker on the current node (otherwise filter nodes may be problematic)
-      VLOG(1) << "Node " << pipeline_nodes_sorted_filtered[j];
+      VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[j];
       auto it = worker_metrics.find(pipeline_nodes_sorted_filtered[j]);
       if (it != worker_metrics.end()) {
         int bc = it->second->bytes_consumed();
         int bp = it->second->bytes_produced();
-        VLOG(1) << "consumed " << bc << " bytes, produced " << bp << " bytes";
+        VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
         if (bc == 0) {
           float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
         } else {
@@ -188,12 +192,13 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
           inflationFactors[j] += elems_produced_final[i] * inflation_f;
         }
       }
+      VLOG(0) << "Done";
     }
   }
   VLOG(0) << "Calculated all inflation factors";
 
   // Divide inflation factors by the no. of elems
-  for (int i = 0; i < nodes_in_pipeline; ++i) {
+  for (int i = 0; i < pipeline_nodes_sorted_filtered.size(); ++i) {
     inflationFactors[i] /= 1.0 * total_elems_produced;
     VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[i] << " has inflation factor " << inflationFactors[i];
   }
