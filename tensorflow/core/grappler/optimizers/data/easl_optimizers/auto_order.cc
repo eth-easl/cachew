@@ -47,72 +47,6 @@ std::string GetOutputType(const std::string node_str){
   }
 }
 
-// Copied from rewrite_utils.cc
-void AddFakeSinks(FunctionDef* function_def) {
-  int counter = 0;
-  for (const auto& output : function_def->signature().output_arg()) {
-    NodeDef* node = function_def->add_node_def();
-    tensorflow::grappler::function_utils::SetUniqueFunctionNodeName(
-        strings::StrCat("FakeSink", counter++), function_def, node);
-    node->set_op("Identity");
-    node->add_input(function_def->ret().at(output.name()));
-    (*node->mutable_attr())["T"].set_type(output.type());
-
-    (*function_def->mutable_ret())[output.name()] =
-        strings::StrCat(node->name(), ":output:0");
-  }
-}
-
-void AddFakeSinksV2(FunctionDef* function_def, const FunctionDef* org_f_def, DataType dt) {
-    VLOG(0) << "Org func had " << org_f_def->signature().output_arg_size() << " output args";
-    VLOG(0) << "Org func Nodedef size " << org_f_def->node_def_size();
-    VLOG(0) << "Org func ret size " << org_f_def->ret_size();
-
-    for (const OpDef_ArgDef& output : org_f_def->signature().output_arg()) {
-        VLOG(0) << "Org func output name: " << output.name();
-
-    }
-
-    for (int i = 0; i < org_f_def->node_def_size(); ++i) {
-        VLOG(0) << "NodeDef " << i << " name: " << org_f_def->node_def(i).name();
-        VLOG(0) << "NodeDef " << i << " is type: " << org_f_def->node_def(i).op();
-        VLOG(0) << "NodeDef " << i << " summarized: " << SummarizeNodeDef(org_f_def->node_def(i));
-
-        /*NodeDef* node = function_def->add_node_def();
-        tensorflow::grappler::function_utils::SetUniqueFunctionNodeName(
-            strings::StrCat("ReoOrdered", org_f_def->node_def(i).name()), function_def, node);
-        node->set_op(org_f_def->node_def(i).op());
-        (*node->mutable_attr())["T"].set_type(output.type());*/
-    }
-
-    VLOG(0) << "New func has " << function_def->signature().output_arg_size() << " output args";
-    VLOG(0) << "New func Nodedef size " << function_def->node_def_size();
-
-    int counter = 0;
-    for (const auto& output : function_def->signature().output_arg()) {
-        NodeDef* node = function_def->add_node_def();
-        tensorflow::grappler::function_utils::SetUniqueFunctionNodeName(
-            strings::StrCat("FakeSink", counter++), function_def, node);
-        node->set_op("Identity");
-        node->add_input(function_def->ret().at(output.name()));
-        (*node->mutable_attr())["T"].set_type(output.type());
-
-        (*function_def->mutable_ret())[output.name()] =
-            strings::StrCat(node->name(), ":output:0");
-    }
-
-    // Check the FunctionDefs match (to some extent)
-    for (const OpDef_ArgDef& output : function_def->signature().output_arg()) {
-        VLOG(0) << "New func output name: " << output.name();
-    }
-
-    for (int i = 0; i < function_def->node_def_size(); ++i) {
-        VLOG(0) << "NodeDef " << i << " name: " << function_def->node_def(i).name();
-        VLOG(0) << "NodeDef " << i << " is type: " << function_def->node_def(i).op();
-        VLOG(0) << "NodeDef " << i << " summarized: " << SummarizeNodeDef(function_def->node_def(i));
-    }
-}
-
 NodeDef MakeNewNode(const NodeDef& org_position_node,
                     const NodeDef& org_node,
                     MutableGraphView* graph,
@@ -501,6 +435,12 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
     return new_f_node;
 }
 
+NodeDef MakeNewNodeV2(const NodeDef& org_position_node,
+                      const NodeDef& org_node,
+                      MutableGraphView* graph) {
+    return org_position_node;
+}
+
 std::string GetOutputShapes(const std::string node_str){
     std::string delimiter = "output_shapes=";
     if (node_str.find(delimiter) != std::string::npos) {
@@ -603,13 +543,13 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
     return cost;
 }
 
-Status GetGraphNodesOfInterest(const GraphDef& sorted_old_graph, std::vector<NodeDef> graph_nodes_of_interest) {
+Status GetGraphNodesOfInterest(const GraphDef& sorted_old_graph, std::vector<std::string> graph_nodes_of_interest) {
     VLOG(0) << "Collecting nodes of interest from the computation graph";
     for (const NodeDef& node : sorted_old_graph.node()) {
         std::string op_name = node.op();
         if (op_name == "MapDataset" || op_name == "ParallelMapDatasetV2" || op_name == "ParallelMapDataset") {
             VLOG(0) << "Found an interesting node in the graph " << node.name();
-            graph_nodes_of_interest.push_back(node);
+            graph_nodes_of_interest.push_back(node.name());
         }
     }
     return Status::OK();
@@ -618,9 +558,9 @@ Status GetGraphNodesOfInterest(const GraphDef& sorted_old_graph, std::vector<Nod
 bool NodeChangesTypeOrDims(NodeDef node, GraphDef &sorted_old_graph, MutableGraphView &graph) {
     std::string prev_node_name = node.input(0);
     int prev_idx = graph_utils::FindGraphNodeWithName(prev_node_name, sorted_old_graph);
-    NodeDef prev_node = graph->mutable_node(prev_idx);
+    NodeDef* prev_node = sorted_old_graph.mutable_node(prev_idx);
 
-    std::string prev_out_types = GetOutputType(SummarizeNodeDef(prev_node, 100));
+    std::string prev_out_types = GetOutputType(SummarizeNodeDef(*prev_node, 100));
     VLOG(0) << "Previous output types were " << prev_out_types;
     std::string new_out_types = GetOutputType(SummarizeNodeDef(node, 100));
     VLOG(0) << "New output types were " << new_out_types;
@@ -632,19 +572,21 @@ bool NodeChangesTypeOrDims(NodeDef node, GraphDef &sorted_old_graph, MutableGrap
     }
 }
 
-Status GetReorderableIntervals(std::vector<NodeDef> graph_nodes_of_interest, std::vector<std::vector<NodeDef>> reorderable_intervals,
+Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest, std::vector<std::vector<std::string>> reorderable_intervals,
                                std::vector<float> inflation_factors, std::vector<std::vector<float>> reorderable_interval_inf_factors,
                                GraphDef &sorted_old_graph, MutableGraphView &graph) {
     VLOG(0) << "Collecting nodes of interest from the computation graph";
-    std::vector<NodeDef> cur_interval;
+    std::vector<std::string> cur_interval;
     std::vector<float> cur_if;
     for (int i = 0; i < graph_nodes_of_interest.size(); ++i) {
-        NodeDef cur_node = graph_nodes_of_interest[i];
-        std::string keep_pos_attr = SummarizeAttrValue(cur_node.attr().at("keep_position"));
-        VLOG(0) << "Current node is " << cur_node.name();
+        int idx = graph_utils::FindGraphNodeWithName(graph_nodes_of_interest[i], sorted_old_graph);
+        NodeDef* cur_node = output->mutable_node(idx);
+        //NodeDef cur_node = graph_nodes_of_interest[i];
+        std::string keep_pos_attr = SummarizeAttrValue(cur_node->attr().at("keep_position"));
+        VLOG(0) << "Current node is " << cur_node->name();
         VLOG(0) << "keep_position is " << keep_pos_attr;
 
-        bool changes_type_or_dimensions = NodeChangesTypeOrDims(cur_node, sorted_old_graph, graph);
+        bool changes_type_or_dimensions = NodeChangesTypeOrDims(*cur_node, sorted_old_graph, graph);
 
         if (keep_pos_attr == "true") {
             VLOG(0) << "keep_position was true, do not reorder";
@@ -666,7 +608,7 @@ Status GetReorderableIntervals(std::vector<NodeDef> graph_nodes_of_interest, std
             cur_if.clear();
         } else {
             VLOG(0) << "We may reorder this node";
-            cur_interval.push_back(cur_node);
+            cur_interval.push_back(cur_node->name());
             cur_if.push_back(inflation_factors[i]);
         }
     }
@@ -682,6 +624,7 @@ Status GetReorderableIntervals(std::vector<NodeDef> graph_nodes_of_interest, std
 Status GetIdealIntervalOrders(std::vector<std::vector<float>> reorderable_interval_inf_factors,
                               std::vector<std::vector<int>> ideal_interval_orders) {
 
+    VLOG(0) << "Getting the ideal interval orders";
     for (int i = 0; i < reorderable_interval_inf_factors.size(); ++i) {
         for (int j = 0; j < reorderable_interval_inf_factors[i].size(); ++j) {
             // Ignore slightly noisy metrics, where inflation/deflation is < 5 %
@@ -703,6 +646,24 @@ Status GetIdealIntervalOrders(std::vector<std::vector<float>> reorderable_interv
         }
     }
 
+    return Status::OK();
+
+}
+
+Status FixIntervalOrder(std::vector<std::string> node_names, std::vector<int> desired_order,
+                        MutableGraphView &graph) {
+    VLOG(0) << "Fixing new interval";
+
+    for (int i = 0; i < node_names.size(); ++i) {
+        VLOG(0) << "Moving the " << i << ". (new order) node in interval";
+        int idx = graph_utils::FindGraphNodeWithName(node_names[i], graph);
+        NodeDef* org_position_node = output->mutable_node(idx);
+        int idx2 = graph_utils::FindGraphNodeWithName(node_names[desired_order[i]], graph);
+        NodeDef* org_node = output->mutable_node(idx2);
+        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, graph);
+    }
+
+    return Status::OK();
 }
 
 }  // namespace
@@ -716,7 +677,8 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
 
-    std::vector<NodeDef> graph_nodes_of_interest;
+    //std::vector<NodeDef> graph_nodes_of_interest;
+    std::vector<std::string> graph_nodes_of_interest;
     Status s1 = GetGraphNodesOfInterest(sorted_old_graph, graph_nodes_of_interest);
 
     // TODO: Fetch metrics from database
@@ -738,7 +700,11 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     std::vector<std::vector<int>> ideal_interval_orders;
     Status s3 = GetIdealIntervalOrders(reorderable_interval_inf_factors, ideal_interval_orders);
 
-    VLOG(0) << "Computed ideal interval orders";
+    VLOG(0) << "Computed ideal interval orders: " << ideal_interval_orders.size() << " in total";
+
+    for (int i = 0; i < ideal_interval_orders.size(); ++i) {
+
+    }
 
     /*VLOG(0) << "Updated graph cost:";
 
