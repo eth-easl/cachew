@@ -1,6 +1,7 @@
 #include <queue>
 #include <algorithm>
 #include <vector>
+#include <numeric>
 
 #include "tensorflow/core/grappler/optimizers/data/easl_optimizers/auto_order.h"
 
@@ -602,6 +603,105 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
     return cost;
 }
 
+Status GetGraphNodesOfInterest(const GraphDef& sorted_old_graph, std::vector<NodeDef> graph_nodes_of_interest) {
+    VLOG(0) << "Collecting nodes of interest from the computation graph";
+    for (const NodeDef& node : suggested_order.node()) {
+        op_name = node.op();
+        if (op_name == "MapDataset" || op_name == "ParallelMapDatasetV2" || op_name == "ParallelMapDataset") {
+            VLOG(0) << "Found an interesting node in the graph " << node.name();
+            graph_nodes_of_interest.push_back(node);
+        }
+    }
+    return Status::OK();
+}
+
+bool NodeChangesTypeOrDims(NodeDef node) {
+    NodeDef prev_node = node.input(0);
+
+    std::string prev_out_types = GetOutputType(SummarizeNodeDef(prev_node, 100));
+    VLOG(0) << "Previous output types were " << prev_out_types;
+    std::string new_out_types = GetOutputType(SummarizeNodeDef(node, 100));
+    VLOG(0) << "New output types were " << new_out_types;
+
+    if (prev_out_types == new_out_types) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+Status GetReorderableIntervals(std::vector<NodeDef> graph_nodes_of_interest, std::vector<std::vector<NodeDef>> reorderable_intervals,
+                               std::vector<float> inflation_factors, std::vector<std::vector<float>> reorderable_interval_inf_factors) {
+    VLOG(0) << "Collecting nodes of interest from the computation graph";
+    std::vector<NodeDef> cur_interval;
+    std::vector<float> cur_if;
+    for (int i = 0; i < graph_nodes_of_interest.size(); ++i) {
+        NodeDef cur_node = graph_nodes_of_interest[i];
+        std::string keep_pos_attr = SummarizeAttrValue(attr().at("keep_position"));
+        VLOG(0) << "Current node is " << cur_node.name();
+        VLOG(0) << "keep_position is " << keep_pos_attr;
+
+        bool changes_type_or_dimensions = NodeChangesTypeOrDims(cur_node);
+
+        if (keep_pos_attr == "true") {
+            VLOG(0) << "keep_position was true, do not reorder";
+            if (cur_interval.size() > 1) {
+                std::vector<NodeDef> new_interval = cur_interval;
+                std::vector<float> new_inf_factors = cur_if;
+                reorderable_intervals.push_back(new_interval);
+                reorderable_interval_inf_factors.push_back(new_inf_factors);
+            }
+            cur_interval.clear();
+            cur_if.clear();
+        } else if (changes_type_or_dimensions) {
+            VLOG(0) << "The node changes the type or dimensions, do not reorder";
+            if (cur_interval.size() > 1) {
+                std::vector<NodeDef> new_interval = cur_interval;
+                reorderable_intervals.push_back(new_interval);
+            }
+            cur_interval.clear();
+            cur_if.clear();
+        } else {
+            VLOG(0) << "We may reorder this node";
+            cur_interval.push_back(cur_node);
+            cur_if.push_back(inflation_factors[i])
+        }
+    }
+    if (cur_interval.size() > 1) {
+        reorderable_intervals.push_back(cur_interval);
+        reorderable_interval_inf_factors(cur_if);
+    }
+    VLOG(0) << "In total there are " << reorderable_intervals.size() << " reorderable intervals, "
+            << reorderable_interval_inf_factors.size() << " inflation factor intervals";
+    return Status::OK();
+}
+
+Status GetIdealIntervalOrders(std::vector<std::vector<float>> reorderable_interval_inf_factors,
+                              std::vector<std::vector<int>> ideal_interval_orders) {
+
+    for (int i = 0; i < reorderable_interval_inf_factors.size(); ++i) {
+        for (int j = 0; j < reorderable_interval_inf_factors[i].size(); ++j) {
+            // Ignore slightly noisy metrics, where inflation/deflation is < 5 %
+            if (reorderable_interval_inf_factors[i][j] > 0.95 && reorderable_interval_inf_factors[i][j] < 1.05) {
+                reorderable_interval_inf_factors[i][j] = 1;
+            }
+        }
+        std::vector<float> cur_ifs = reorderable_interval_inf_factors[i];
+
+        std::vector<int> V(cur_ifs.size());
+        std::iota(V.begin(), V.end(), 0);
+        std::sort( V.begin(), V.end(), [&](int i,int j) {return A[i]<A[j];} );
+
+        ideal_interval_orders.push_back(V);
+
+        VLOG(0) << "Ideal pipeline for this interval is:";
+        for (int j = 0; j < V.size(); ++j) {
+            VLOG(0) << V[j];
+        }
+    }
+
+}
+
 }  // namespace
 
 Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_old_graph) {
@@ -613,7 +713,29 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
     VLOG(0) << "Total cost:";
     VLOG(0) << cost;
 
-    VLOG(0) << "Updated graph cost:";
+    std::vector<NodeDef> graph_nodes_of_interest;
+    Status s1 = GetGraphNodesOfInterest(sorted_old_graph, graph_nodes_of_interest);
+
+    // TODO: Fetch metrics from database
+    std::vector<std::string> metrics_nodes_of_interest = {"ParallelMapV2(id:2)",
+                "ParallelMapV2(id:3)", "Map(id:4)", "ParallelMapV2(id:6)",
+                "ParallelMapV2(id:9)"};
+    std::vector<float> inflation_factors = {0.319971, 0.0649351, 1.0, 0.988674,
+                                            1.33259};
+
+    VLOG(0) << "There were " << graph_nodes_of_interest.size() << " interesting nodes in the computation graph, "
+        << metrics_nodes_of_interest.size() << " interesting nodes with collected metrics";
+
+    std::vector<std::vector<NodeDef>> reorderable_intervals;
+    std::vector<std::vector<float>> reorderable_interval_inf_factors;
+    Status s2 = GetReorderableIntervals(graph_nodes_of_interest, reorderable_intervals, inflation_factors, reorderable_interval_inf_factors);
+
+    std::vector<std::vector<int>> ideal_interval_orders;
+    Status s3 = GetIdealIntervalOrders(reorderable_interval_inf_factors, ideal_interval_orders);
+
+    VLOG(0) << "Computed ideal interval orders";
+
+    /*VLOG(0) << "Updated graph cost:";
 
     std::vector<std::string> new_op_types;
     auto new_cost = GetOrderCost(sorted_old_graph, graph, new_op_types);
@@ -625,7 +747,8 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
         // Choose next best suggestion
         VLOG(0) << "Updating suggestion";
         s = IsPipelineOk(sorted_old_graph, graph);
-    }
+    }*/
+
     return Status::OK();
 }
 

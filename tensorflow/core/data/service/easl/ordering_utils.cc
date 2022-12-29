@@ -133,7 +133,8 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
         cur_node.find("MemoryCacheImpl") != std::string::npos ||
         cur_node.find("AssertCardinality") != std::string::npos ||
         cur_node.find("ParallelInterleaveV4") != std::string::npos ||
-        cur_node.find("TensorSlice") != std::string::npos
+        cur_node.find("TensorSlice") != std::string::npos ||
+        cur_node.find("FlatMap") != std::string::npos
 
     ) {
       nodes_to_remove.push_back(i);
