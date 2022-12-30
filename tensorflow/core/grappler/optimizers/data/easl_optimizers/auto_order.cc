@@ -462,10 +462,10 @@ NodeDef MakeNewNodeV2(const NodeDef& org_position_node,
     VLOG(0) << "Used output type of input node";
 
     // Hopefully this also fixes the
-    if (summary.find("f=") != std::string::npos) {
-        (*new_f_node.mutable_attr())["f"] = org_node.attr().at("f");
-        VLOG(0) << "Set user-defined function (f)";
-    }
+    //if (summary.find("f=") != std::string::npos) {
+    (*new_node.mutable_attr())["f"] = org_node.attr().at("f");
+    VLOG(0) << "Set user-defined function (f)";
+    //}
 
     // Targs should stay the same
     graph_utils::CopyAttribute("Targuments", org_node, &new_node);
@@ -706,11 +706,16 @@ Status FixIntervalOrder(std::vector<std::string> node_names, std::vector<int> de
         VLOG(0) << "Moving the " << i << ". (new order) node in interval";
         int idx = graph_utils::FindGraphNodeWithName(node_names[i], sorted_old_graph);
         NodeDef* org_position_node = sorted_old_graph.mutable_node(idx);
+
         int idx2 = graph_utils::FindGraphNodeWithName(node_names[desired_order[i]], sorted_old_graph);
         NodeDef* org_node = sorted_old_graph.mutable_node(idx2);
 
-        std::string org_node_in_shape = ;
-        std::string org_node_out_shape = ;
+        std::string org_node_sum = SummarizeNodeDef(*org_node, 100);
+        int idx3 = graph_utils::FindGraphNodeWithName(org_node->input(0), sorted_old_graph);
+        NodeDef* org_node = sorted_old_graph.mutable_node(idx3);
+        std::string org_node_in_sum = SummarizeNodeDef(*, 100);
+        std::string org_node_in_shape = GetOutputType(org_node_in_sum);
+        std::string org_node_out_shape = GetOutputType(org_node_sum);
         bool changes_shape = org_node_in_shape == org_node_out_shape;
 
         NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, &graph, changes_shape);
