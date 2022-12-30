@@ -266,7 +266,7 @@ def node_does_unknown_resize(dataset):
     return False
 
   for i in range(len(in_shapes)):
-    if (in_shapes[i] != out_shapes[i] and (out_shapes[i] == "" or in_shapes[i] == "")):
+    if (in_shapes[i] != out_shapes[i] and (out_shapes[i] == None or in_shapes[i] == None)):
       return True
 
   return False
@@ -284,14 +284,14 @@ def node_does_known_resize(dataset):
     return False
 
   for i in range(len(in_shapes)):
-    if (in_shapes[i] != out_shapes[i] and out_shapes[i] != "" and in_shapes[i] != ""):
+    if (in_shapes[i] != out_shapes[i] and out_shapes[i] != None and in_shapes[i] != None):
       return True
 
   return False
 
 def node_increased_size(dataset):
-  _, in_shapes = get_ds_dtypes_shapes(dataset)
-  _, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+  _, in_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+  _, out_shapes = get_ds_dtypes_shapes(dataset)
 
   for i in range(len(in_shapes)):
     if in_shapes[i] < out_shapes[i]:

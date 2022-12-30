@@ -2019,29 +2019,45 @@ name=None))
 
     def resize_increases(dataset):
 
-      if dataset.cardinality < 1:
+      if dataset.cardinality() < 1:
         small_ds = dataset.take(100)
         small_ds_in = dataset._input_dataset.take(100)
       else:
-        five_pct = dataset.cardinality / 20
+        five_pct = int(dataset.cardinality() / 20)
         small_ds = dataset.take(five_pct)
         small_ds_in = dataset._input_dataset.take(five_pct)
 
       no_atomic_vals_ds = 0
       no_atomic_vals_ds_in = 0
       for elem in small_ds:
-        cur_vals = 1
-        s = elem.shape
-        for x in s:
-          cur_vals *= x
-        no_atomic_vals_ds += cur_vals
+        if isinstance(elem, tuple):
+          for e in elem:
+            cur_vals = 1
+            s = e.shape
+            for x in s:
+              cur_vals *= x
+            no_atomic_vals_ds += cur_vals
+        else:
+          cur_vals = 1
+          s = elem.shape
+          for x in s:
+            cur_vals *= x
+          no_atomic_vals_ds += cur_vals
 
       for elem in small_ds_in:
-        cur_vals = 1
-        s = elem.shape
-        for x in s:
-          cur_vals *= x
-        no_atomic_vals_ds_in += cur_vals
+        if isinstance(elem, tuple):
+          for e in elem:
+            cur_vals = 1
+            s = e.shape
+            for x in s:
+              cur_vals *= x
+            no_atomic_vals_ds_in += cur_vals
+        else:
+          cur_vals = 1
+          s = elem.shape
+          for x in s:
+            cur_vals *= x
+          no_atomic_vals_ds_in += cur_vals
 
       print("Input had " + str(no_atomic_vals_ds_in) + " atomic elements")
       print("Output has " + str(no_atomic_vals_ds) + " atomic elements")
@@ -2159,7 +2175,7 @@ name=None))
 
       unknown_resize = dsu.node_does_unknown_resize(new_ds)
       if unknown_resize:
-        print("This node resizes to/from an unknown resotution" (1))
+        print("This node resizes to/from an unknown resolution (1)")
         resize_increased = resize_increases(new_ds)
         if resize_increased:
           print("The resize inflates the data")
