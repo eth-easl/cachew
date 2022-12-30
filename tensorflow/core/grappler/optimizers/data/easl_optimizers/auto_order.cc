@@ -437,7 +437,8 @@ NodeDef MakeNewNode(const NodeDef& org_position_node,
 
 NodeDef MakeNewNodeV2(const NodeDef& org_position_node,
                       const NodeDef& org_node,
-                      MutableGraphView* graph) {
+                      MutableGraphView* graph,
+                      bool changes_shape) {
     VLOG(0) << "Moving (org node) " << org_node.name() << " to the original position of node " << org_position_node.name();
 
     NodeDef new_node;
@@ -455,7 +456,29 @@ NodeDef MakeNewNodeV2(const NodeDef& org_position_node,
     NodeDef* in_node = graph_utils::GetInputNode(org_position_node, *graph);
     VLOG(0) << "Got the input node";
 
-    
+    // The nodes shouldn't change the types (such nodes should not be in the reorderable intervals)
+    // Just copy them over from the input node
+    graph_utils::CopyAttribute("output_types", *in_node, &new_node);
+    VLOG(0) << "Used output type of input node";
+
+    // Hopefully this also fixes the
+    if (summary.find("f=") != std::string::npos) {
+        (*new_f_node.mutable_attr())["f"] = org_node.attr().at("f");
+        VLOG(0) << "Set user-defined function (f)";
+    }
+
+    // Targs should stay the same
+    graph_utils::CopyAttribute("Targuments", org_node, &new_node);
+    VLOG(0) << "Coppied Targs";
+
+
+    if (changes_shape) {
+        VLOG(0) << "Using shape of org node";
+        graph_utils::CopyAttribute("output_shapes", org_node, &new_node);
+    } else {
+        VLOG(0) << "Using shape of input node";
+        graph_utils::CopyAttribute("output_shapes", *in_node, &new_node);
+    }
 
     return org_position_node;
 }
@@ -685,7 +708,12 @@ Status FixIntervalOrder(std::vector<std::string> node_names, std::vector<int> de
         NodeDef* org_position_node = sorted_old_graph.mutable_node(idx);
         int idx2 = graph_utils::FindGraphNodeWithName(node_names[desired_order[i]], sorted_old_graph);
         NodeDef* org_node = sorted_old_graph.mutable_node(idx2);
-        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, &graph);
+
+        std::string org_node_in_shape = ;
+        std::string org_node_out_shape = ;
+        bool changes_shape = org_node_in_shape == org_node_out_shape;
+
+        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, &graph, changes_shape);
     }
 
     return Status::OK();
@@ -727,6 +755,7 @@ Status AutoOrder::ApplyOptimization(MutableGraphView &graph, GraphDef &sorted_ol
 
     VLOG(0) << "Computed ideal interval orders: " << ideal_interval_orders.size() << " in total";
 
+    // TODO: Update hardcoded inflation factors and test that we actually get the CORRECT ideal_interval_orders!!!!!!!!!!!!!!!
     for (int i = 0; i < ideal_interval_orders.size(); ++i) {
         FixIntervalOrder(reorderable_intervals[i], ideal_interval_orders[i], graph, sorted_old_graph);
     }
