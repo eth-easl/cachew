@@ -252,3 +252,48 @@ def get_op_position(dataset):
     return get_op_position(dataset._input_dataset)
 
   return pos
+
+def node_does_unknown_resize(dataset):
+
+  _, in_shapes = get_ds_dtypes_shapes(dataset)
+  _, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+  
+  if (len(in_shapes) != len(out_shapes)):
+    print("Dimensions changed, do not reorder")
+
+  if (in_shapes == out_shapes):
+    print("In/out shapes were identical")
+    return False
+
+  for i in range(len(in_shapes)):
+    if (in_shapes[i] != out_shapes[i] and (out_shapes[i] == "" or in_shapes[i] == "")):
+      return True
+
+  return False
+
+def node_does_known_resize(dataset):
+  _, in_shapes = get_ds_dtypes_shapes(dataset)
+  _, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+  
+  if (len(in_shapes) != len(out_shapes)):
+    print("Dimensions changed, do not reorder")
+
+  if (in_shapes == out_shapes):
+    print("In/out shapes were identical")
+    return False
+
+  for i in range(len(in_shapes)):
+    if (in_shapes[i] != out_shapes[i] and out_shapes[i] != "" and in_shapes[i] != ""):
+      return True
+
+  return False
+
+def node_increased_size(dataset):
+  _, in_shapes = get_ds_dtypes_shapes(dataset)
+  _, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+
+  for i in range(len(in_shapes)):
+    if in_shapes[i] < out_shapes[i]:
+      return True
+  return False
+

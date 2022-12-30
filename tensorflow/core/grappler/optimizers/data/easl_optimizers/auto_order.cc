@@ -712,13 +712,13 @@ Status FixIntervalOrder(std::vector<std::string> node_names, std::vector<int> de
 
         std::string org_node_sum = SummarizeNodeDef(*org_node, 100);
         int idx3 = graph_utils::FindGraphNodeWithName(org_node->input(0), sorted_old_graph);
-        NodeDef* org_node = sorted_old_graph.mutable_node(idx3);
-        std::string org_node_in_sum = SummarizeNodeDef(*, 100);
+        NodeDef* org_node_in = sorted_old_graph.mutable_node(idx3);
+        std::string org_node_in_sum = SummarizeNodeDef(*org_node_in, 100);
         std::string org_node_in_shape = GetOutputType(org_node_in_sum);
         std::string org_node_out_shape = GetOutputType(org_node_sum);
         bool changes_shape = org_node_in_shape == org_node_out_shape;
 
-        NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, &graph, changes_shape);
+        //NodeDef new_node = MakeNewNodeV2(*org_position_node, *org_node, &graph, changes_shape);
     }
 
     return Status::OK();

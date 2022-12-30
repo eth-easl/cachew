@@ -2017,6 +2017,9 @@ name=None))
       Dataset: A `Dataset`.
     """
 
+    def resize_increases(dataset):
+      return False
+
     def move_op_upstream(dataset):
       print("Inside move op upstream")
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
@@ -2052,7 +2055,6 @@ name=None))
                                             position=dataset._input_dataset._position)
 
         final_input_ds = move_op_upstream(new_input_ds)
-
 
         # Construct the outermost dataset and return it
         if isinstance(dataset, MapDataset):
@@ -2112,6 +2114,29 @@ name=None))
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
+
+      known_resize = dsu.node_does_known_resize(new_ds)
+      if known_resize: # Here we already know we have a map that analytically resizes
+        print("This node does a resize (we know the in/out resolutions)")
+        increased_size = dsu.node_increased_size(new_ds)
+        if increased_size:
+          print("The resize inflates the data")
+          move_downstream = True
+        else:
+          print("The resize deflates the data")
+          move_upstream = True
+
+      unknown_resize = dsu.node_does_unknown_resize(new_ds)
+      if unknown_resize:
+        print("This node resizes to/from an unknown resotution")
+        resize_increased = resize_increases(new_ds)
+        if resize_increased:
+          print("The resize inflates the data")
+          move_downstream = True
+        else:
+          print("The resize deflates the data")
+          move_upstream = True
+
       print("Should we move upstream (1): ")
       print(move_upstream)
       print("Should we move downstream (1): ")
@@ -2194,6 +2219,23 @@ name=None))
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(self)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(new_ds)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
+
+      known_resize = dsu.node_does_known_resize(new_ds)
+      if known_resize: # Here we already know we have a map that analytically resizes
+        increased_size = dsu.node_increased_size(new_ds)
+        if increased_size:
+          move_downstream = True
+        else:
+          move_upstream = True
+
+      unknown_resize = dsu.node_does_unknown_resize(new_ds)
+      if unknown_resize:
+        resize_increased = resize_increases(new_ds)
+        if resize_increased:
+          move_downstream = True
+        else:
+          move_upstream = True
+
       print("Should we move upstream (2): ")
       print(move_upstream)
       print("Should we move downstream (2): ")
