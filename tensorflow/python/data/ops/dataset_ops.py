@@ -2018,7 +2018,38 @@ name=None))
     """
 
     def resize_increases(dataset):
-      return False
+
+      if dataset.cardinality < 1:
+        small_ds = dataset.take(100)
+        small_ds_in = dataset._input_dataset.take(100)
+      else:
+        five_pct = dataset.cardinality / 20
+        small_ds = dataset.take(five_pct)
+        small_ds_in = dataset._input_dataset.take(five_pct)
+
+      no_atomic_vals_ds = 0
+      no_atomic_vals_ds_in = 0
+      for elem in small_ds:
+        cur_vals = 1
+        s = elem.shape
+        for x in s:
+          cur_vals *= x
+        no_atomic_vals_ds += cur_vals
+
+      for elem in small_ds_in:
+        cur_vals = 1
+        s = elem.shape
+        for x in s:
+          cur_vals *= x
+        no_atomic_vals_ds_in += cur_vals
+
+      print("Input had " + str(no_atomic_vals_ds_in) + " atomic elements")
+      print("Output has " + str(no_atomic_vals_ds) + " atomic elements")
+
+      if no_atomic_vals_ds_in < no_atomic_vals_ds:
+        return True
+      else:
+        return False
 
     def move_op_upstream(dataset):
       print("Inside move op upstream")
@@ -2117,7 +2148,7 @@ name=None))
 
       known_resize = dsu.node_does_known_resize(new_ds)
       if known_resize: # Here we already know we have a map that analytically resizes
-        print("This node does a resize (we know the in/out resolutions)")
+        print("This node does a resize (we know the in/out resolutions) (1)")
         increased_size = dsu.node_increased_size(new_ds)
         if increased_size:
           print("The resize inflates the data")
@@ -2128,7 +2159,7 @@ name=None))
 
       unknown_resize = dsu.node_does_unknown_resize(new_ds)
       if unknown_resize:
-        print("This node resizes to/from an unknown resotution")
+        print("This node resizes to/from an unknown resotution" (1))
         resize_increased = resize_increases(new_ds)
         if resize_increased:
           print("The resize inflates the data")

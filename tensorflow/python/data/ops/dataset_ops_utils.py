@@ -229,7 +229,6 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
 def op_preserves_shape(dataset):
   
   cur_types, cur_shapes = get_ds_dtypes_shapes(dataset)
-
   org_types, org_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
 
   if cur_types[0] != org_types[0]:
@@ -260,6 +259,7 @@ def node_does_unknown_resize(dataset):
   
   if (len(in_shapes) != len(out_shapes)):
     print("Dimensions changed, do not reorder")
+    return False
 
   if (in_shapes == out_shapes):
     print("In/out shapes were identical")
@@ -277,6 +277,7 @@ def node_does_known_resize(dataset):
   
   if (len(in_shapes) != len(out_shapes)):
     print("Dimensions changed, do not reorder")
+    return False
 
   if (in_shapes == out_shapes):
     print("In/out shapes were identical")
