@@ -22,7 +22,9 @@ limitations under the License.
 #include <queue>
 #include <string>
 #include <vector>
-#include <experimental/filesystem>
+#include <stdio.h>  // defines FILENAME_MAX
+#include <unistd.h> // for getcwd()
+#include <iostream>
 
 #include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
@@ -884,7 +886,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       InfFactorMetrics inf_fac_m = resp.inf_factors();
       VLOG(0) << "Got inflation factors for " << inf_fac_m.node_inf_factors_size() << " nodes in the pipeline";
       std::string f_name = "inf_factors.csv";
-      std::experimental::filesystem::path cwd = std::experimental::filesystem::current_path();
+      std::string temp_cwd("\0",FILENAME_MAX+1);
+      std::string cwd = getcwd(&temp_cwd[0],temp_cwd.capacity());
+      //std::experimental::filesystem::path cwd = std::experimental::filesystem::current_path();
       VLOG(0) << "Current wd is " << cwd;
 
       // Write the metrics to file
