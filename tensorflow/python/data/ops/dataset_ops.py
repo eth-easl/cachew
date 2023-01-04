@@ -2145,6 +2145,14 @@ name=None))
 
     # Start of actual map function
     print("ADDING NEW MAP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    # Check if we are at the end of the pipeline
+    is_end = '_register_dataset' in str(map_func)
+    if is_end:
+      target_types, target_shape = dsu.get_ds_dtypes_shapes(self)
+
+      # Check if we have a file with metrics
+
     pos = dsu.get_op_position(self) + 1
     print("It was the " + str(pos) + ". map op in the user's original code")
 

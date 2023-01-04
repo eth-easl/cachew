@@ -1685,6 +1685,25 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   VLOG(3) << "Found " << response->task_info_size()
           << " tasks for job client id " << request->job_client_id();
 
+  // Collect inflation factor metrics if any
+  uint64 fingerprint = dataset->fingerprint;
+  std::vector<std::string> pipeline_nodes;
+  std::vector<float> inflation_factors;
+  s = order_state_.GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
+  bool inf_factors_exist;
+  InfFactorMetrics inf_factors;
+  if (inf_factors_exist) {
+    response->set_has_inf_factors(true);
+    for (int i = 0; i < pipeline_nodes.size(); ++i) {
+      (inf_factors.mutable_node_inf_factors())[pipeline_nodes[i]] = inflation_factors[i];
+    }
+    //inf_factors.set_node_inf_factors(inf_factors);
+    response->set_inf_factors(inf_factors);
+  } else {
+    response->set_has_inf_factors(false);
+    response->set_inf_factors(inf_factors);
+  }
+
   return Status::OK();
 }
 

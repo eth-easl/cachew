@@ -209,7 +209,12 @@ message ClientHeartbeatRequest {
   double result_queue_size = 10;
 }
 
-// Next tag: 5
+// Next tag: 2
+message InfFactorMetrics {
+  repeated map<string, float> node_inf_factors = 1;
+}
+
+// Next tag: 7
 message ClientHeartbeatResponse {
   // A list of all tasks that the client should read from.
   repeated TaskInfo task_info = 1;
@@ -222,6 +227,8 @@ message ClientHeartbeatResponse {
   // tf.data service deployment mode. Supported values are "REMOTE",
   // "COLOCATED", and "HYBRID". If unspecified, it is assumed to be "REMOTE".
   DeploymentMode deployment_mode = 4;
+  bool has_inf_factors = 5;
+  optional InfFactorMetrics inf_factors = 6;
 }
 
 // Next tag: 3
