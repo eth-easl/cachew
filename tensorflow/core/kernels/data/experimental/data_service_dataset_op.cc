@@ -22,6 +22,7 @@ limitations under the License.
 #include <queue>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
@@ -879,6 +880,24 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         status_ = s;
         get_next_cv_.notify_all();
       }
+
+      InfFactorMetrics inf_fac_m = resp.inf_factors();
+      VLOG(0) << "Got inflation factors for " << inf_fac_m.node_inf_factors_size() << " nodes in the pipeline";
+      std::string f_name = "inf_factors.csv";
+      std::filesystem::path cwd = std::filesystem::current_path();
+      VLOG(0) << "Current wd is " << cwd;
+
+      // Write the metrics to file
+      std::string fingerprint_str = std::to_string(fingerprint);
+      ofstream metrics_file(f_name);
+
+      for (auto & pair : inf_fac_m.node_inf_factors()) {
+        metrics_file << pair.first << "," << pair.second;
+      }
+
+      metrics_file.close();
+      VLOG(0) << "Inflation factors stored in file!";
+
       mutex_lock l(mu_);
       UpdateJobFinished(resp.job_finished());
       if (resp.optional_block_round_case() ==

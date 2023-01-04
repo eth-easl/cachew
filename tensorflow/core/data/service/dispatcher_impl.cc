@@ -1686,6 +1686,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
           << " tasks for job client id " << request->job_client_id();
 
   // Collect inflation factor metrics if any
+  std::shared_ptr<const Dataset> dataset;
   TF_RETURN_IF_ERROR(state_.DatasetFromId(job->dataset_id, dataset));
   uint64 fingerprint = dataset->fingerprint;
   std::vector<std::string> pipeline_nodes;
@@ -1693,7 +1694,8 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   s = order_state_.GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
   bool inf_factors_exist;
   InfFactorMetrics inf_factors;
-  if (inf_factors_exist) {
+  if (s.ok()) {
+    VLOG(0) << "Found inflation metrics";
     //response->set_has_inf_factors(true);
     for (int i = 0; i < pipeline_nodes.size(); ++i) {
       (*inf_factors.mutable_node_inf_factors())[pipeline_nodes[i]] = inflation_factors[i];
@@ -1701,6 +1703,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     //inf_factors.set_node_inf_factors(inf_factors);
     response->set_allocated_inf_factors(&inf_factors);
   } else {
+    VLOG(0) << "No inflation metrics available";
     //response->set_has_inf_factors(false);
     response->set_allocated_inf_factors(&inf_factors);
   }
