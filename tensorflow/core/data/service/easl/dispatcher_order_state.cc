@@ -3,6 +3,9 @@
 #include "tensorflow/core/platform/errors.h"
 #include "tensorflow/core/framework/node_def.pb.h"
 
+#include <iostream>
+#include <fstream>
+
 namespace tensorflow {
 namespace data {
 namespace easl {
@@ -37,6 +40,16 @@ Status OrderState::GetOrderingJobId(const uint64 fingerprint, int64 &job_id) con
 void OrderState::UpdateLatestInfFactors(const uint64 fingerprint, std::vector<std::string> pipeline_nodes, std::vector<float> inflation_factors) {
     latest_pipeline_order[fingerprint] = pipeline_nodes;
     latest_inflation_factors[fingerprint] = inflation_factors;
+
+    // Write the metrics to file
+    std::string fingerprint_str = std::to_string(fingerprint);
+    ofstream metrics_file("metrics" + fingerprint_str + ".csv");
+
+    for (int i = 0; i < pipeline_nodes.size(); ++i) {
+        metrics_file << pipeline_nodes[i] << "," << inflation_factors[i];
+    }
+
+    metrics_file.close();
 }
 
 Status OrderState::GetLatestInfFactors(const uint64 fingerprint, std::vector<std::string> pipeline_nodes, std::vector<float> inflation_factors) {

@@ -507,7 +507,6 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         Status s2 = metadata_store_.GetNumberOfProducedElements(job_id,
                                                                 element_count);
 
-        // Maybe move AutoOrder inflation metric calculation here
         if (s1.ok() && s2.ok() && job_type == "PROFILE" &&
             element_count >= kElementThreshold) {
 
@@ -542,8 +541,6 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         }
 
         // If the job produced enough elements calculate the metrics for the AutoOrder policy
-
-        // TODO: Find a way to reduce the amount of metric updates
         bool is_ordered;
         metadata_store_.IsJobOrdered(job_id, is_ordered);
         if (element_count >= kElementThreshold && !is_ordered) {
