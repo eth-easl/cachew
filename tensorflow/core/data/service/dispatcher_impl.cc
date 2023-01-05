@@ -1705,8 +1705,9 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   } else {
     VLOG(0) << "No inflation metrics available";
     //response->set_has_inf_factors(false);
-    response->set_allocated_inf_factors(&inf_factors);
+    //response->set_allocated_inf_factors(&inf_factors);
   }
+  VLOG(0) << "Done"
 
   return Status::OK();
 }

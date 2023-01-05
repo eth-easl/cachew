@@ -122,7 +122,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
     timings.ReportAndStop();
     if (!status.ok()) return status;
   }
-  VLOG(0) << "Data Optimizations performed.";
+  VLOG(1) << "Data Optimizations performed.";
 
   // Store the final result of all the optimizations in `output`.
   output->Swap(&optimized_item.graph);
@@ -158,7 +158,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
       }
     }
 
-    VLOG(0) << "Function was optimized";
+    VLOG(1) << "Function was optimized";
     // Convert optimized graph back to FunctionDef.
     FunctionDef optimized_func;
     func_item.SwapFunctionBody(std::move(optimized_func_graph));

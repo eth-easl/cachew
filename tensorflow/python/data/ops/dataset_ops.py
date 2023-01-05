@@ -2143,6 +2143,16 @@ name=None))
 
       return dataset
 
+    def reorder_dataset(dataset):
+      if hasattr(dataset, '_input_dataset'):
+        new_input = reorder_dataset(dataset._input_dataset)
+      else:
+        return dataset
+
+      new_ds = dataset
+
+      return dataset
+
     # Start of actual map function
     print("ADDING NEW MAP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
@@ -2152,6 +2162,12 @@ name=None))
       target_types, target_shape = dsu.get_ds_dtypes_shapes(self)
 
       # Check if we have a file with metrics
+      metrics_file = ''
+      if os.path.isfile(metrics_file):
+        print("Found metrics file")
+
+        # Restart loop to recursively build (reordered pipeline)
+        new_self = reorder_dataset(self)
 
     pos = dsu.get_op_position(self) + 1
     print("It was the " + str(pos) + ". map op in the user's original code")

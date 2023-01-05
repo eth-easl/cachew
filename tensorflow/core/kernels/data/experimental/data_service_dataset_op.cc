@@ -886,8 +886,8 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       InfFactorMetrics inf_fac_m = resp.inf_factors();
       VLOG(0) << "Got inflation factors for " << inf_fac_m.node_inf_factors_size() << " nodes in the pipeline";
       std::string f_name = "inf_factors.csv";
-      std::string temp_cwd("\0",FILENAME_MAX+1);
-      std::string cwd = getcwd(&temp_cwd[0],temp_cwd.capacity());
+      std::string temp_cwd("\0", FILENAME_MAX+1);
+      std::string cwd = getcwd(&temp_cwd[0], temp_cwd.capacity());
       //std::experimental::filesystem::path cwd = std::experimental::filesystem::current_path();
       VLOG(0) << "Current wd is " << cwd;
 

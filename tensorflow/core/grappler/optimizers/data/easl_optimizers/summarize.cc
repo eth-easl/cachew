@@ -82,7 +82,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
 
         while (!bfs_queue.empty()) {
             NodeDef* current_node = bfs_queue.front();
-            VLOG(0) << "Visiting node " << current_node->name();
+            VLOG(1) << "Visiting node " << current_node->name();
             std::string nd_summary = SummarizeNodeDef(*current_node, 100);
             VLOG(0) << "Summary of node: " << nd_summary;
 
@@ -145,7 +145,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
             }
 
             bfs_queue.pop();
-            VLOG(0) << "popped elem";
+            VLOG(1) << "popped elem";
             visited.insert(current_node->name());
 
             // Iterate through the neighbors

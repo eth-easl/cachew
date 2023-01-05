@@ -196,20 +196,20 @@ Status RewriteDataset(OpKernelContext* ctx, const DatasetBase* input,
   // Some functions may have been modified without having their names changed
   // (for example, nested dataset graphs from FlatMap or Interleave).
   TF_RETURN_IF_ERROR(AddToFunctionLibrary(lib_def.get(), graph_def.library()));
-  VLOG(0) << "After (potentially) adding functions to library";
+  VLOG(1) << "After (potentially) adding functions to library";
 
   Graph graph(OpRegistry::Global());
   TF_RETURN_IF_ERROR(ImportGraphDef({}, graph_def, &graph, nullptr));
-  VLOG(0) << "Imported GraphDef";
+  VLOG(1) << "Imported GraphDef";
   std::vector<Tensor> outputs;
   GraphRunner graph_runner(flr->device());
 
   TF_RETURN_IF_ERROR(
       graph_runner.Run(&graph, flr, input_list, {output_node}, &outputs));
-  VLOG(0) << "Ran graph";
+  VLOG(1) << "Ran graph";
   TF_RETURN_IF_ERROR(GetDatasetFromVariantTensor(outputs[0], rewritten_input));
   (*rewritten_input)->Ref();
-  VLOG(0) << "Obtained DatasetBase object";
+  VLOG(1) << "Obtained DatasetBase object";
 
   if (record_fingerprint) {
     (*ctx->runner())([graph_def = std::move(graph_def),
@@ -249,7 +249,7 @@ Status RewriteDataset(OpKernelContext* ctx, const DatasetBase* input,
       metrics::RecordTFDataFingerprint(graph_hash);
     });
   }
-  VLOG(0) << "After recording fingerprint";
+  VLOG(1) << "After recording fingerprint";
 
   return Status::OK();
 }
