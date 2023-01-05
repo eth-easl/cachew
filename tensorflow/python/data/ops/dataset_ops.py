@@ -17,6 +17,8 @@ import abc
 import functools
 import multiprocessing
 import sys
+import os
+import csv
 import threading
 import warnings
 
@@ -2162,9 +2164,15 @@ name=None))
       target_types, target_shape = dsu.get_ds_dtypes_shapes(self)
 
       # Check if we have a file with metrics
-      metrics_file = ''
+      metrics_file = 'inf_factors.csv'
       if os.path.isfile(metrics_file):
         print("Found metrics file")
+
+        with open(metrics_file, newline='') as f:
+          reader = csv.reader(f)
+          inflation_factors = list(reader)
+
+        print(inflation_factors)
 
         # Restart loop to recursively build (reordered pipeline)
         new_self = reorder_dataset(self)

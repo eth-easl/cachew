@@ -37,8 +37,8 @@ class OrderState {
                                 std::vector<float> inflation_factors);
 
     Status GetLatestInfFactors(const uint64 fingerprint,
-                               std::vector<std::string> pipeline_nodes,
-                               std::vector<float> inflation_factors);
+                               std::vector<std::string> &pipeline_nodes,
+                               std::vector<float> &inflation_factors);
 
     void AddOrgPipeline(std::vector<NodeDef> org_nodes);
 

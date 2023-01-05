@@ -37,7 +37,9 @@ Status OrderState::GetOrderingJobId(const uint64 fingerprint, int64 &job_id) con
     return Status::OK();
 }
 
-void OrderState::UpdateLatestInfFactors(const uint64 fingerprint, std::vector<std::string> pipeline_nodes, std::vector<float> inflation_factors) {
+void OrderState::UpdateLatestInfFactors(const uint64 fingerprint,
+                                        std::vector<std::string> pipeline_nodes,
+                                        std::vector<float> inflation_factors) {
     latest_pipeline_order[fingerprint] = pipeline_nodes;
     latest_inflation_factors[fingerprint] = inflation_factors;
 
@@ -52,14 +54,18 @@ void OrderState::UpdateLatestInfFactors(const uint64 fingerprint, std::vector<st
     metrics_file.close();*/
 }
 
-Status OrderState::GetLatestInfFactors(const uint64 fingerprint, std::vector<std::string> pipeline_nodes, std::vector<float> inflation_factors) {
+Status OrderState::GetLatestInfFactors(const uint64 fingerprint,
+                                       std::vector<std::string> &pipeline_nodes,
+                                       std::vector<float> &inflation_factors) {
     auto it = is_ordered_.find(fingerprint);
+    VLOG(0) << "Inside disp_order_state GetLatestInfFactors";
     if (it == is_ordered_.end()) {
         return errors::NotFound(
             "Dataset with fingerprint " + fingerprint + std::string(" does not jet have data for inflation factors!"));
     }
     pipeline_nodes = latest_pipeline_order[fingerprint];
     inflation_factors = latest_inflation_factors[fingerprint];
+    VLOG(0) << "GetLatestInfFactors: collected " << inflation_factors.size() << " inflation factors";
     return Status::OK();
 }
 

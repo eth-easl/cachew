@@ -554,6 +554,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
               metadata_store_, pipeline_nodes, inflation_factors, job_id);
           std::shared_ptr<const Dataset> ds;
           TF_RETURN_IF_ERROR(state_.DatasetFromId(task_object->job->dataset_id, ds));
+          VLOG(0) << "dispatcher_impl: Got " << inflation_factors.size() << " inflation factors";
           VLOG(0) << "Going to update the 'order_state_";
           order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
                                               inflation_factors);
@@ -1692,6 +1693,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   std::vector<std::string> pipeline_nodes;
   std::vector<float> inflation_factors;
   s = order_state_.GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
+  VLOG(0) << "Number of inflation factors obtained " << inflation_factors.size();
   bool inf_factors_exist;
   InfFactorMetrics inf_factors;
   if (s.ok()) {
@@ -1707,7 +1709,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     //response->set_has_inf_factors(false);
     //response->set_allocated_inf_factors(&inf_factors);
   }
-  VLOG(0) << "Done"
+  VLOG(0) << "Done";
 
   return Status::OK();
 }
