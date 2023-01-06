@@ -1693,7 +1693,8 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   std::vector<std::string> pipeline_nodes;
   std::vector<float> inflation_factors;
   s = order_state_.GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
-  VLOG(0) << "Number of inflation factors obtained " << inflation_factors.size();
+  VLOG(0) << "Pipeline nodes obtained: " << pipeline_nodes.size();
+  VLOG(0) << "Inflation factors obtained: " << inflation_factors.size();
   bool inf_factors_exist;
   InfFactorMetrics inf_factors;
   if (s.ok()) {
@@ -1702,8 +1703,11 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     for (int i = 0; i < pipeline_nodes.size(); ++i) {
       VLOG(0) << "Node " << pipeline_nodes[i] << " inflation factor " << inflation_factors[i];
       //(*inf_factors.mutable_node_inf_factors())[pipeline_nodes[i]] = inflation_factors[i];
-      (*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
     }
+    (*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
+    (*inf_factors.mutable_node_inf_factors())["TestTest"] = 2.4;
+    VLOG(0) << "Added dummy data";
+    (*inf_factors.mutable_node_inf_factors())[pipeline_nodes[0]] = inflation_factors[i];
     //inf_factors.set_node_inf_factors(inf_factors);
     response->set_allocated_inf_factors(&inf_factors);
   } else {
