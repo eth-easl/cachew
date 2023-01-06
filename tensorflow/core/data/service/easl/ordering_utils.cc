@@ -66,8 +66,8 @@ Status GetIntervalOrders(std::vector<std::vector<std::string>> reorderable_inter
 // Big assumption (TBC), this happens after the completion of an epoch (i.e. each op will process the same no. of elems (except for filtering))
 // TODO: Check what happens with batch!
 Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metadata_store,
-                                 std::vector<std::string> pipeline_nodes,
-                                 std::vector<float> inflationFactors,
+                                 std::vector<std::string> &pipeline_nodes,
+                                 std::vector<float> &inflationFactors,
                                  int64 job_id) {
   VLOG(0) << "Calculating inflation factors";
   std::shared_ptr<::tensorflow::data::easl::JobMetrics> job_metrics;
