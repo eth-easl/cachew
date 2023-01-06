@@ -1458,7 +1458,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   TF_RETURN_IF_ERROR(CheckStarted());
   bool do_reassign_workers = false;
   mutex_lock l(mu_);
-  VLOG(4) << "Received heartbeat from client id " << request->job_client_id();
+  VLOG(0) << "Received heartbeat from client id " << request->job_client_id();
 
   std::shared_ptr<const Job> job;
   Status s = state_.JobForJobClientId(request->job_client_id(), job);
@@ -1491,7 +1491,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
         job->job_id, request->job_client_id(), metrics);
     // Ignore metrics for jobs which do not have metrics anymore
     // report error otherwise.
-    if(!s.ok()){
+    if (!s.ok()){
       VLOG(0) << "EASL (ClientHeartbeat) - metadatastore error code " << s.code();
       VLOG(0) << s.ToString();
       VLOG(0) << errors::IsNotFound(s);
@@ -1700,7 +1700,9 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     VLOG(0) << "Found inflation metrics";
     //response->set_has_inf_factors(true);
     for (int i = 0; i < pipeline_nodes.size(); ++i) {
-      (*inf_factors.mutable_node_inf_factors())[pipeline_nodes[i]] = inflation_factors[i];
+      VLOG(0) << "Node " << pipeline_nodes[i] << " inflation factor " << inflation_factors[i];
+      //(*inf_factors.mutable_node_inf_factors())[pipeline_nodes[i]] = inflation_factors[i];
+      (*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
     }
     //inf_factors.set_node_inf_factors(inf_factors);
     response->set_allocated_inf_factors(&inf_factors);
