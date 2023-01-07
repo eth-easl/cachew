@@ -225,6 +225,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   pipeline_nodes.clear();
   pipeline_nodes = pipeline_nodes_sorted_filtered_2;
+  VLOG(0) << "Check: pipeline_nodes now has " << pipeline_nodes.size();
 
   return Status::OK();
 }

@@ -555,6 +555,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           std::shared_ptr<const Dataset> ds;
           TF_RETURN_IF_ERROR(state_.DatasetFromId(task_object->job->dataset_id, ds));
           VLOG(0) << "dispatcher_impl: Got " << inflation_factors.size() << " inflation factors";
+          VLOG(0) << "Check: pipeline_nodes now has " << pipeline_nodes.size();
           VLOG(0) << "Going to update the 'order_state_";
           order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
                                               inflation_factors);
