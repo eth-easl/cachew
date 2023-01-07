@@ -1707,7 +1707,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     (*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
     (*inf_factors.mutable_node_inf_factors())["TestTest"] = 2.4;
     VLOG(0) << "Added dummy data";
-    (*inf_factors.mutable_node_inf_factors())[pipeline_nodes[0]] = inflation_factors[i];
+    (*inf_factors.mutable_node_inf_factors())[pipeline_nodes[0]] = inflation_factors[0];
     //inf_factors.set_node_inf_factors(inf_factors);
     response->set_allocated_inf_factors(&inf_factors);
   } else {

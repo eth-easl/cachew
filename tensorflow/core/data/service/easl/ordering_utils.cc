@@ -223,6 +223,9 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     VLOG(0) << "Node " << pipeline_nodes_sorted_filtered_2[i] << " has inflation factor " << inflationFactors[i];
   }
 
+  pipeline_nodes.clear();
+  pipeline_nodes = pipeline_nodes_sorted_filtered_2;
+
   return Status::OK();
 }
 
