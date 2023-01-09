@@ -1705,12 +1705,14 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
       VLOG(0) << "Node " << pipeline_nodes[i] << " inflation factor " << inflation_factors[i];
       //(*inf_factors.mutable_node_inf_factors())[pipeline_nodes[i]] = inflation_factors[i];
     }
-    (*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
-    (*inf_factors.mutable_node_inf_factors())["TestTest"] = 2.4;
+    response->mutable_node_inf_factors()["Test"] = 1.2;
+    response->mutable_node_inf_factors()["TestTest"] = 2.2;
+    //(*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
+    //(*inf_factors.mutable_node_inf_factors())["TestTest"] = 2.4;
     VLOG(0) << "Added dummy data";
-    (*inf_factors.mutable_node_inf_factors())[pipeline_nodes[0]] = inflation_factors[0];
+    //(*inf_factors.mutable_node_inf_factors())[pipeline_nodes[0]] = inflation_factors[0];
     //inf_factors.set_node_inf_factors(inf_factors);
-    response->set_allocated_inf_factors(&inf_factors);
+    //response->set_allocated_inf_factors(&inf_factors);
   } else {
     VLOG(0) << "No inflation metrics available";
     //response->set_has_inf_factors(false);
