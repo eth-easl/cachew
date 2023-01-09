@@ -883,8 +883,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         get_next_cv_.notify_all();
       }
 
-      InfFactorMetrics inf_fac_m = resp.inf_factors();
-      VLOG(0) << "Got inflation factors for " << inf_fac_m.node_inf_factors_size() << " nodes in the pipeline";
+      //InfFactorMetrics inf_fac_m = resp.inf_factors();
+      //VLOG(0) << "Got inflation factors for " << inf_fac_m.node_inf_factors_size() << " nodes in the pipeline";
+      auto inf_fac_m = resp.node_inf_factors();
       std::string f_name = "inf_factors.csv";
       std::string temp_cwd("\0", FILENAME_MAX+1);
       std::string cwd = getcwd(&temp_cwd[0], temp_cwd.capacity());
