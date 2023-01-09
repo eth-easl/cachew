@@ -895,8 +895,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       // Write the metrics to file
       std::ofstream metrics_file(f_name);
 
-      for (auto & pair : inf_fac_m.node_inf_factors()) {
-        metrics_file << pair.first << "," << pair.second;
+      //for (auto & pair : inf_fac_m.node_inf_factors()) {
+      for (auto & pair : inf_fac_m) {
+        metrics_file << pair.first << "," << pair.second << "\n";
       }
 
       metrics_file.close();

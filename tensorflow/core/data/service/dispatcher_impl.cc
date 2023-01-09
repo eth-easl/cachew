@@ -1703,10 +1703,15 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     //response->set_has_inf_factors(true);
     for (int i = 0; i < pipeline_nodes.size(); ++i) {
       VLOG(0) << "Node " << pipeline_nodes[i] << " inflation factor " << inflation_factors[i];
+      std::string s = pipeline_nodes[i];
+      s.erase(std::remove(s.begin(), s.end(), '('), s.end());
+      s.erase(std::remove(s.begin(), s.end(), ')'), s.end());
+      s.erase(std::remove(s.begin(), s.end(), ':'), s.end());
+      (*response->mutable_node_inf_factors())[s] = inflation_factors[i];
       //(*inf_factors.mutable_node_inf_factors())[pipeline_nodes[i]] = inflation_factors[i];
     }
-    response->mutable_node_inf_factors()["Test"] = 1.2;
-    response->mutable_node_inf_factors()["TestTest"] = 2.2;
+    //(*response->mutable_node_inf_factors())["Test"] = 1.2;
+    //(*response->mutable_node_inf_factors())["TestTest"] = 2.2;
     //(*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
     //(*inf_factors.mutable_node_inf_factors())["TestTest"] = 2.4;
     VLOG(0) << "Added dummy data";
