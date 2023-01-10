@@ -298,14 +298,14 @@ def node_increased_size(dataset):
       return True
   return False
 
-def may_reoder(dataset):
+def may_reorder(dataset):
   # For now just check whether the user didn't set the keep_position flag to True
   if hasattr(dataset, '_keep_position'):
     return not dataset._keep_position
   else:
     return True
 
-def get_source_ds(dataset):]
+def get_source_ds(dataset):
   if hasattr(dataset, '_input_dataset'):
     return get_source_ds(dataset)
   return dataset

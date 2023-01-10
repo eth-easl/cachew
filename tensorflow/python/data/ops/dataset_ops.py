@@ -2149,7 +2149,7 @@ name=None))
     def op_order(dataset, df):
       # ret_list: 0: ds_type, 1: may_reorder, 2: org_func, 3: in_t, 4: in_s, 5: t, 6: s, 7: inf_f, 8: 
       ret_list = []
-      if ((isinstance(self, MapDataset)) or (isinstance(self, ParallelMapDataset)) or (isinstance(self, FilterDataset))):
+      if ((isinstance(dataset, MapDataset)) or (isinstance(dataset, ParallelMapDataset)) or (isinstance(dataset, FilterDataset))):
         ret_list.append(str(type(self)))
         ret_list.append(dsu.may_reorder(dataset))
         f = dataset._predicate._func if hasattr(dataset, '_predicate') else dataset._map_func._func
@@ -2159,12 +2159,19 @@ name=None))
         t, s = dsu.get_ds_dtypes_shapes(dataset)
         ret_list.extend([in_t, in_s, t, s])
 
-        ret_list.append(float(df[-1:]['Inflation factor']))
+        ret_list.append(float(df[:1]['Inflation factor']))
       
-      if hasattr(dataset, '_input_dataset'):
-        return op_order(dataset._input_dataset, df[:-1]).append(ret_list)
+      print("Current node: ")
+      print(ret_list)
+      
+      if hasattr(dataset, '_input_dataset') and len(df) > 1:
+        prev = op_order(dataset._input_dataset, df[1:])
+        print("Prev is")
+        print(prev)
+        prev.append(ret_list)
+        return prev
       else:
-        [ret_list]
+        return [ret_list]
     
     # TODO: implement mechanism to move filters up (and group them for filter fusion)
     def move_filters_up(dataset):
@@ -2190,8 +2197,9 @@ name=None))
             dataset._move_downstream = True
             print("Unknown resize deflation")
 
-      if hasattr(dataset, '_input_dataset'):
-        order_unknown_resize_by_metrics(dataset._input_dataset, op_o[:-1])
+      if hasattr(dataset, '_input_dataset') and len(op_o) > 1:
+        dataset._input_dataset = order_unknown_resize_by_metrics(dataset._input_dataset, op_o[:-1])
+      return dataset
 
     def swap_last_2_ops(dataset):
       # Swap the order of the last two ops, assume the reordering is valid AND helpful (should be tested elsewhere)
@@ -2241,7 +2249,9 @@ name=None))
     # Only for moving upstream
     def try_reorder(dataset):
       # For now only Map and ParallelMap are supported
-      if dataset._move_upstream and not dataset._keep_position and hasattr(dataset, "_input_dataset") and hasattr(dataset._input_dataset, "_input_dataset") and
+      print("Trying to move deflating ops up")
+      if ((isinstance(dataset, MapDataset)) or (isinstance(dataset, ParallelMapDataset))) and \
+      dataset._move_upstream and not dataset._keep_position and hasattr(dataset, "_input_dataset") and hasattr(dataset._input_dataset, "_input_dataset") and \
       not dataset._input_dataset._keep_position and ((isinstance(dataset._input_dataset, MapDataset)) or (isinstance(dataset._input_dataset, ParallelMapDataset))):
         # Check that the dimension and d-types are the same in the input dataset (d-types should have been reordered already)
         org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset._input_dataset)
@@ -2266,7 +2276,7 @@ name=None))
       else:
         return dataset
 
-      if dataset._input_dataset._move_downstream and not dataset._input_dataset._keep_position and hasattr(dataset._input_dataset, "_input_dataset") and
+      if dataset._input_dataset._move_downstream and not dataset._input_dataset._keep_position and hasattr(dataset._input_dataset, "_input_dataset") and \
       not dataset._keep_position and ((isinstance(dataset, MapDataset)) or (isinstance(dataset, ParallelMapDataset))):
         # Check that the dimension and d-types are the same in the current dataset (d-types should have been reordered already)
         org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
@@ -2282,7 +2292,7 @@ name=None))
 
       new_ds = move_filters_up(dataset)
       
-      order_unknown_resize_by_metrics(new_ds, op_o)
+      new_ds = order_unknown_resize_by_metrics(new_ds, op_o)
 
       new_ds2 = try_reorder(new_ds)
 
