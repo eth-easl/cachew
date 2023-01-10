@@ -890,7 +890,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       std::string temp_cwd("\0", FILENAME_MAX+1);
       std::string cwd = getcwd(&temp_cwd[0], temp_cwd.capacity());
       //std::experimental::filesystem::path cwd = std::experimental::filesystem::current_path();
-      VLOG(0) << "Current wd is " << cwd;
+      VLOG(1) << "Current wd is " << cwd;
 
       // Write the metrics to file
       std::ofstream metrics_file(f_name);
@@ -901,7 +901,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       metrics_file.close();
-      VLOG(0) << "Inflation factors stored in file!";
+      VLOG(0) << "Inflation factors stored in dir " << cwd;
 
       mutex_lock l(mu_);
       UpdateJobFinished(resp.job_finished());

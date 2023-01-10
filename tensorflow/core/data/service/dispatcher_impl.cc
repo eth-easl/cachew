@@ -1703,6 +1703,11 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     //response->set_has_inf_factors(true);
     for (int i = 0; i < pipeline_nodes.size(); ++i) {
       VLOG(0) << "Node " << pipeline_nodes[i] << " inflation factor " << inflation_factors[i];
+
+      // Avoid reordering, when de/inflation just appears by noise
+      if (inflation_factors[i] < 1.05 && inflation_factors[i] > 0.95) {
+        inflation_factors[i] = 1;
+      }
       std::string s = pipeline_nodes[i];
       s.erase(std::remove(s.begin(), s.end(), '('), s.end());
       s.erase(std::remove(s.begin(), s.end(), ')'), s.end());
@@ -1714,7 +1719,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
     //(*response->mutable_node_inf_factors())["TestTest"] = 2.2;
     //(*inf_factors.mutable_node_inf_factors())["Test"] = 1.2;
     //(*inf_factors.mutable_node_inf_factors())["TestTest"] = 2.4;
-    VLOG(0) << "Added dummy data";
+    //VLOG(0) << "Added dummy data";
     //(*inf_factors.mutable_node_inf_factors())[pipeline_nodes[0]] = inflation_factors[0];
     //inf_factors.set_node_inf_factors(inf_factors);
     //response->set_allocated_inf_factors(&inf_factors);

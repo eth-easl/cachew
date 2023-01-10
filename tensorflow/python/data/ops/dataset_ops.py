@@ -23,6 +23,7 @@ import threading
 import warnings
 
 import numpy as np
+import pandas as pd
 import six
 from six.moves import queue as Queue  # pylint: disable=redefined-builtin
 
@@ -2144,14 +2145,146 @@ name=None))
         return new_ds
 
       return dataset
+    
+    def op_order(dataset, df):
+      # ret_list: 0: ds_type, 1: may_reorder, 2: org_func, 3: in_t, 4: in_s, 5: t, 6: s, 7: inf_f, 8: 
+      ret_list = []
+      if ((isinstance(self, MapDataset)) or (isinstance(self, ParallelMapDataset)) or (isinstance(self, FilterDataset))):
+        ret_list.append(str(type(self)))
+        ret_list.append(dsu.may_reorder(dataset))
+        f = dataset._predicate._func if hasattr(dataset, '_predicate') else dataset._map_func._func
+        ret_list.append(f)
 
-    def reorder_dataset(dataset):
+        in_t, in_s = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
+        t, s = dsu.get_ds_dtypes_shapes(dataset)
+        ret_list.extend([in_t, in_s, t, s])
+
+        ret_list.append(float(df[-1:]['Inflation factor']))
+      
       if hasattr(dataset, '_input_dataset'):
-        new_input = reorder_dataset(dataset._input_dataset)
+        return op_order(dataset._input_dataset, df[:-1]).append(ret_list)
+      else:
+        [ret_list]
+    
+    # TODO: implement mechanism to move filters up (and group them for filter fusion)
+    def move_filters_up(dataset):
+      return dataset
+
+    # Recursively try to move last op upwards
+    #def move_up(dataset):
+
+
+
+    def order_unknown_resize_by_metrics(dataset, op_o):
+      #n_ds = dsu.get_source_ds(dataset)
+
+      dataset._move_downstream = False
+      dataset._move_upstream = False
+      if op_o[-1] != []:
+        i = op_o[-1]
+        if ((not i[7] == 1) and i[1] and (i[3] == i[5]) and ((None in i[4]) or (None in i[6]))):
+          if i[7] > 1:
+            dataset._move_upstream = True
+            print("Unknown resize inflation")
+          else:
+            dataset._move_downstream = True
+            print("Unknown resize deflation")
+
+      if hasattr(dataset, '_input_dataset'):
+        order_unknown_resize_by_metrics(dataset._input_dataset, op_o[:-1])
+
+    def swap_last_2_ops(dataset):
+      # Swap the order of the last two ops, assume the reordering is valid AND helpful (should be tested elsewhere)
+      
+      # Making the new inner dataset
+      if isinstance(dataset, MapDataset):
+        new_in = MapDataset(dataset._input_dataset._input_dataset,
+                            dataset._map_func._func,
+                            preserve_cardinality=True,
+                            name=dataset._metadata.name,
+                            keep_position=False,
+                            position=dataset._position) # TODO: Check, do we still need this (or need to fix this) ??
+      elif isinstance(dataset, ParallelMapDataset):
+        new_in = ParallelMapDataset(dataset._input_dataset._input_dataset,
+                                    dataset._map_func._func,
+                                    dataset._num_parallel_calls,
+                                    dataset._deterministic,
+                                    preserve_cardinality=True,
+                                    name=dataset._metadata.name,
+                                    keep_position=False,
+                                    position=dataset._position)
+      else:
+        return dataset
+      
+      # Making the new auter dataset
+      if isinstance(dataset._input_dataset, MapDataset):
+        new_ds = MapDataset(new_in,
+                            dataset._input_dataset._map_func._func,
+                            preserve_cardinality=True,
+                            name=dataset._input_dataset._metadata.name,
+                            keep_position=False,
+                            position=dataset._input_dataset._position) # TODO: Check, do we still need this (or need to fix this) ??
+      elif isinstance(dataset._input_dataset, ParallelMapDataset):
+        new_ds = ParallelMapDataset(new_in,
+                                    dataset._input_dataset._map_func._func,
+                                    dataset._input_dataset._num_parallel_calls,
+                                    dataset._input_dataset._deterministic,
+                                    preserve_cardinality=True,
+                                    name=dataset._input_dataset._metadata.name,
+                                    keep_position=False,
+                                    position=dataset._input_dataset._position)
       else:
         return dataset
 
-      new_ds = dataset
+      return new_ds
+
+    # Only for moving upstream
+    def try_reorder(dataset):
+      # For now only Map and ParallelMap are supported
+      if dataset._move_upstream and not dataset._keep_position and hasattr(dataset, "_input_dataset") and hasattr(dataset._input_dataset, "_input_dataset") and
+      not dataset._input_dataset._keep_position and ((isinstance(dataset._input_dataset, MapDataset)) or (isinstance(dataset._input_dataset, ParallelMapDataset))):
+        # Check that the dimension and d-types are the same in the input dataset (d-types should have been reordered already)
+        org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset._input_dataset)
+        new_types, new_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
+
+        if org_types == new_types:
+          new_ds = swap_last_2_ops(dataset)
+
+      if hasattr(dataset, "_input_dataset"):
+        new_ds._input_dataset = try_reorder(dataset._input_dataset)
+      else:
+        return dataset
+      
+      return new_ds
+    
+    def try_move_down(dataset):
+      # For now only Map and ParallelMap are supported
+
+      if hasattr(dataset, "_input_dataset"):
+        new_in = try_move_down(dataset._input_dataset)
+        dataset._input_dataset = new_in
+      else:
+        return dataset
+
+      if dataset._input_dataset._move_downstream and not dataset._input_dataset._keep_position and hasattr(dataset._input_dataset, "_input_dataset") and
+      not dataset._keep_position and ((isinstance(dataset, MapDataset)) or (isinstance(dataset, ParallelMapDataset))):
+        # Check that the dimension and d-types are the same in the current dataset (d-types should have been reordered already)
+        org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
+        new_types, new_shapes = dsu.get_ds_dtypes_shapes(dataset)
+
+        if org_types == new_types:
+          new_ds = swap_last_2_ops(dataset)
+      
+      return new_ds
+
+    def reorder_dataset(dataset, df):
+      op_o = op_order(dataset, df)
+
+      new_ds = move_filters_up(dataset)
+      
+      order_unknown_resize_by_metrics(new_ds, op_o)
+
+      new_ds2 = try_reorder(new_ds)
 
       return dataset
 
@@ -2161,7 +2294,9 @@ name=None))
     # Check if we are at the end of the pipeline
     is_end = '_register_dataset' in str(map_func)
     if is_end:
-      target_types, target_shape = dsu.get_ds_dtypes_shapes(self)
+      print("REACHED THE END OF THE PIPELINE")
+      print("Current working dir is " + os.getcwd())
+      target_types, target_shapes = dsu.get_ds_dtypes_shapes(self)
 
       # Check if we have a file with metrics
       metrics_file = 'inf_factors.csv'
@@ -2172,10 +2307,30 @@ name=None))
           reader = csv.reader(f)
           inflation_factors = list(reader)
 
-        print(inflation_factors)
+        df = pd.DataFrame(inflation_factors, columns=['Node', "Inflation factor"])
+        df['Position'] = df.apply(lambda row: int(row.Node.split('id')[1]), axis=1)
+        df = df.sort_values('Position')
+
+        # Remove the 1st entry (this is the 'extra' op added by TF at the end of each pipeline)
+        df = df[1:]
+        df.reset_index(drop=True, inplace=True)
+
+        print(df)
+
+        op_o = op_order(self, df)
 
         # Restart loop to recursively build (reordered pipeline)
-        new_self = reorder_dataset(self)
+        new_self = reorder_dataset(self, df)
+
+        new_types, new_shapes = dsu.get_ds_dtypes_shapes(self)
+        print(target_types)
+        print(target_shapes)
+        print(new_types)
+        print(new_shapes)
+        print("Same types: " + target_types==new_types + " Same shapes: " + target_shapes==new_shapes)
+
+      else:
+        print("Failed to find  metrics file!")
 
     pos = dsu.get_op_position(self) + 1
     print("It was the " + str(pos) + ". map op in the user's original code")
@@ -2232,7 +2387,6 @@ name=None))
 
       # Case where the previous (self) op changes to a more expensive data type => move the original downstream
       print("Self is a: " + str(type(self)))
-      print(isinstance(self, MapDataset))
       if ((isinstance(self, MapDataset)) or (isinstance(self, ParallelMapDataset))):
         print("Checking if we should move the previous op downstream")
         print(self._move_downstream)
