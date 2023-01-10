@@ -2259,14 +2259,14 @@ name=None))
         mv_up = dataset._move_upstream
       else:
         mv_up = False
-      print("Summary")
+      '''print("Summary")
       print(type(dataset))
       print(mv_up)
       print(dataset._keep_position)
       print(hasattr(dataset, "_input_dataset"))
       print(hasattr(dataset._input_dataset, "_input_dataset"))
       print(dataset._input_dataset._keep_position)
-      print(type(dataset._input_dataset))
+      print(type(dataset._input_dataset))'''
       if ((isinstance(dataset, MapDataset)) or (isinstance(dataset, ParallelMapDataset))) and \
       mv_up and not dataset._keep_position and hasattr(dataset, "_input_dataset") and hasattr(dataset._input_dataset, "_input_dataset") and \
       not dataset._input_dataset._keep_position and ((isinstance(dataset._input_dataset, MapDataset)) or (isinstance(dataset._input_dataset, ParallelMapDataset))):
@@ -2293,7 +2293,11 @@ name=None))
       else:
         return dataset
 
-      if dataset._input_dataset._move_downstream and not dataset._input_dataset._keep_position and hasattr(dataset._input_dataset, "_input_dataset") and \
+      if hasattr(dataset._input_dataset, "_move_downstream"):
+        mv_down = dataset._input_dataset._move_downstream
+      else:
+        mv_down = False
+      if mv_down and not dataset._input_dataset._keep_position and hasattr(dataset._input_dataset, "_input_dataset") and \
       not dataset._keep_position and ((isinstance(dataset, MapDataset)) or (isinstance(dataset, ParallelMapDataset))):
         # Check that the dimension and d-types are the same in the current dataset (d-types should have been reordered already)
         org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
@@ -2309,10 +2313,10 @@ name=None))
 
       new_ds = move_filters_up(dataset)
       
-      new_ds = order_unknown_resize_by_metrics(new_ds, op_o)
+      new_ds1 = order_unknown_resize_by_metrics(new_ds, op_o)
 
-      new_ds2 = try_reorder(new_ds2)
-      new_ds3 = try_move_down(new_ds3)
+      new_ds2 = try_reorder(new_ds1)
+      new_ds3 = try_move_down(new_ds2)
 
       return dataset
 
@@ -5749,6 +5753,7 @@ class MapDataset(UnaryDataset):
     self._keep_position = keep_position
     self._position = position
     self._move_downstream = move_downstream
+    self._move_upstream = False
     variant_tensor = gen_dataset_ops.map_dataset(
         input_dataset._variant_tensor,  # pylint: disable=protected-access
         self._map_func.function.captured_inputs,
@@ -5809,6 +5814,7 @@ class ParallelMapDataset(UnaryDataset):
     self._keep_position = keep_position
     self._position = position
     self._move_downstream = move_downstream
+    self._move_upstream = False
     variant_tensor = gen_dataset_ops.parallel_map_dataset_v2(
         input_dataset._variant_tensor,  # pylint: disable=protected-access
         self._map_func.function.captured_inputs,
