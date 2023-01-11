@@ -1048,7 +1048,7 @@ Status MetaOptimizer::OptimizeConsumeItem(Cluster* cluster, GrapplerItem&& item,
       // and in function instantiation.
       if (data::IsTFDataFunction(func)) continue;
 
-      VLOG(0) << "Optimize function: function=" << func_name << " ["
+      VLOG(1) << "Optimize function: function=" << func_name << " ["
               << function_idx++ << " of "
               << optimized_graph->library().function_size() << "]";
 

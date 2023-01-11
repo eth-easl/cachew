@@ -549,7 +549,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           // Update the info for the AutoOrder policy
           std::vector<std::string> pipeline_nodes;
           std::vector<float> inflation_factors;
-          VLOG(0) << "About to determine inflation factors";
+          VLOG(0) << "About to determine inflation factors based on the first " << element_count << " elements.";
           Status s = service::easl::ordering_utils::DetermineInflationFactors(
               metadata_store_, pipeline_nodes, inflation_factors, job_id);
           if (!s.ok()) {
@@ -563,6 +563,9 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
                                               inflation_factors);
           VLOG(0) << "Updated order state";
+        }
+        else {
+          VLOG(0) << "So far " << element_count << " elements produced";
         }
       }
     }
@@ -1697,7 +1700,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   std::vector<std::string> pipeline_nodes;
   std::vector<float> inflation_factors;
   s = order_state_.GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
-  VLOG(0) << "Pipeline nodes obtained: " << pipeline_nodes.size() << " "
+  VLOG(1) << "Pipeline nodes obtained: " << pipeline_nodes.size() << " "
           << "Inflation factors obtained: " << inflation_factors.size();
   bool inf_factors_exist;
   InfFactorMetrics inf_factors;
@@ -1720,7 +1723,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   } else {
     VLOG(1) << "No inflation metrics available";
   }
-  VLOG(0) << "Done";
+  VLOG(1) << "Done";
 
   return Status::OK();
 }
