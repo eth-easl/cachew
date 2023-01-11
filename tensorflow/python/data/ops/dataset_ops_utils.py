@@ -254,8 +254,12 @@ def get_op_position(dataset):
 
 def node_does_unknown_resize(dataset):
 
-  _, in_shapes = get_ds_dtypes_shapes(dataset)
-  _, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+  in_types, in_shapes = get_ds_dtypes_shapes(dataset)
+  out_types, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+
+  if 'dict' in in_types[1:] or 'dict' in out_types[1:]:
+    print('Nested dicts are currently not supported')
+    return False
   
   if (len(in_shapes) != len(out_shapes)):
     print("Dimensions changed, do not reorder")
@@ -272,8 +276,12 @@ def node_does_unknown_resize(dataset):
   return False
 
 def node_does_known_resize(dataset):
-  _, in_shapes = get_ds_dtypes_shapes(dataset)
-  _, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+  in_types, in_shapes = get_ds_dtypes_shapes(dataset)
+  out_types, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
+
+  if 'dict' in in_types[1:] or 'dict' in out_types[1:]:
+    print('Nested dicts are currently not supported')
+    return False
   
   if (len(in_shapes) != len(out_shapes)):
     print("Dimensions changed, do not reorder")

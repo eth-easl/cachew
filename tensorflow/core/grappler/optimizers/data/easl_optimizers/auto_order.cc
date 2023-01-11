@@ -792,7 +792,7 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
     TF_RETURN_IF_ERROR(TopologicalSort(&sorted_old_graph));
     *output = sorted_old_graph;
 
-    VLOG(0) << "Sorted graph";
+    //VLOG(0) << "Sorted graph";
 
     MutableGraphView graph(output);
     absl::flat_hash_set<string> nodes_to_delete;
@@ -915,13 +915,6 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                         VLOG(0) << arg.name();
                         VLOG(0) << arg.type();
                     }
-                    // Creating a double loop ??
-                    /*for (int i = 0; i < arg_size; ++i) {
-                        for (auto& arg : filter_args) {
-                            VLOG(0) << arg.name();
-                        }
-                    }*/
-                    //VLOG(0) << filter_inputs;
 
                     VLOG(0) << "########### FUNCTION SUMMARY END ########";
 
@@ -992,33 +985,6 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     VLOG(0) << "Target node's input " << target->input(0);
                     VLOG(0) << "Target node's input's input " << graph_utils::GetInputNode(*target, graph)->input(0);
                     VLOG(0) << "Target node's input's input's input " << graph_utils::GetInputNode(*graph_utils::GetInputNode(*target, graph), graph)->input(0); // Should be a map (the next non reordered op)
-
-
-                    /*
-                    auto* new_filter_node = graph.AddNode(MakeNewNode(*parent, *current_node, &graph));
-                    TF_RETURN_IF_ERROR(graph.UpdateFanouts(parent->name(), new_filter_node->name()));
-
-                    VLOG(0) << "New node is " << new_filter_node->op();
-                    VLOG(0) << "New node's input is " << new_filter_node->input(0);
-                    VLOG(0) << "New node's parent is " << graph_utils::GetInputNode(*new_filter_node, graph)->op();
-
-                    // Update output type of Filter node output of 2nd to last map
-                    for (auto key : {"output_shapes", "output_types"})
-                        graph_utils::CopyAttribute(key, *(graph_utils::GetInputNode(*new_filter_node, graph)), new_filter_node);
-                    
-                    (*parent->mutable_input())[0] = new_filter_node->name();
-                    TF_RETURN_IF_ERROR(graph.UpdateFanouts(current_node->name(), parent->name()));
-                    VLOG(0) << "Old nodes test!!!!!!!!";
-                    VLOG(0) << "(original) Parent is " << parent->op();
-                    VLOG(0) << "Parent's input is " << parent->input(0);
-
-                    VLOG(0) << "Target node is " << target->op();
-                    VLOG(0) << "Target node's input " << target->input(0);
-
-                    nodes_to_delete.insert(current_node->name());
-                    graph.DeleteNodes(nodes_to_delete);
-                    */
-
 
 
                     

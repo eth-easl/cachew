@@ -127,7 +127,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
 
             NodeDef_ExperimentalDebugInfo debug_i = current_node->experimental_debug_info();
             int num_org_nodes = debug_i.original_node_names_size();
-            VLOG(0) << "The the current NodeDef was made up from " << num_org_nodes << " nodes.";
+            //VLOG(0) << "The the current NodeDef was made up from " << num_org_nodes << " nodes.";
             std::vector<std::string> org_names;
             for (int i = 0 ; i < num_org_nodes; ++i) {
                 std::string name = debug_i.original_node_names(i);
@@ -136,7 +136,7 @@ Status Summarize::ApplyOptimization(MutableGraphView &graph,
             }
 
             int num_org_funcs = debug_i.original_func_names_size();
-            VLOG(0) << "Originally the node is made up of " << num_org_funcs << " functions";
+            //VLOG(0) << "Originally the node is made up of " << num_org_funcs << " functions";
             std::vector<std::string> org_funcs;
             for (int i = 0 ; i < num_org_funcs; ++i) {
                 std::string func = debug_i.original_func_names(i);

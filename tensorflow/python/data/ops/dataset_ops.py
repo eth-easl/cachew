@@ -2027,6 +2027,8 @@ name=None))
         small_ds_in = dataset._input_dataset.take(100)
       else:
         five_pct = int(dataset.cardinality() / 20)
+        if five_pct > 100:
+          five_pct = 100
         small_ds = dataset.take(five_pct)
         small_ds_in = dataset._input_dataset.take(five_pct)
 
