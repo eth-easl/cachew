@@ -111,9 +111,9 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (std::string n : pipeline_nodes) {
     VLOG(0) << "Org str was " << n;
     // TODO: figure out why 'noop' is buggy here
-    if (n.find("noop") != std::string::npos) {
+    if (n.find("noop") == std::string::npos) {
       std::string pos_str =
-          n.substr(n.find(":") + 1, n.length() - n.find(":") - 2);
+          n.substr(n.find("(id:") + 4, n.length() - n.find("(id:") - 5);
       VLOG(0) << "Pos_str was " << pos_str;
       int pos = std::stoi(pos_str) - 1;
       VLOG(0) << "Pos was " << pos;

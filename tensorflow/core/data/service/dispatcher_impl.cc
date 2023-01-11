@@ -1697,8 +1697,8 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   std::vector<std::string> pipeline_nodes;
   std::vector<float> inflation_factors;
   s = order_state_.GetLatestInfFactors(fingerprint, pipeline_nodes, inflation_factors);
-  VLOG(0) << "Pipeline nodes obtained: " << pipeline_nodes.size();
-  VLOG(0) << "Inflation factors obtained: " << inflation_factors.size();
+  VLOG(0) << "Pipeline nodes obtained: " << pipeline_nodes.size()
+          << "Inflation factors obtained: " << inflation_factors.size();
   bool inf_factors_exist;
   InfFactorMetrics inf_factors;
   if (s.ok()) {
