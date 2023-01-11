@@ -60,7 +60,7 @@ Status OrderState::GetLatestInfFactors(const uint64 fingerprint,
                                        std::vector<std::string> &pipeline_nodes,
                                        std::vector<float> &inflation_factors) {
     auto it = is_ordered_.find(fingerprint);
-    VLOG(0) << "Inside disp_order_state GetLatestInfFactors";
+    VLOG(1) << "Inside disp_order_state GetLatestInfFactors";
     if (it == is_ordered_.end()) {
         return errors::NotFound(
             "Dataset with fingerprint " + fingerprint + std::string(" does not jet have data for inflation factors!"));

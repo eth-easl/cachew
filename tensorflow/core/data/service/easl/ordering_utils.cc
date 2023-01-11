@@ -111,7 +111,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (std::string n : pipeline_nodes) {
     VLOG(0) << "Org str was " << n;
     // TODO: figure out why 'noop' is buggy here
-    if (n.find("noop") == std::string::npos) {
+    //if (n.find("noop") == std::string::npos) {
       std::string pos_str =
           n.substr(n.find("(id:") + 4, n.length() - n.find("(id:") - 5);
       VLOG(0) << "Pos_str was " << pos_str;
@@ -122,7 +122,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       } catch (const std::exception& e) {
         VLOG(0) << "Invalid key";
       }
-    }
+    //}
   }
   VLOG(0) << "Sorted the pipeline nodes";
 
@@ -208,7 +208,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       if (it != worker_metrics.end()) {
         int bc = it->second->bytes_consumed();
         int bp = it->second->bytes_produced();
-        VLOG(1) << "consumed " << bc << " bytes, produced " << bp << " bytes";
+        VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
         if (bc == 0) {
           float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
         } else {
@@ -228,13 +228,14 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   }
 
   // 4. Filter out node with inflation factor 0 (clearly input nodes)
-  for (int i = inflationFactors.size() - 1; i >= 0; --i) {
+  // Update: Do not filter out here (we can do the filtering also in Python if necessary)
+  /*for (int i = inflationFactors.size() - 1; i >= 0; --i) {
     if (inflationFactors[i] == 0) {
       VLOG(0) << "Node " << pipeline_nodes_sorted_filtered_2[i] << " had 0 inflation factor";
       inflationFactors.erase(inflationFactors.begin() + i);
       pipeline_nodes_sorted_filtered_2.erase(pipeline_nodes_sorted_filtered_2.begin() + i);
     }
-  }
+  }*/
 
   for (int i = 0; i < pipeline_nodes_sorted_filtered_2.size(); ++i) {
     VLOG(0) << "Node " << pipeline_nodes_sorted_filtered_2[i] << " has inflation factor " << inflationFactors[i];

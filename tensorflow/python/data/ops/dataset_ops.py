@@ -2347,7 +2347,9 @@ name=None))
         df = df.sort_values('Position')
 
         # Remove the 1st entry (this is the 'extra' op added by TF at the end of each pipeline)
-        df = df[1:]
+        # Only keep it if it's a 'Batch' op
+        if 'Batch' not in df['Node'][0]:
+          df = df[1:]
         df.reset_index(drop=True, inplace=True)
 
         print(df)
