@@ -2286,7 +2286,8 @@ name=None))
     
     def try_move_down(dataset):
       # For now only Map and ParallelMap are supported
-
+      print("Trying to move inflating ops down")
+      new_ds = dataset
       if hasattr(dataset, "_input_dataset"):
         new_in = try_move_down(dataset._input_dataset)
         dataset._input_dataset = new_in

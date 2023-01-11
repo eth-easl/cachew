@@ -901,7 +901,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       }
 
       metrics_file.close();
-      VLOG(0) << "Inflation factors stored in dir " << cwd;
+      VLOG(1) << "Inflation factors stored in dir " << cwd;
 
       mutex_lock l(mu_);
       UpdateJobFinished(resp.job_finished());
