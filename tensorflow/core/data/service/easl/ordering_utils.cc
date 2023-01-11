@@ -109,11 +109,20 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // 1. Sort the pipeline nodes by id
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (std::string n : pipeline_nodes) {
-    std::string pos_str = n.substr(n.find(":")+1, n.length() - n.find(":") - 2);
-    VLOG(0) << "Pos_str was " << pos_str;
-    int pos = std::stoi(pos_str) - 1;
-    //VLOG(0) << "Pos was " << pos;
-    pipeline_nodes_sorted[pos] = n;
+    VLOG(0) << "Org str was " << n;
+    // TODO: figure out why 'noop' is buggy here
+    if (n.find("noop") != std::string::npos) {
+      std::string pos_str =
+          n.substr(n.find(":") + 1, n.length() - n.find(":") - 2);
+      VLOG(0) << "Pos_str was " << pos_str;
+      int pos = std::stoi(pos_str) - 1;
+      VLOG(0) << "Pos was " << pos;
+      try {
+        pipeline_nodes_sorted[pos] = n;
+      } catch (const std::exception& e) {
+        VLOG(0) << "Invalid key";
+      }
+    }
   }
   VLOG(0) << "Sorted the pipeline nodes";
 

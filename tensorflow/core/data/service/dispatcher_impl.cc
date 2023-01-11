@@ -550,8 +550,11 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           std::vector<std::string> pipeline_nodes;
           std::vector<float> inflation_factors;
           VLOG(0) << "About to determine inflation factors";
-          service::easl::ordering_utils::DetermineInflationFactors(
+          Status s = service::easl::ordering_utils::DetermineInflationFactors(
               metadata_store_, pipeline_nodes, inflation_factors, job_id);
+          if (!s.ok()) {
+            VLOG(0) << "Determining inflation factors failed";
+          }
           std::shared_ptr<const Dataset> ds;
           TF_RETURN_IF_ERROR(state_.DatasetFromId(task_object->job->dataset_id, ds));
           VLOG(0) << "dispatcher_impl: Got " << inflation_factors.size() << " inflation factors";
