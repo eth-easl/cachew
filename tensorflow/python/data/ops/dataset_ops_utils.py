@@ -135,7 +135,9 @@ def get_ds_dtypes_shapes(dataset):
         print("Nested dicts are currently not supported!")
         types.append('dict')
         shapes += []
-
+      elif 'NoneTensorSpec' in str(type(elem_spec[i])):
+        types.append(None)
+        shapes += [None]
       else:
         types.append(str(elem_spec[i].dtype).split('\'')[1])
         #print(str(elem_spec[i].dtype).split('\'')[1])

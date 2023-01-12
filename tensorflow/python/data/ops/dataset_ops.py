@@ -2342,33 +2342,34 @@ name=None))
           reader = csv.reader(f)
           inflation_factors = list(reader)
 
-        df = pd.DataFrame(inflation_factors, columns=['Node', "Inflation factor"])
-        df['Position'] = df.apply(lambda row: int(row.Node.split('id')[1]), axis=1)
-        df = df.sort_values('Position')
+        if (len(inflation_factors) > 0):
+          df = pd.DataFrame(inflation_factors, columns=['Node', "Inflation factor"])
+          df['Position'] = df.apply(lambda row: int(row.Node.split('id')[1]), axis=1)
+          df = df.sort_values('Position')
 
-        # Remove the 1st entry (this is the 'extra' op added by TF at the end of each pipeline)
-        # Only keep it if it's a 'Batch' op
-        if 'Batch' not in df['Node'][0]:
-          df = df[1:]
-        df.reset_index(drop=True, inplace=True)
+          # Remove the 1st entry (this is the 'extra' op added by TF at the end of each pipeline)
+          # Only keep it if it's a 'Batch' op
+          if 'Batch' not in df['Node'][0]:
+            df = df[1:]
+          df.reset_index(drop=True, inplace=True)
 
-        print(df)
+          print(df)
 
-        op_o = op_order(self, df)
+          # Restart loop to recursively build (reordered pipeline)
+          new_self = reorder_dataset(self, df)
 
-        # Restart loop to recursively build (reordered pipeline)
-        new_self = reorder_dataset(self, df)
-
-        new_types, new_shapes = dsu.get_ds_dtypes_shapes(self)
-        print(target_types)
-        print(target_shapes)
-        print(new_types)
-        print(new_shapes)
-        print(target_types==new_types)
-        print(target_shapes==new_shapes)
+          new_types, new_shapes = dsu.get_ds_dtypes_shapes(self)
+          print(target_types)
+          print(target_shapes)
+          print(new_types)
+          print(new_shapes)
+          print(target_types==new_types)
+          print(target_shapes==new_shapes)
+        else:
+          print("... but it was empty")
 
       else:
-        print("Failed to find  metrics file!")
+        print("Failed to find metrics file!")
 
     pos = dsu.get_op_position(self) + 1
     print("It was the " + str(pos) + ". map op in the user's original code")
@@ -2508,7 +2509,7 @@ name=None))
         print(new_ds._move_upstream or move_upstream)
         print("Should we move downstream (2): ")
         print(new_ds._move_downstream or move_downstream)
-        in_ds_keep_pos = self._input_dataset._keep_position if hasattr(self._input_dataset, "_keep_position") else False
+        in_ds_keep_pos = self._keep_position if hasattr(self, "_keep_position") else False
         if (move_upstream or new_ds._move_upstream) and not keep_position and not in_ds_keep_pos:
           new_ds = move_op_upstream(new_ds)
           
