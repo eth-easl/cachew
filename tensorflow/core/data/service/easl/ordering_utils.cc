@@ -110,19 +110,16 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (std::string n : pipeline_nodes) {
     VLOG(0) << "Org str was " << n;
-    // TODO: figure out why 'noop' is buggy here
-    //if (n.find("noop") == std::string::npos) {
-      std::string pos_str =
-          n.substr(n.find("(id:") + 4, n.length() - n.find("(id:") - 5);
-      VLOG(0) << "Pos_str was " << pos_str;
-      int pos = std::stoi(pos_str) - 1;
-      VLOG(0) << "Pos was " << pos;
-      try {
-        pipeline_nodes_sorted[pos] = n;
-      } catch (const std::exception& e) {
-        VLOG(0) << "Invalid key";
-      }
-    //}
+    std::string pos_str =
+        n.substr(n.find("(id:") + 4, n.length() - n.find("(id:") - 5);
+    VLOG(0) << "Pos_str was " << pos_str;
+    int pos = std::stoi(pos_str) - 1;
+    VLOG(0) << "Pos was " << pos;
+    try {
+      pipeline_nodes_sorted[pos] = n;
+    } catch (const std::exception& e) {
+      VLOG(0) << "Invalid key";
+    }
   }
   VLOG(0) << "Sorted the pipeline nodes";
 
@@ -206,8 +203,8 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       VLOG(1) << "Node " << pipeline_nodes_sorted_filtered_2[j];
       auto it = worker_metrics.find(pipeline_nodes_sorted_filtered_2[j]);
       if (it != worker_metrics.end()) {
-        int bc = it->second->bytes_consumed();
-        int bp = it->second->bytes_produced();
+        int64 bc = it->second->bytes_consumed();
+        int64 bp = it->second->bytes_produced();
         VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
         if (bc == 0) {
           float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
