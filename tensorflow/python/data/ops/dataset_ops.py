@@ -2364,7 +2364,7 @@ name=None))
           logging.info(target_types)
           logging.info(target_shapes)
           logging.info(new_types)
-          logging.info((new_shapes)
+          logging.info(new_shapes)
           logging.info(target_types==new_types)
           logging.info(target_shapes==new_shapes)
         else:

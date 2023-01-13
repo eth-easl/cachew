@@ -97,9 +97,9 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
 
   std::string final_node = pipeline_nodes[pipeline_nodes.size()-1];
-  VLOG(0) << "Found final node, first 10 are: ";
-  int count = 10;
-  if (nodes_in_pipeline < 10) {
+  VLOG(0) << "Found final node, first 15 are: ";
+  int count = 15;
+  if (nodes_in_pipeline < count) {
     count = nodes_in_pipeline;
   }
   for (int i = 0; i < count; ++i) {
@@ -109,12 +109,12 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   // 1. Sort the pipeline nodes by id
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (std::string n : pipeline_nodes) {
-    VLOG(0) << "Org str was " << n;
+    VLOG(1) << "Org str was " << n;
     std::string pos_str =
         n.substr(n.find("(id:") + 4, n.length() - n.find("(id:") - 5);
-    VLOG(0) << "Pos_str was " << pos_str;
+    VLOG(1) << "Pos_str was " << pos_str;
     int pos = std::stoi(pos_str) - 1;
-    VLOG(0) << "Pos was " << pos;
+    VLOG(1) << "Pos was " << pos;
     try {
       pipeline_nodes_sorted[pos] = n;
     } catch (const std::exception& e) {

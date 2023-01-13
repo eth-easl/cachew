@@ -568,7 +568,8 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
         if (op_name != "Const" && op_name != "SparseToDense" && op_name != "Identity" &&
             op_name != "StridedSlice" && op_name != "GatherV2" && op_name != "Pack" &&
             op_name != "AddV2" && op_name != "Reshape" && op_name != "_Arg" &&
-            op_name != "_Retval" && op_name != "") {
+            op_name != "_Retval" && op_name != "" && op_name != "NoOp" && op_name != "Sub" &&
+            op_name != "Shape" && op_name != "Mul") {
             VLOG(0) << op_name;
         }
 
@@ -631,12 +632,12 @@ Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest,
         //NodeDef cur_node = graph_nodes_of_interest[i];
         std::string keep_pos_attr = SummarizeAttrValue(cur_node->attr().at("keep_position"));
         VLOG(0) << "Current node is " << cur_node->name();
-        VLOG(0) << "keep_position is " << keep_pos_attr;
+        VLOG(1) << "keep_position is " << keep_pos_attr;
 
         bool changes_type_or_dimensions = NodeChangesTypeOrDims(*cur_node, sorted_old_graph, graph);
 
         if (keep_pos_attr == "true") {
-            VLOG(0) << "keep_position was true, do not reorder";
+            VLOG(1) << "keep_position was true, do not reorder";
             if (cur_interval.size() > 1) {
                 std::vector<std::string> new_interval = cur_interval;
                 std::vector<float> new_inf_factors = cur_if;
@@ -646,7 +647,7 @@ Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest,
             cur_interval.clear();
             cur_if.clear();
         } else if (changes_type_or_dimensions) {
-            VLOG(0) << "The node changes the type or dimensions, do not reorder";
+            VLOG(1) << "The node changes the type or dimensions, do not reorder";
             if (cur_interval.size() > 1) {
                 std::vector<std::string> new_interval = cur_interval;
                 std::vector<float> new_inf_factors = cur_if;
@@ -656,7 +657,7 @@ Status GetReorderableIntervals(std::vector<std::string> graph_nodes_of_interest,
             cur_interval.clear();
             cur_if.clear();
         } else {
-            VLOG(0) << "We may reorder this node";
+            VLOG(1) << "We may reorder this node";
             cur_interval.push_back(cur_node->name());
             cur_if.push_back(inflation_factors[i]);
         }
@@ -980,14 +981,13 @@ Status AutoOrder::OptimizeAndCollectStats(Cluster* cluster,
                     graph.DeleteNodes(nodes_to_delete);
                     VLOG(0) << "Deleted nodes";
 
-
                     VLOG(0) << "(Original) Target node is " << target->op();
                     VLOG(0) << "Target node's input " << target->input(0);
                     VLOG(0) << "Target node's input's input " << graph_utils::GetInputNode(*target, graph)->input(0);
-                    VLOG(0) << "Target node's input's input's input " << graph_utils::GetInputNode(*graph_utils::GetInputNode(*target, graph), graph)->input(0); // Should be a map (the next non reordered op)
+                    // Should be a map (the next non reordered op)
+                    VLOG(0) << "Target node's input's input's input "
+                            << graph_utils::GetInputNode(*graph_utils::GetInputNode(*target, graph), graph)->input(0);
 
-
-                    
                     // We've reordered some nodes, now jump out of the process
                     return ApplyOptimization(graph, sorted_old_graph);
                 } else {

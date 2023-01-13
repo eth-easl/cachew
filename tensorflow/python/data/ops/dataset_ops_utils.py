@@ -19,12 +19,11 @@ import multiprocessing
 import sys
 import threading
 import warnings
+import logging
 
 import numpy as np
 import six
 from six.moves import queue as Queue  # pylint: disable=redefined-builtin
-
-
 
 from tensorflow.core.framework import dataset_metadata_pb2
 from tensorflow.core.framework import dataset_options_pb2
@@ -178,7 +177,8 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
   logging.info("Inside should_reorder()")
   if new_types[0] != org_types[0]:
     logging.info("Not matching outer types")
-    logging.info(org_types[0], new_types[0])
+    logging.info(org_types[0])
+    logging.info(new_types[0])
     return False, False
   org_types = org_types[1:]
   new_types = new_types[1:]

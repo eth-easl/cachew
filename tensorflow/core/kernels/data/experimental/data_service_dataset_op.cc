@@ -886,22 +886,27 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       //InfFactorMetrics inf_fac_m = resp.inf_factors();
       //VLOG(0) << "Got inflation factors for " << inf_fac_m.node_inf_factors_size() << " nodes in the pipeline";
       auto inf_fac_m = resp.node_inf_factors();
-      std::string f_name = "inf_factors.csv";
-      std::string temp_cwd("\0", FILENAME_MAX+1);
-      std::string cwd = getcwd(&temp_cwd[0], temp_cwd.capacity());
-      //std::experimental::filesystem::path cwd = std::experimental::filesystem::current_path();
-      VLOG(1) << "Current wd is " << cwd;
+      int no_inf_factors = inf_fac_m.                                   ;
+      if (no_inf_factors == 0) {
+        VLOG(0) << "Inflation factors not yet available";
+      } else {
+        std::string f_name = "inf_factors.csv";
+        std::string temp_cwd("\0", FILENAME_MAX + 1);
+        std::string cwd = getcwd(&temp_cwd[0], temp_cwd.capacity());
+        // std::experimental::filesystem::path cwd = std::experimental::filesystem::current_path();
+        VLOG(1) << "Current wd is " << cwd;
 
-      // Write the metrics to file
-      std::ofstream metrics_file(f_name);
+        // Write the metrics to file
+        std::ofstream metrics_file(f_name);
 
-      //for (auto & pair : inf_fac_m.node_inf_factors()) {
-      for (auto & pair : inf_fac_m) {
-        metrics_file << pair.first << "," << pair.second << "\n";
+        // for (auto & pair : inf_fac_m.node_inf_factors()) {
+        for (auto& pair : inf_fac_m) {
+          metrics_file << pair.first << "," << pair.second << "\n";
+        }
+
+        metrics_file.close();
+        VLOG(1) << "Inflation factors stored in dir " << cwd;
       }
-
-      metrics_file.close();
-      VLOG(1) << "Inflation factors stored in dir " << cwd;
 
       mutex_lock l(mu_);
       UpdateJobFinished(resp.job_finished());
