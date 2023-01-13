@@ -21,6 +21,7 @@ import os
 import csv
 import threading
 import warnings
+import logging
 
 import numpy as np
 import pandas as pd
@@ -2064,8 +2065,8 @@ name=None))
             cur_vals *= x
           no_atomic_vals_ds_in += cur_vals
 
-      print("Input had " + str(no_atomic_vals_ds_in) + " atomic elements")
-      print("Output has " + str(no_atomic_vals_ds) + " atomic elements")
+      logging.info("Input had " + str(no_atomic_vals_ds_in) + " atomic elements")
+      logging.info("Output has " + str(no_atomic_vals_ds) + " atomic elements")
 
       if no_atomic_vals_ds_in < no_atomic_vals_ds:
         return True
@@ -2073,7 +2074,7 @@ name=None))
         return False
 
     def move_op_upstream(dataset):
-      print("Inside move op upstream")
+      logging.info("Inside move op upstream")
       org_types, org_shapes = dsu.get_ds_dtypes_shapes(dataset._input_dataset)
       new_types, new_shapes = dsu.get_ds_dtypes_shapes(dataset)
       move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
@@ -2082,10 +2083,11 @@ name=None))
       preserves_shape = dsu.op_preserves_shape(dataset._input_dataset)
       if not preserves_shape:
         move_upstream = False
+        dataset._move_upstream = False
 
       in_ds_keep_pos = dataset._input_dataset._keep_position if hasattr(dataset._input_dataset, "_keep_position") else False
       if (move_upstream or dataset._move_upstream) and not dataset._keep_position and not in_ds_keep_pos:
-        print("We indeed should move upstream and the op preserves the shape!")
+        logging.info("We indeed should move upstream and the op preserves the shape!")
         new_input_ds = dataset._input_dataset
 
         if isinstance(dataset._input_dataset, MapDataset):
@@ -2164,13 +2166,13 @@ name=None))
 
         ret_list.append(float(df[:1]['Inflation factor']))
       
-      print("Current node: ")
-      print(ret_list)
+      logging.info("Current node: ")
+      logging.info(ret_list)
       
       if hasattr(dataset, '_input_dataset') and len(df) > 1:
         prev = op_order(dataset._input_dataset, df[1:])
-        print("Prev is")
-        print(prev)
+        logging.info("Prev is")
+        logging.info(prev)
         prev.append(ret_list)
         return prev
       else:
@@ -2186,28 +2188,28 @@ name=None))
 
 
     def order_unknown_resize_by_metrics(dataset, op_o):
-      print("Determining unknown resizes by metrics")
+      logging.info("Determining unknown resizes by metrics")
       #n_ds = dsu.get_source_ds(dataset)
 
       dataset._move_downstream = False
       dataset._move_upstream = False
-      print(op_o[-1])
+      logging.info(op_o[-1])
       if op_o[-1] != []:
         i = op_o[-1]
         if ((not i[7] == 1) and i[1] and (i[3] == i[5]) and ((None in i[4]) or (None in i[6]))):
           if i[7] > 1:
             dataset._move_upstream = True
-            print("Unknown resize inflation")
+            logging.info("Unknown resize inflation")
           else:
             dataset._move_downstream = True
-            print("Unknown resize deflation")
+            logging.info("Unknown resize deflation")
 
       if hasattr(dataset, '_input_dataset') and len(op_o) > 1:
         dataset._input_dataset = order_unknown_resize_by_metrics(dataset._input_dataset, op_o[:-1])
       return dataset
 
     def swap_last_2_ops(dataset):
-      print("Swapping last 2 ops")
+      logging.info("Swapping last 2 ops")
       # Swap the order of the last two ops, assume the reordering is valid AND helpful (should be tested elsewhere)
       
       # Making the new inner dataset
@@ -2255,20 +2257,20 @@ name=None))
     # Only for moving upstream
     def try_reorder(dataset):
       # For now only Map and ParallelMap are supported
-      print("Trying to move deflating ops up")
+      logging.info("Trying to move deflating ops up")
       new_ds = dataset
       if hasattr(dataset, "_move_upstream"):
         mv_up = dataset._move_upstream
       else:
         mv_up = False
-      '''print("Summary")
-      print(type(dataset))
-      print(mv_up)
-      print(dataset._keep_position)
-      print(hasattr(dataset, "_input_dataset"))
-      print(hasattr(dataset._input_dataset, "_input_dataset"))
-      print(dataset._input_dataset._keep_position)
-      print(type(dataset._input_dataset))'''
+      '''logging.info("Summary")
+      logging.info(type(dataset))
+      logging.info(mv_up)
+      logging.info(dataset._keep_position)
+      logging.info(hasattr(dataset, "_input_dataset"))
+      logging.info(hasattr(dataset._input_dataset, "_input_dataset"))
+      logging.info(dataset._input_dataset._keep_position)
+      logging.info(type(dataset._input_dataset))'''
       if ((isinstance(dataset, MapDataset)) or (isinstance(dataset, ParallelMapDataset))) and \
       mv_up and not dataset._keep_position and hasattr(dataset, "_input_dataset") and hasattr(dataset._input_dataset, "_input_dataset") and \
       not dataset._input_dataset._keep_position and ((isinstance(dataset._input_dataset, MapDataset)) or (isinstance(dataset._input_dataset, ParallelMapDataset))):
@@ -2288,7 +2290,7 @@ name=None))
     
     def try_move_down(dataset):
       # For now only Map and ParallelMap are supported
-      print("Trying to move inflating ops down")
+      logging.info("Trying to move inflating ops down")
       new_ds = dataset
       if hasattr(dataset, "_input_dataset"):
         new_in = try_move_down(dataset._input_dataset)
@@ -2321,22 +2323,22 @@ name=None))
       new_ds2 = try_reorder(new_ds1)
       new_ds3 = try_move_down(new_ds2)
 
-      return dataset
+      return new_ds3
 
     # Start of actual map function
-    print("ADDING NEW MAP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    logging.info("ADDING NEW MAP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     # Check if we are at the end of the pipeline
     is_end = '_register_dataset' in str(map_func)
     if is_end:
-      print("REACHED THE END OF THE PIPELINE")
-      print("Current working dir is " + os.getcwd())
+      logging.info("REACHED THE END OF THE PIPELINE")
+      logging.info("Current working dir is " + os.getcwd())
       target_types, target_shapes = dsu.get_ds_dtypes_shapes(self)
 
       # Check if we have a file with metrics
       metrics_file = 'inf_factors.csv'
       if os.path.isfile(metrics_file):
-        print("Found metrics file")
+        logging.info("Found metrics file")
 
         with open(metrics_file, newline='') as f:
           reader = csv.reader(f)
@@ -2353,26 +2355,26 @@ name=None))
             df = df[1:]
           df.reset_index(drop=True, inplace=True)
 
-          print(df)
+          logging.info(df)
 
           # Restart loop to recursively build (reordered pipeline)
           new_self = reorder_dataset(self, df)
 
           new_types, new_shapes = dsu.get_ds_dtypes_shapes(self)
-          print(target_types)
-          print(target_shapes)
-          print(new_types)
-          print(new_shapes)
-          print(target_types==new_types)
-          print(target_shapes==new_shapes)
+          logging.info(target_types)
+          logging.info(target_shapes)
+          logging.info(new_types)
+          logging.info((new_shapes)
+          logging.info(target_types==new_types)
+          logging.info(target_shapes==new_shapes)
         else:
-          print("... but it was empty")
+          logging.info("... but it was empty")
 
       else:
-        print("Failed to find metrics file!")
+        logging.info("Failed to find metrics file!")
 
     pos = dsu.get_op_position(self) + 1
-    print("It was the " + str(pos) + ". map op in the user's original code")
+    logging.info("It was the " + str(pos) + ". map op in the user's original code")
 
     if num_parallel_calls is None or DEBUG_MODE:
       if deterministic is not None and not DEBUG_MODE:
@@ -2391,30 +2393,30 @@ name=None))
 
         known_resize = dsu.node_does_known_resize(new_ds)
         if known_resize: # Here we already know we have a map that analytically resizes
-          print("This node does a resize (we know the in/out resolutions) (1)")
+          logging.info("This node does a resize (we know the in/out resolutions) (1)")
           increased_size = dsu.node_increased_size(new_ds)
           if increased_size:
-            print("The resize inflates the data")
+            logging.info("The resize inflates the data")
             new_ds._move_downstream = True
           else:
-            print("The resize deflates the data")
+            logging.info("The resize deflates the data")
             new_ds._move_upstream = True
 
         unknown_resize = dsu.node_does_unknown_resize(new_ds)
         if unknown_resize:
-          print("This node resizes to/from an unknown resolution (1)")
+          logging.info("This node resizes to/from an unknown resolution (1)")
           resize_increased = resize_increases(new_ds)
           if resize_increased:
-            print("The resize inflates the data")
+            logging.info("The resize inflates the data")
             new_ds._move_downstream = True
           else:
-            print("The resize deflates the data")
+            logging.info("The resize deflates the data")
             new_ds._move_upstream = True
 
-        print("Should we move upstream (1): ")
-        print(new_ds._move_upstream or move_upstream)
-        print("Should we move downstream (1): ")
-        print(new_ds._move_downstream or move_downstream)
+        logging.info("Should we move upstream (1): ")
+        logging.info(new_ds._move_upstream or move_upstream)
+        logging.info("Should we move downstream (1): ")
+        logging.info(new_ds._move_downstream or move_downstream)
 
         # TODO: MOVE (BUBBLE) THE 'CHEAPER' CASTS FURTHER UP (not just by 1 op) Edit: also for know resizes
         # Case where the new op decreases the size of the data and should be moved upstream.
@@ -2426,25 +2428,25 @@ name=None))
           return new_ds
 
         # Case where the previous (self) op changes to a more expensive data type => move the original downstream
-        print("Self is a: " + str(type(self)))
+        logging.info("Self is a: " + str(type(self)))
         if ((isinstance(self, MapDataset)) or (isinstance(self, ParallelMapDataset))):
-          print("Checking if we should move the previous op downstream")
-          print(self._move_downstream)
+          logging.info("Checking if we should move the previous op downstream")
+          logging.info(self._move_downstream)
           cur_preserves_shape = dsu.op_preserves_shape(new_ds)
           if not cur_preserves_shape:
-            print(".. but the current op changes the shape, aborting!")
+            logging.info(".. but the current op changes the shape, aborting!")
           if self._move_downstream and not self._keep_position and cur_preserves_shape:
-            print("Moving downstream")
+            logging.info("Moving downstream")
             new_self = MapDataset(self._input_dataset,
                                   map_func,
                                   preserve_cardinality=True,
                                   name=name,
                                   keep_position=keep_position,
                                   position=self._position)
-            print("New self is a:")
-            print(new_self.__class__.__name__)
+            logging.info("New self is a:")
+            logging.info(new_self.__class__.__name__)
             ts, ss = dsu.get_ds_dtypes_shapes(new_self)
-            print("Now creating op after new self (1)")
+            logging.info("Now creating op after new self (1)")
             if isinstance(self, MapDataset):
               new_ds = MapDataset(new_self,
                                   self._map_func._func,
@@ -2453,7 +2455,7 @@ name=None))
                                   keep_position=self._keep_position,
                                   position=pos)
               new_ds._move_downstream = True
-              print("Used previous map func for newst outer element (1)")
+              logging.info("Used previous map func for newst outer element (1)")
             elif isinstance(self, ParallelMapDataset):
               new_ds = ParallelMapDataset(new_self,
                                           self._map_func._func,
@@ -2464,12 +2466,12 @@ name=None))
                                           keep_position=self._keep_position,
                                           position=pos)
               new_ds._move_downstream = True
-              print("Used previous map func for newst outer element (1)")
-            print("Summarizing NEW dataset:")
+              logging.info("Used previous map func for newst outer element (1)")
+            logging.info("Summarizing NEW dataset:")
             nts, nss = dsu.get_ds_dtypes_shapes(new_ds)
-            print("End")
+            logging.info("End")
       else:
-        print("Keep_position was True")
+        logging.info("Keep_position was True")
         new_ds._move_downstream = False
       return new_ds
 
@@ -2505,10 +2507,10 @@ name=None))
           else:
             new_ds._move_upstream = True
 
-        print("Should we move upstream (2): ")
-        print(new_ds._move_upstream or move_upstream)
-        print("Should we move downstream (2): ")
-        print(new_ds._move_downstream or move_downstream)
+        logging.info("Should we move upstream (2): ")
+        logging.info(new_ds._move_upstream or move_upstream)
+        logging.info("Should we move downstream (2): ")
+        logging.info(new_ds._move_downstream or move_downstream)
         in_ds_keep_pos = self._keep_position if hasattr(self, "_keep_position") else False
         if (move_upstream or new_ds._move_upstream) and not keep_position and not in_ds_keep_pos:
           new_ds = move_op_upstream(new_ds)
@@ -2516,14 +2518,14 @@ name=None))
           return new_ds
         
         # Case where the previous (self) op changes to a more expensive data type => move the original downstream
-        print("Self is a: " + str(type(self)))
-        print(isinstance(self, MapDataset))
+        logging.info("Self is a: " + str(type(self)))
+        logging.info(isinstance(self, MapDataset))
         if ((isinstance(self, MapDataset)) or isinstance(self, ParallelMapDataset)):
-          print("Checking if we should move the previous op downstream (2)")
-          print(self._move_downstream)
+          logging.info("Checking if we should move the previous op downstream (2)")
+          logging.info(self._move_downstream)
           cur_preserves_shape = dsu.op_preserves_shape(new_ds)
           if not cur_preserves_shape:
-            print(".. but the current op changes the shape, aborting! (2)")
+            logging.info(".. but the current op changes the shape, aborting! (2)")
           if self._move_downstream and not self._keep_position and cur_preserves_shape:
             new_self = ParallelMapDataset(self._input_dataset,
                                           map_func,
@@ -2533,7 +2535,7 @@ name=None))
                                           name=name,
                                           keep_position=keep_position,
                                           position=self.position)
-            print("Moved neutral op upwards (2)")
+            logging.info("Moved neutral op upwards (2)")
             if isinstance(self, MapDataset):
               new_ds = MapDataset(new_self,
                                   self._map_func._func,
@@ -2542,7 +2544,7 @@ name=None))
                                   keep_position=self._keep_position,
                                   position=pos)
               new_ds._move_downstream = True
-              print("Used previous map func for newst outer element (2)")
+              logging.info("Used previous map func for newst outer element (2)")
             elif isinstance(self, ParallelMapDataset):
               new_ds = ParallelMapDataset(new_self,
                                           self._map_func._func,
@@ -2555,10 +2557,10 @@ name=None))
               new_ds._move_downstream = True
           else:
             if move_downstream:
-              print("Setting _move_downstream flag (2)")
+              logging.info("Setting _move_downstream flag (2)")
               new_ds._move_downstream = True
       else:
-        print("Keep_position was True")
+        logging.info("Keep_position was True")
         new_ds._move_downstream = True
       return new_ds
 

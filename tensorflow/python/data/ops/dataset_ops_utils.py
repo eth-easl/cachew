@@ -122,17 +122,17 @@ def get_ds_dtypes_shapes(dataset):
   shapes = []
 
   elem_spec = dataset.element_spec
-  print(elem_spec)
+  logging.info(elem_spec)
   if isinstance(elem_spec, tuple):
-    #print("Elem spec is a tuple!")
+    #logging.info("Elem spec is a tuple!")
     types.append('tuple')
 
     num_elems = len(elem_spec)
     for i in range(num_elems):
-      #print(elem_spec[i])
+      #logging.info(elem_spec[i])
 
       if isinstance(elem_spec[i], dict):
-        print("Nested dicts are currently not supported!")
+        logging.info("Nested dicts are currently not supported!")
         types.append('dict')
         shapes += []
       elif 'NoneTensorSpec' in str(type(elem_spec[i])):
@@ -140,73 +140,73 @@ def get_ds_dtypes_shapes(dataset):
         shapes += [None]
       else:
         types.append(str(elem_spec[i].dtype).split('\'')[1])
-        #print(str(elem_spec[i].dtype).split('\'')[1])
+        #logging.info(str(elem_spec[i].dtype).split('\'')[1])
         shapes += list(elem_spec[i].shape)
-        #print(elem_spec[i].shape)
+        #logging.info(elem_spec[i].shape)
   elif isinstance(elem_spec, dict):
-    #print("Elem spec is a dict!")
+    #logging.info("Elem spec is a dict!")
     types.append('dict')
 
     num_elems = len(elem_spec)
     for i in sorted(elem_spec.items()):
-      #print("Key is: " + i[0])
-      #print(i)
+      #logging.info("Key is: " + i[0])
+      #logging.info(i)
 
       val = i[1]
       if str(type(val)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
         types.append(str(val.dtype).split('\'')[1])
-        #print(types[-1])
+        #logging.info(types[-1])
         shapes += list(val.shape)
-        #print(val.shape)
+        #logging.info(val.shape)
       
 
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
     types.append('Elem_spec')
 
     types.append(str(elem_spec.dtype).split('\'')[1])
-    #print(elem_spec.dtype)
+    #logging.info(elem_spec.dtype)
     cur_s = list(elem_spec.shape)
     shapes += cur_s
-    #print(str(elem_spec.dtype).split('\'')[1])
+    #logging.info(str(elem_spec.dtype).split('\'')[1])
   else:
-    print("Unsupported spec type")
-  print(types)
-  print(shapes)
+    logging.info("Unsupported spec type")
+  logging.info(types)
+  logging.info(shapes)
   return types, shapes
 
 def should_reorder(org_types, org_shapes, new_types, new_shapes):
-  print("Inside should_reorder()")
+  logging.info("Inside should_reorder()")
   if new_types[0] != org_types[0]:
-    print("Not matching outer types")
-    print(org_types[0], new_types[0])
+    logging.info("Not matching outer types")
+    logging.info(org_types[0], new_types[0])
     return False, False
   org_types = org_types[1:]
   new_types = new_types[1:]
 
   if org_shapes != new_shapes:
     # This op changes the shape => not a casting op
-    print("different shape")
+    logging.info("different shape")
     return False, False
   else:
     for t in org_types:
       if t == 'dict':
-        print("Dict type")
+        logging.info("Dict type")
         pass
       elif t not in dtypes_by_bytes:
-        print("not num type")
-        print(t)
-        print("Num types are: ")
-        print(dtypes_by_bytes)
+        logging.info("not num type")
+        logging.info(t)
+        logging.info("Num types are: ")
+        logging.info(dtypes_by_bytes)
         return False, False
     for t in new_types:
       if t == 'dict':
-        print("Dict type")
+        logging.info("Dict type")
         pass
       elif t not in dtypes_by_bytes:
-        print("not num type")
-        print(t)
-        print("Num types are: ")
-        print(dtypes_by_bytes)
+        logging.info("not num type")
+        logging.info(t)
+        logging.info("Num types are: ")
+        logging.info(dtypes_by_bytes)
         return False, False
     
     org_types = [i for i in org_types if i != 'dict']
@@ -214,8 +214,8 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
     
     if org_types != new_types:
       for i in range(len(org_types)):
-        print(dtypes_by_bytes.index(str(new_types[i])))
-        print(dtypes_by_bytes.index(str(org_types[i])))
+        logging.info(dtypes_by_bytes.index(str(new_types[i])))
+        logging.info(dtypes_by_bytes.index(str(org_types[i])))
         # At least some component changed to a 'cheaper' dtype
         if (dtypes_by_bytes.index(str(new_types[i])) < dtypes_by_bytes.index(str(org_types[i]))):
           return True, False
@@ -225,7 +225,7 @@ def should_reorder(org_types, org_shapes, new_types, new_shapes):
           return False, True
       return False, False
     else:
-      print("input output types were identical")
+      logging.info("input output types were identical")
       return False, False
 
 def op_preserves_shape(dataset):
@@ -234,7 +234,7 @@ def op_preserves_shape(dataset):
   org_types, org_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
 
   if cur_types[0] != org_types[0]:
-    print("Outer elem types don't match!")
+    logging.info("Outer elem types don't match!")
     return False
 
   if (len(cur_shapes) == len(org_shapes)):
@@ -260,15 +260,15 @@ def node_does_unknown_resize(dataset):
   out_types, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
 
   if 'dict' in in_types[1:] or 'dict' in out_types[1:]:
-    print('Nested dicts are currently not supported')
+    logging.info('Nested dicts are currently not supported')
     return False
   
   if (len(in_shapes) != len(out_shapes)):
-    print("Dimensions changed, do not reorder")
+    logging.info("Dimensions changed, do not reorder")
     return False
 
   if (in_shapes == out_shapes):
-    print("In/out shapes were identical")
+    logging.info("In/out shapes were identical")
     return False
 
   for i in range(len(in_shapes)):
@@ -282,15 +282,15 @@ def node_does_known_resize(dataset):
   out_types, out_shapes = get_ds_dtypes_shapes(dataset._input_dataset)
 
   if 'dict' in in_types[1:] or 'dict' in out_types[1:]:
-    print('Nested dicts are currently not supported')
+    logging.info('Nested dicts are currently not supported')
     return False
   
   if (len(in_shapes) != len(out_shapes)):
-    print("Dimensions changed, do not reorder")
+    logging.info("Dimensions changed, do not reorder")
     return False
 
   if (in_shapes == out_shapes):
-    print("In/out shapes were identical")
+    logging.info("In/out shapes were identical")
     return False
 
   for i in range(len(in_shapes)):
