@@ -888,7 +888,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       auto inf_fac_m = resp.node_inf_factors();
       const int no_inf_factors = resp.node_inf_factors_size();
       if (no_inf_factors == 0) {
-        VLOG(0) << "Inflation factors not yet available";
+        VLOG(1) << "Inflation factors not yet available";
       } else {
         std::string f_name = "inf_factors.csv";
         std::string temp_cwd("\0", FILENAME_MAX + 1);

@@ -51,7 +51,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   using ModelMetrics = ::tensorflow::data::easl::ModelMetrics;
   using JobScalingState = ::tensorflow::data::easl::JobScalingState;
 
-  VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal_INCDEC) - Entering.";
+  VLOG(1) << "MUYU (DynamicWorkerCountUpdateWithLocal_INCDEC) - Entering.";
 
   std::shared_ptr<ModelMetrics> model_metrics;
   TF_RETURN_IF_ERROR(metadata_store.GetModelMetrics(job_id, model_metrics));
@@ -75,7 +75,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   ) {
     VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal_INCDEC) - Target metrics count not fulfilled:\n"
             << " > target: " << current_target_remote_worker_count << ", " << current_target_local_worker_count <<  "\n"
-            << " > actual: " << last_metrics->remote_worker_count() << ", " << last_metrics->local_worker_count();
+            << " > actual: " << last_metrics->remote_worker_count() << ", " << last_metrics->local_worker_count() << "\n"
+            << " > available workers: " << available_workers;
     if (current_target_remote_worker_count != last_metrics->remote_worker_count() && available_workers > 0) {
       remote_worker_count = current_target_remote_worker_count;
       local_worker_count = current_target_local_worker_count;
@@ -151,12 +152,14 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       else {
         // we're scaling up, which is a normal behavior
         if (relative_improvement > dispatcher_config.scaling_threshold_up() &&
-          last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB) {
+            last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB &&
+            available_workers > 0) {
           remote_worker_count = last_metrics->remote_worker_count() + 1;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
                   << "Improvement large enough:\n"
                   << " > improvement: " << relative_improvement << "\n"
-                  << " > next remote worker count: " << remote_worker_count;
+                  << " > next remote worker count: " << remote_worker_count << "\n"
+                  << " > available workers: " << available_workers;
         } else {
           // What's the point of this?
           if (last_metrics->remote_worker_count() == MAX_REMOTE_WORKERS_PER_JOB) {
