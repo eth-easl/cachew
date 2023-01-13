@@ -886,7 +886,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       //InfFactorMetrics inf_fac_m = resp.inf_factors();
       //VLOG(0) << "Got inflation factors for " << inf_fac_m.node_inf_factors_size() << " nodes in the pipeline";
       auto inf_fac_m = resp.node_inf_factors();
-      int no_inf_factors = inf_fac_m.                                   ;
+      const int no_inf_factors = resp.node_inf_factors_size();
       if (no_inf_factors == 0) {
         VLOG(0) << "Inflation factors not yet available";
       } else {
