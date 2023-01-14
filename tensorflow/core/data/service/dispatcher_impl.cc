@@ -1584,6 +1584,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
           rem_w_available++;
         }
       }
+      VLOG(0) << "Remote workers available: " << rem_w_available << " Loc workers available: " << loc_w_available;
       int64 target_remote_worker_count, target_local_worker_count;
       if (config_.scaling_policy() == 3) {
         TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCDEC(
