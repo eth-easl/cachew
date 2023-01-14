@@ -1576,7 +1576,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
       std::vector<std::shared_ptr<const Worker>> free_workers = state_.ListAvailableWorkers();
       int64 loc_w_available = 0;
       int64 rem_w_available = 0;
-      for (int i = 0; i < available_workers; ++i) {
+      /*for (int i = 0; i < available_workers; ++i) {
         auto address = free_workers[i].address;
         if (address.find("localhost") != std::string::npos) {
           loc_w_available++;
@@ -1584,7 +1584,7 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
           rem_w_available++;
         }
       }
-      VLOG(0) << "Remote workers available: " << rem_w_available << " Loc workers available: " << loc_w_available;
+      VLOG(0) << "Remote workers available: " << rem_w_available << " Loc workers available: " << loc_w_available;*/
       int64 target_remote_worker_count, target_local_worker_count;
       if (config_.scaling_policy() == 3) {
         TF_RETURN_IF_ERROR(service::easl::local_worker_decision::DynamicWorkerCountUpdateWithLocal_INCDEC(
