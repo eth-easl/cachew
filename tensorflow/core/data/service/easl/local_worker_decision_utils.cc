@@ -26,7 +26,7 @@ namespace {
 
     // Why do we have these worker count limits??
     int MAX_LOCAL_WORKERS_PER_JOB = 100; //5;
-    int MAX_REMOTE_WORKERS_PER_JOB = 100; //8;
+    int MAX_REMOTE_WORKERS_PER_JOB = 10; //8;
     double kPerformanceErrorBar = 0.10;
     // combine with costs
     double kPerformanceDecreaseTolerance = 0.10;
@@ -69,7 +69,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   TF_RETURN_IF_ERROR(metadata_store.GetJobTargetWorkerCount(job_id,
                                                             current_target_remote_worker_count,
                                                             current_target_local_worker_count));
-  // TODO: fix case when no more REM workers available (continue with AutoLocal policy)
+  // TODO: fix case when no more REM workers available (continue with AutoPlacement policy)
   if (last_metrics->local_worker_count() != current_target_local_worker_count
     || last_metrics->remote_worker_count() != current_target_remote_worker_count
   ) {
@@ -85,7 +85,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     else { // If we don't have enough rem workers, move to AutoLocal policy
       // We should also have a similar clause for when not enough local workers are present
       // (for now assume there are always enough local workers, since they are free)
-      VLOG(0) << "No more remote workers available! Moving on to AutoLocal policy.";
+      VLOG(0) << "No more remote workers available! Moving on to AutoPlacement policy.";
       metadata_store.SetJobScalingState(job_id, JobScalingState::INCREASING_LOCAL);
     }
   }
