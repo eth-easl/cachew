@@ -2069,9 +2069,11 @@ name=None))
       logging.info("Output has " + str(no_atomic_vals_ds) + " atomic elements")
 
       if no_atomic_vals_ds_in < no_atomic_vals_ds:
-        return True
+        return "increases"
+      elif no_atomic_vals_ds_in > no_atomic_vals_ds:
+        return "decreased"
       else:
-        return False
+        return "neutral"
 
     def move_op_upstream(dataset):
       logging.info("Inside move op upstream")
@@ -2395,23 +2397,25 @@ name=None))
         if known_resize: # Here we already know we have a map that analytically resizes
           logging.info("This node does a resize (we know the in/out resolutions) (1)")
           increased_size = dsu.node_increased_size(new_ds)
-          if increased_size:
+          if increased_size == "increased":
             logging.info("The resize inflates the data")
             new_ds._move_downstream = True
-          else:
+          elif increased_size == "decreased":
             logging.info("The resize deflates the data")
             new_ds._move_upstream = True
+          # If it is neutral (a resize to the same resolutions), do nothing
 
         unknown_resize = dsu.node_does_unknown_resize(new_ds)
         if unknown_resize:
           logging.info("This node resizes to/from an unknown resolution (1)")
           resize_increased = resize_increases(new_ds)
-          if resize_increased:
+          if resize_increased == "increases":
             logging.info("The resize inflates the data")
             new_ds._move_downstream = True
-          else:
+          elif resize_increased == "decreased":
             logging.info("The resize deflates the data")
             new_ds._move_upstream = True
+          # If it is neutral (a resize to the same resolutions), do nothing
 
         logging.info("Should we move upstream (1): ")
         logging.info(new_ds._move_upstream or move_upstream)
@@ -2492,20 +2496,29 @@ name=None))
         move_upstream, move_downstream = dsu.should_reorder(org_types, org_shapes, new_types, new_shapes)
 
         known_resize = dsu.node_does_known_resize(new_ds)
+
         if known_resize: # Here we already know we have a map that analytically resizes
+          logging.info("This node does a resize (we know the in/out resolutions) (2)")
           increased_size = dsu.node_increased_size(new_ds)
-          if increased_size:
+          if increased_size == "increased":
+            logging.info("The resize inflates the data")
             new_ds._move_downstream = True
-          else:
+          elif increased_size == "decreased":
+            logging.info("The resize deflates the data")
             new_ds._move_upstream = True
+          # If it is neutral (a resize to the same resolutions), do nothing
 
         unknown_resize = dsu.node_does_unknown_resize(new_ds)
         if unknown_resize:
+          logging.info("This node resizes to/from an unknown resolution (2)")
           resize_increased = resize_increases(new_ds)
-          if resize_increased:
+          if resize_increased == "increases":
+            logging.info("The resize inflates the data")
             new_ds._move_downstream = True
-          else:
+          elif resize_increased == "decreased":
+            logging.info("The resize deflates the data")
             new_ds._move_upstream = True
+          # If it is neutral (a resize to the same resolutions), do nothing
 
         logging.info("Should we move upstream (2): ")
         logging.info(new_ds._move_upstream or move_upstream)

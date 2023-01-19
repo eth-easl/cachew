@@ -305,8 +305,10 @@ def node_increased_size(dataset):
 
   for i in range(len(in_shapes)):
     if in_shapes[i] < out_shapes[i]:
-      return True
-  return False
+      return "increased"
+    elif in_shapes[i] > out_shapes[i]:
+      return "decreased"
+  return "neutral"
 
 def may_reorder(dataset):
   # For now just check whether the user didn't set the keep_position flag to True
