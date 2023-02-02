@@ -2459,7 +2459,7 @@ name=None))
                                   keep_position=self._keep_position,
                                   position=pos)
               new_ds._move_downstream = True
-              logging.info("Used previous map func for newst outer element (1)")
+              logging.info("Used previous map func for newest outer element (1)")
             elif isinstance(self, ParallelMapDataset):
               new_ds = ParallelMapDataset(new_self,
                                           self._map_func._func,
@@ -2470,10 +2470,13 @@ name=None))
                                           keep_position=self._keep_position,
                                           position=pos)
               new_ds._move_downstream = True
-              logging.info("Used previous map func for newst outer element (1)")
+              logging.info("Used previous map func for newest outer element (1)")
             logging.info("Summarizing NEW dataset:")
             nts, nss = dsu.get_ds_dtypes_shapes(new_ds)
             logging.info("End")
+        # Added 02.02.
+        if move_downstream:
+          new_ds._move_downstream = True
       else:
         logging.info("Keep_position was True")
         new_ds._move_downstream = False
@@ -2557,7 +2560,7 @@ name=None))
                                   keep_position=self._keep_position,
                                   position=pos)
               new_ds._move_downstream = True
-              logging.info("Used previous map func for newst outer element (2)")
+              logging.info("Used previous map func for newest outer element (2)")
             elif isinstance(self, ParallelMapDataset):
               new_ds = ParallelMapDataset(new_self,
                                           self._map_func._func,
@@ -2568,13 +2571,17 @@ name=None))
                                           keep_position=self._keep_position,
                                           position=pos)
               new_ds._move_downstream = True
+              logging.info("Used previous map func for newest outer element (2)")
           else:
             if move_downstream:
               logging.info("Setting _move_downstream flag (2)")
               new_ds._move_downstream = True
+        # Added 02.02.
+        if move_downstream:
+          new_ds._move_downstream = True
       else:
         logging.info("Keep_position was True")
-        new_ds._move_downstream = True
+        new_ds._move_downstream = False
       return new_ds
 
   def flat_map(self, map_func, name=None):

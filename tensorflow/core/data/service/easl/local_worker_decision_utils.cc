@@ -185,7 +185,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
       if (relative_improvement < -kPerformanceDecreaseTolerance ||
-        last_metrics->remote_worker_count()  == 0
+        last_metrics->remote_worker_count() == 0
       ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump_out)";
         // jump out
@@ -209,7 +209,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         }
       } else {
         // try reduce remote worker count further
-        remote_worker_count = last_metrics->remote_worker_count()  - 1;
+        remote_worker_count = last_metrics->remote_worker_count() - 1;
         local_worker_count = last_metrics->local_worker_count();
       }
     } break;
@@ -235,13 +235,13 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
 
         if (local_worker_count == state_initial_worker_count || remote_worker_count == 0) {
           metadata_store.SetJobScalingState(job_id, JobScalingState::STABLE);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::INCREASING_LOCAL::jump out to stable mode)"
+          VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::INCREASING_LOCAL::jump out to stable mode) "
             << state_initial_worker_count << " " << remote_worker_count;
         } else {
           metadata_store.SetJobScalingState(job_id, JobScalingState::DECREASING_REMOTE);
           metadata_store.SetJobStateInitialWorkerCount(job_id, remote_worker_count);
           remote_worker_count--;
-          debug_print_local_remote("INCREASING_LOCAL::jump out to decrease remote", remote_worker_count,
+          debug_print_local_remote("INCREASING_LOCAL::jump out to decrease remote ", remote_worker_count,
                                    local_worker_count);
         }
       } else {

@@ -107,7 +107,7 @@ dtypes_by_bytes = ["<dtype: \'int8\'>",
 
 dtypes_by_bytes = ["int8",
                    "uint8",
-                   "bfloat16",
+                   #"bfloat16",
                    "float16",
                    "int16",
                    "float32",
@@ -237,7 +237,8 @@ def op_preserves_shape(dataset):
     logging.info("Outer elem types don't match!")
     return False
 
-  if (len(cur_shapes) == len(org_shapes)):
+  #if (len(cur_shapes) == len(org_shapes)):
+  if cur_shapes == org_shapes:
     return True
   else:
     return False

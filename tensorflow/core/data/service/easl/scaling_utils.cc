@@ -71,7 +71,7 @@ Status DynamicWorkerCountUpdate(
     return Status::OK();
   }
 
-  if(is_scaling) {
+  if (is_scaling) {
     VLOG(0) << "EASL (DynamicWorkerCountUpdate) - is_scaling is true";
     if (metrics_history.size() == 1) { // Cannot be smaller than 1
       VLOG(0) << "EASL (DynamicWorkerCountUpdate) - no metrics_history -> increasing worker count";
@@ -84,7 +84,7 @@ Status DynamicWorkerCountUpdate(
     int second_to_last_index = metrics_history.size() - 2;
     std::shared_ptr<ModelMetrics::Metrics> second_to_last_metrics =
       metrics_history[second_to_last_index];
-    while(second_to_last_metrics->worker_count() == last_metrics->worker_count()) {
+    while (second_to_last_metrics->worker_count() == last_metrics->worker_count()) {
       if (second_to_last_index == 0) {
         VLOG(0) << "EASL (DynamicWorkerCountUpdate) - Should not enter here!"
                 << "This leads to an infinite loop!\n"
