@@ -569,7 +569,7 @@ int GetOrderCost(const GraphDef& suggested_order, MutableGraphView &graph, std::
             op_name != "StridedSlice" && op_name != "GatherV2" && op_name != "Pack" &&
             op_name != "AddV2" && op_name != "Reshape" && op_name != "_Arg" &&
             op_name != "_Retval" && op_name != "" && op_name != "NoOp" && op_name != "Sub" &&
-            op_name != "Shape" && op_name != "Mul" && op_nampe != "Cast" && op_name != "Fill" &&
+            op_name != "Shape" && op_name != "Mul" && op_name != "Cast" && op_name != "Fill" &&
             op_name != "Range") {
             VLOG(0) << op_name;
         }

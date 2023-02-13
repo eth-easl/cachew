@@ -2088,6 +2088,8 @@ name=None))
         dataset._move_upstream = False
 
       in_ds_keep_pos = dataset._input_dataset._keep_position if hasattr(dataset._input_dataset, "_keep_position") else False
+      if '_MarkerDataset' in str(type(dataset._input_dataset)):
+        in_ds_keep_pos = True
       if (move_upstream or dataset._move_upstream) and not dataset._keep_position and not in_ds_keep_pos:
         logging.info("We indeed should move upstream and the op preserves the shape!")
         new_input_ds = dataset._input_dataset
