@@ -18,14 +18,14 @@ namespace easl {
 namespace local_worker_decision {
 
 namespace {
-    int MAX_WORKERS_PER_JOB = 100;
-    double kMinBatchTimeRelativeImprovementDown = 0.03;
-    uint32 kInStabilityBeforeScaling = 20;
-    double kMinQueueSizeRelativeGrowth = 1.5; // +50%
-    double kMinBatchTimeRelativeGrowth = 1.5; // +50%
+    int MAX_WORKERS_PER_JOB = 100;                                 // UNUSED!
+    double kMinBatchTimeRelativeImprovementDown = 0.03;            // UNUSED!
+    uint32 kInStabilityBeforeScaling = 20;                         // UNUSED!
+    double kMinQueueSizeRelativeGrowth = 1.5; // +50%              // UNUSED!
+    double kMinBatchTimeRelativeGrowth = 1.5; // +50%              // UNUSED!
 
-    int MAX_LOCAL_WORKERS_PER_JOB = 5;
-    int MAX_REMOTE_WORKERS_PER_JOB = 8;
+    int MAX_LOCAL_WORKERS_PER_JOB = 10;
+    int MAX_REMOTE_WORKERS_PER_JOB = 20;
     double kPerformanceErrorBar = 0.10;
     // combine with costs
     double kPerformanceDecreaseTolerance = 0.10;
@@ -120,6 +120,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
 
   VLOG(0) << "Relative Improvement: " << relative_improvement;
 
+  // How can this be more than 1 ?!
   if (relative_improvement > 1.3 || relative_improvement < -1.3) {
     VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC) Relative improvement "
             << "was unstable: " << relative_improvement
@@ -170,7 +171,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
       if (relative_improvement < -kPerformanceDecreaseTolerance ||
-        last_metrics->remote_worker_count()  == 0
+        last_metrics->remote_worker_count() == 0
       ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump_out)";
         // jump out
@@ -194,7 +195,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         }
       } else {
         // try reduce remote worker count further
-        remote_worker_count = last_metrics->remote_worker_count()  - 1;
+        remote_worker_count = last_metrics->remote_worker_count() - 1;
         local_worker_count = last_metrics->local_worker_count();
       }
     } break;
