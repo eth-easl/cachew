@@ -47,7 +47,8 @@ class DispatcherConfig(
         "job_gc_check_interval_ms", "job_gc_timeout_ms", "cache_policy",
         "cache_format", "cache_compression", "cache_ops_parallelism", "cache_path",
         "scaling_policy", "log_dir", "log_dumps_interval_ms",
-        "scaling_threshold_up"])):
+        "scaling_threshold_up", "optimize_cost", "client_cost", "worker_cost",
+        "batches_per_decision"])):
   """Configuration class for tf.data service dispatchers.
 
   Fields:
@@ -94,6 +95,10 @@ class DispatcherConfig(
         Only valid if log_dir is not empty.
     scaling_threshold_up: The threshold (in percentage points) used in the
       Autoscale policy (generally used for scaling up)
+    optimize_cost: whether to optimize for cost (rather than training time)
+    client_cost: hourly cost of the client
+    worker_cost: hourly cost of a worker
+    batches_per_decision: batches to profile for a scaling decision
   """
 
   def __new__(cls,
@@ -112,7 +117,12 @@ class DispatcherConfig(
               scaling_policy=1,
               log_dir="",
               log_dumps_interval_ms=None,
-              scaling_threshold_up=0.07):
+              scaling_threshold_up=0.07,
+              optimize_cost=True,
+              client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
+              worker_cost=0.427319, # For an n2-standard-8 VM
+              batches_per_decision=300
+              ):
     if protocol is None:
         protocol = _pywrap_utils.TF_DATA_DefaultProtocol()
     job_gc_check_interval_ms = _get_time_or_placeholder(
@@ -127,8 +137,8 @@ class DispatcherConfig(
                               cache_policy, cache_format, cache_compression,
                               cache_ops_parallelism, cache_path, scaling_policy,
                               log_dir, log_dumps_interval_ms,
-                              scaling_threshold_up)
-
+                              scaling_threshold_up, optimize_cost, client_cost,
+                              worker_cost, batches_per_decision)
 
 @tf_export("data.experimental.service.DispatchServer", v1=[])
 class DispatchServer(object):
@@ -207,7 +217,11 @@ class DispatchServer(object):
         scaling_policy=config.scaling_policy,
         log_dir=config.log_dir,
         log_dumps_interval_ms=config.log_dumps_interval_ms,
-        scaling_threshold_up=config.scaling_threshold_up)
+        scaling_threshold_up=config.scaling_threshold_up,
+        optimize_cost=config.optimize_cost,
+        client_cost=config.client_cost,
+        worker_cost=config.worker_cost,
+        batches_per_decision=config.batches_per_decision)
 
     self._server = _pywrap_server_lib.TF_DATA_NewDispatchServer(
         config_proto.SerializeToString())

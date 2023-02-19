@@ -506,9 +506,9 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
                                                                 element_count);
 
         if (s1.ok() && s2.ok() && job_type == "PROFILE" &&
-            element_count >= kElementThreshold) {
+            element_count >= config_.batches_per_decision()) {
           VLOG(0) << "(WorkerHeartbeat) At least "
-                  << kElementThreshold << " elements have been produced";
+                  << config_.batches_per_decision() << " elements have been produced";
           // Will change the job_type of job with job_id to something else
           service::easl::cache_utils::DetermineJobTypeUpdated(config_,
                                                               cache_state_, metadata_store_, job_id);

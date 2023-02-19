@@ -29,6 +29,10 @@ namespace {
     double kPerformanceErrorBar = 0.10;
     // combine with costs
     double kPerformanceDecreaseTolerance = 0.10;
+
+    // cost model
+    double CLIENT_COST = 4.96;
+    double WOKRER_COST = 0.427319;
 }
 
 
@@ -117,6 +121,10 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   double stl_batch_time = second_to_last_metrics->last_x_batch_time_ms();
   double l_batch_time = last_metrics->last_x_batch_time_ms();
   double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
+  //double extra_worker_cost = WOKRER_COST * (1.0 - relative_improvement);
+  //double extra_worker_saving = relative_improvement * (CLIENT_COST + second_to_last_metrics->remote_worker_count() * WOKRER_COST);
+  double extra_worker_cost = dispatcher_config.worker_cost * (1.0 - relative_improvement);
+  double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost + second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost);
 
   VLOG(0) << "Relative Improvement: " << relative_improvement;
 
@@ -133,14 +141,18 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   switch (scaling_state) {
     case JobScalingState::ONLY_REMOTE: {
       local_worker_count = last_metrics->local_worker_count();
-      if (second_to_last_metrics->remote_worker_count()  > last_metrics->remote_worker_count()
+      if (second_to_last_metrics->remote_worker_count() > last_metrics->remote_worker_count()
       ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC)::ONLY_REMOTE"
                 << "We are scaling down, which is a weird behavior!";
       }
       else {
         // we're scaling up, which is a normal behavior
-        if (relative_improvement > dispatcher_config.scaling_threshold_up() &&
+        bool extra_worker_helped = (dispatcher_config.optimize_cost && extra_worker_saving > extra_worker_cost) ||
+                                   (!dispatcher_config.optimize_cost && relative_improvement > dispatcher_config.scaling_threshold_up());
+        if (//relative_improvement > dispatcher_config.scaling_threshold_up() &&
+          //extra_worker_saving > extra_worker_cost &&
+          extra_worker_helped &&
           last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB) {
           remote_worker_count = last_metrics->remote_worker_count() + 1;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
