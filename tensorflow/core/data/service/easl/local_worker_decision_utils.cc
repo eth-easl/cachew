@@ -123,8 +123,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
   //double extra_worker_cost = WOKRER_COST * (1.0 - relative_improvement);
   //double extra_worker_saving = relative_improvement * (CLIENT_COST + second_to_last_metrics->remote_worker_count() * WOKRER_COST);
-  double extra_worker_cost = dispatcher_config.worker_cost * (1.0 - relative_improvement);
-  double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost + second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost);
+  double extra_worker_cost = dispatcher_config.worker_cost() * (1.0 - relative_improvement);
+  double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() + second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost);
 
   VLOG(0) << "Relative Improvement: " << relative_improvement;
 
@@ -148,8 +148,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       }
       else {
         // we're scaling up, which is a normal behavior
-        bool extra_worker_helped = (dispatcher_config.optimize_cost && extra_worker_saving > extra_worker_cost) ||
-                                   (!dispatcher_config.optimize_cost && relative_improvement > dispatcher_config.scaling_threshold_up());
+        bool extra_worker_helped = (dispatcher_config.optimize_cost() && extra_worker_saving > extra_worker_cost) ||
+                                   (!dispatcher_config.optimize_cost() && relative_improvement > dispatcher_config.scaling_threshold_up());
         if (//relative_improvement > dispatcher_config.scaling_threshold_up() &&
           //extra_worker_saving > extra_worker_cost &&
           extra_worker_helped &&
