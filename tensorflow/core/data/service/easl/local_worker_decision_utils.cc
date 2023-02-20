@@ -124,7 +124,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   //double extra_worker_cost = WOKRER_COST * (1.0 - relative_improvement);
   //double extra_worker_saving = relative_improvement * (CLIENT_COST + second_to_last_metrics->remote_worker_count() * WOKRER_COST);
   double extra_worker_cost = dispatcher_config.worker_cost() * (1.0 - relative_improvement);
-  double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() + second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost);
+  double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() + second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
   VLOG(0) << "Relative Improvement: " << relative_improvement;
 
