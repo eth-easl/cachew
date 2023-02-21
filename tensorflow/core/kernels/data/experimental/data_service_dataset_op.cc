@@ -172,7 +172,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           const std::string& data_transfer_protocol,
           const std::string& job_name, absl::optional<int64_t> consumer_index,
           absl::optional<int64_t> num_consumers, int64_t max_outstanding_requests,
-          int64_t max_request_pipelining_per_task, int64t scaling_decision_profiling_batches,
+          int64_t max_request_pipelining_per_task, int64_t scaling_decision_profiling_batches,
           int64_t task_refresh_interval_ms,
           const TargetWorkers target_workers, const DataServiceMetadata& metadata,
           IterationCounter* iteration_counter, bool owns_resource,
@@ -1642,7 +1642,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     // Number of batches to sample before sending scalability metrics to dispatcher
     uint32 buffer_period;
     //const uint32 BATCH_INTERVAL = 100;
-    const utint32 BATCH_INTERVAL = scaling_decision_profiling_batches_;
+    const uint32 BATCH_INTERVAL = scaling_decision_profiling_batches_;
     const uint32 RESCALE_BUFFER_INTERVAL = 150;
     const uint32 EPOCH_START_BUFFER_INTERVAL = 200;
 
