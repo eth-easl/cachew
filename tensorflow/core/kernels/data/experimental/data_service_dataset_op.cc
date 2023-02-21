@@ -193,7 +193,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         num_consumers_(num_consumers),
         max_outstanding_requests_(max_outstanding_requests),
         max_request_pipelining_per_task_(max_request_pipelining_per_task),
-        scaling_decision_profiling_batches_(scaling_decision_profiling_batches)
+        scaling_decision_profiling_batches_(scaling_decision_profiling_batches),
         task_refresh_interval_ms_(task_refresh_interval_ms),
         target_workers_(target_workers),
         metadata_(metadata),
@@ -1641,8 +1641,8 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
     // Number of batches to sample before sending scalability metrics to dispatcher
     uint32 buffer_period;
-    //const uint32 BATCH_INTERVAL = 100;
-    const uint32 BATCH_INTERVAL = scaling_decision_profiling_batches_;
+    const uint32 BATCH_INTERVAL = 200;
+    //const uint32 BATCH_INTERVAL = scaling_decision_profiling_batches_;
     const uint32 RESCALE_BUFFER_INTERVAL = 150;
     const uint32 EPOCH_START_BUFFER_INTERVAL = 200;
 
