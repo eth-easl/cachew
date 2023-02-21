@@ -163,6 +163,34 @@ def _get_compression_proto(compression):
                    f"Must be one of {[COMPRESSION_AUTO, COMPRESSION_NONE]}.")
 
 
+class _DataServiceDatasetV1(dataset_ops.DatasetV1Adapter):
+  """A `Dataset` that executes its input through the tf.data service."""
+
+  @functools.wraps(_DataServiceDatasetV2.__init__)
+  def __init__(self, dataset_id, processing_mode, address, element_spec,
+               protocol, data_transfer_protocol, job_name, consumer_index,
+               num_consumers, max_outstanding_requests,
+               max_request_pipelining_per_worker, task_refresh_interval_hint_ms,
+               compression, target_workers, scaling_decision_profiling_batches):
+    self._wrapped = _DataServiceDatasetV2(
+        dataset_id=dataset_id,
+        processing_mode=processing_mode,
+        address=address,
+        element_spec=element_spec,
+        protocol=protocol,
+        data_transfer_protocol=data_transfer_protocol,
+        job_name=job_name,
+        consumer_index=consumer_index,
+        num_consumers=num_consumers,
+        max_outstanding_requests=max_outstanding_requests,
+        max_request_pipelining_per_worker=max_request_pipelining_per_worker,
+        task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
+        compression=compression,
+        target_workers=target_workers,
+        scaling_decision_profiling_batches=scaling_decision_profiling_batches)
+    super(_DataServiceDatasetV1, self).__init__(self._wrapped)
+
+
 def _decide_compression(compression, data_transfer_protocol):
   if (compression == COMPRESSION_AUTO and data_transfer_protocol != "grpc" and
       data_transfer_protocol is not None):
@@ -187,7 +215,8 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                max_request_pipelining_per_worker=1,
                task_refresh_interval_hint_ms=None,
                compression="AUTO",
-               target_workers="AUTO"):
+               target_workers="AUTO",
+               scaling_decision_profiling_batches=100):
     """Constructs a _DataServiceDatasetV2.
 
     Args:
@@ -284,6 +313,10 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
         max_request_pipelining_per_worker,
         dtype=dtypes.int64,
         name="max_request_pipelining_per_task")
+    self._scaling_decision_profiling_batches = ops.convert_to_tensor(
+        scaling_decision_profiling_batches,
+        dtype=dtypes.int64,
+        name="scaling_decision_profiling_batches")
 
     if compat.forward_compatible(2021, 12, 10):
       self._element_spec = element_spec
@@ -322,6 +355,7 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
           iteration_counter=(
               gen_experimental_dataset_ops.dummy_iteration_counter()),
           target_workers=target_workers,
+          scaling_decision_profiling_batches=scaling_decision_profiling_batches,
           uncompress=uncompress,
           uncompress_fn=uncompress_func.function,
           **compat_kwargs,
@@ -341,6 +375,7 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
           iteration_counter=(
               gen_experimental_dataset_ops.dummy_iteration_counter()),
           target_workers=target_workers,
+          scaling_decision_profiling_batches=scaling_decision_profiling_batches,
           **compat_kwargs,
           **self._flat_structure)
     super(_DataServiceDatasetV2, self).__init__(variant_tensor)
@@ -348,33 +383,6 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
   @property
   def element_spec(self):
     return self._element_spec
-
-
-class _DataServiceDatasetV1(dataset_ops.DatasetV1Adapter):
-  """A `Dataset` that executes its input through the tf.data service."""
-
-  @functools.wraps(_DataServiceDatasetV2.__init__)
-  def __init__(self, dataset_id, processing_mode, address, element_spec,
-               protocol, data_transfer_protocol, job_name, consumer_index,
-               num_consumers, max_outstanding_requests,
-               max_request_pipelining_per_worker, task_refresh_interval_hint_ms,
-               compression, target_workers):
-    self._wrapped = _DataServiceDatasetV2(
-        dataset_id=dataset_id,
-        processing_mode=processing_mode,
-        address=address,
-        element_spec=element_spec,
-        protocol=protocol,
-        data_transfer_protocol=data_transfer_protocol,
-        job_name=job_name,
-        consumer_index=consumer_index,
-        num_consumers=num_consumers,
-        max_outstanding_requests=max_outstanding_requests,
-        max_request_pipelining_per_worker=max_request_pipelining_per_worker,
-        task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
-        compression=compression,
-        target_workers=target_workers)
-    super(_DataServiceDatasetV1, self).__init__(self._wrapped)
 
 
 if tf2.enabled():
@@ -421,7 +429,8 @@ def _distribute(processing_mode,
                 task_refresh_interval_hint_ms=None,
                 data_transfer_protocol=None,
                 compression="AUTO",
-                target_workers="AUTO"):
+                target_workers="AUTO",
+                scaling_decision_profiling_batches=100):
   """A transformation that moves dataset processing to the tf.data service.
 
   This transformation is similar to `distribute`, but supports additional
@@ -478,7 +487,8 @@ def _distribute(processing_mode,
     max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
       the number of parallel request a client can send to a single worker. Defaults
       to 1 to default to original behaviour.
-
+    scaling_decision_profiling_batches: (Optional.) The number of batches to be executed
+      before a worker scaling decision is made.
 
   Returns:
     Dataset: A `Dataset` of the elements produced by the data service.
@@ -502,7 +512,8 @@ def _distribute(processing_mode,
         task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
         data_transfer_protocol=data_transfer_protocol,
         compression=compression,
-        target_workers=target_workers)
+        target_workers=target_workers,
+        scaling_decision_profiling_batches=scaling_decision_profiling_batches)
 
   return _apply_fn
 
@@ -517,7 +528,8 @@ def distribute(processing_mode,
                max_request_pipelining_per_worker=1, # like default behaviour.
                data_transfer_protocol=None,
                compression="AUTO",
-               target_workers="AUTO"):
+               target_workers="AUTO",
+               scaling_decision_profiling_batches=100):
   """A transformation that moves dataset processing to the tf.data service.
 
   When you iterate over a dataset containing the `distribute` transformation,
@@ -737,6 +749,8 @@ def distribute(processing_mode,
     max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
       the number of parallel request a client can send to a single worker. Defaults
       to 1 to default to original behaviour.
+    scaling_decision_profiling_batches: (Optional.) The number of batches to be executed
+      before a worker scaling decision is made.
 
   Returns:
     Dataset: A `Dataset` of the elements produced by the data service.
@@ -752,7 +766,8 @@ def distribute(processing_mode,
       max_request_pipelining_per_worker=max_request_pipelining_per_worker,
       data_transfer_protocol=data_transfer_protocol,
       compression=compression,
-      target_workers=target_workers)
+      target_workers=target_workers,
+      scaling_decision_profiling_batches=scaling_decision_profiling_batches)
 
 
 def _register_dataset(service, dataset, compression):
@@ -872,6 +887,139 @@ def register_dataset(service, dataset, compression="AUTO"):
   return _register_dataset(service, dataset, compression)
 
 
+@tf_export("data.experimental.service.from_dataset_id")
+def from_dataset_id(processing_mode,
+                    service,
+                    dataset_id,
+                    element_spec=None,
+                    job_name=None,
+                    consumer_index=None,
+                    num_consumers=None,
+                    max_outstanding_requests=None,
+                    max_request_pipelining_per_worker=1,
+                    data_transfer_protocol=None,
+                    target_workers="AUTO",
+                    scaling_decision_profiling_batches=100):
+  """Creates a dataset which reads data from the tf.data service.
+
+  This is useful when the dataset is registered by one process, then used in
+  another process. When the same process is both registering and reading from
+  the dataset, it is simpler to use `tf.data.experimental.service.distribute`
+  instead.
+
+  Before using `from_dataset_id`, the dataset must have been registered with the
+  tf.data service using `tf.data.experimental.service.register_dataset`.
+  `register_dataset` returns a dataset id for the registered dataset. That is
+  the `dataset_id` which should be passed to `from_dataset_id`.
+
+  The `element_spec` argument indicates the `tf.TypeSpec`s for the elements
+  produced by the dataset. Currently `element_spec` must be explicitly
+  specified, and match the dataset registered under `dataset_id`. `element_spec`
+  defaults to `None` so that in the future we can support automatically
+  discovering the `element_spec` by querying the tf.data service.
+
+  `tf.data.experimental.service.distribute` is a convenience method which
+  combines `register_dataset` and `from_dataset_id` into a dataset
+  transformation.
+  See the documentation for `tf.data.experimental.service.distribute` for more
+  detail about how `from_dataset_id` works.
+
+  >>> dispatcher = tf.data.experimental.service.DispatchServer()
+  >>> dispatcher_address = dispatcher.target.split("://")[1]
+  >>> worker = tf.data.experimental.service.WorkerServer(
+  ...     tf.data.experimental.service.WorkerConfig(
+  ...         dispatcher_address=dispatcher_address))
+  >>> dataset = tf.data.Dataset.range(10)
+  >>> dataset_id = tf.data.experimental.service.register_dataset(
+  ...     dispatcher.target, dataset)
+  >>> dataset = tf.data.experimental.service.from_dataset_id(
+  ...     processing_mode="parallel_epochs",
+  ...     service=dispatcher.target,
+  ...     dataset_id=dataset_id,
+  ...     element_spec=dataset.element_spec)
+  >>> print(list(dataset.as_numpy_iterator()))
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+  Args:
+    processing_mode: A `tf.data.experimental.service.ShardingPolicy` specifying
+      how to shard the dataset among tf.data workers. See
+      `tf.data.experimental.service.ShardingPolicy` for details. For backwards
+      compatibility, `processing_mode` may also be set to the strings
+      `"parallel_epochs"` or `"distributed_epoch"`, which are respectively
+      equivalent to `ShardingPolicy.OFF` and `ShardingPolicy.DYNAMIC`.
+    service: A string or a tuple indicating how to connect to the tf.data
+      service. If it's a string, it should be in the format
+      `[<protocol>://]<address>`, where `<address>` identifies the dispatcher
+        address and `<protocol>` can optionally be used to override the default
+        protocol to use. If it's a tuple, it should be (protocol, address).
+    dataset_id: The id of the dataset to read from. This id is returned by
+      `register_dataset` when the dataset is registered with the tf.data
+      service.
+    element_spec: A nested structure of `tf.TypeSpec`s representing the type of
+      elements produced by the dataset. This argument is only required inside a
+      tf.function. Use `tf.data.Dataset.element_spec` to get the element spec
+      for a given dataset.
+    job_name: (Optional.) The name of the job. If provided, it must be a
+      non-empty string. This argument makes it possible for multiple datasets to
+      share the same job. The default behavior is that the dataset creates
+      anonymous, exclusively owned jobs.
+    consumer_index: (Optional.) The index of the consumer in the range from `0`
+      to `num_consumers`. Must be specified alongside `num_consumers`. When
+      specified, consumers will read from the job in a strict round-robin order,
+      instead of the default first-come-first-served order.
+    num_consumers: (Optional.) The number of consumers which will consume from
+      the job. Must be specified alongside `consumer_index`. When specified,
+      consumers will read from the job in a strict round-robin order, instead of
+      the default first-come-first-served order. When `num_consumers` is
+      specified, the dataset must have infinite cardinality to prevent a
+      producer from running out of data early and causing consumers to go out of
+      sync.
+    max_outstanding_requests: (Optional.) A limit on how many elements may be
+      requested at the same time. You can use this option to control the amount
+      of memory used, since `distribute` won't use more than `element_size` *
+      `max_outstanding_requests` of memory.
+    data_transfer_protocol: (Optional.) The protocol to use for transferring
+      data with the tf.data service. By default, data is transferred using gRPC.
+    target_workers: (Optional.) Which workers to read from. If `"AUTO"`, tf.data
+      runtime decides which workers to read from. If `"ANY"`, reads from any
+      tf.data service workers. If `"LOCAL"`, only reads from local in-processs
+      tf.data service workers. `"AUTO"` works well for most cases, while users
+      can specify other targets. For example, `"LOCAL"` helps avoid RPCs and
+      data copy if every TF worker colocates with a tf.data service worker.
+      Consumers of a shared job must use the same `target_workers`. Defaults to
+      `"AUTO"`.
+
+    EASL:
+    max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
+      the number of parallel request a client can send to a single worker. Defaults
+      to 1 to default to original behaviour.
+    scaling_decision_profiling_batches: (Optional.) The number of batches to be executed
+      before a worker scaling decision is made.
+
+  Returns:
+    A `tf.data.Dataset` which reads from the tf.data service.
+  """
+  _validate_job_name(job_name)
+  if job_name is not None:
+    job_name = string_ops.string_join(
+        ["dataset_id=", string_ops.as_string(dataset_id), job_name], "/")
+
+  return _from_dataset_id(
+      processing_mode=processing_mode,
+      service=service,
+      dataset_id=dataset_id,
+      element_spec=element_spec,
+      job_name=job_name,
+      consumer_index=consumer_index,
+      num_consumers=num_consumers,
+      max_outstanding_requests=max_outstanding_requests,
+      max_request_pipelining_per_worker=max_request_pipelining_per_worker,
+      data_transfer_protocol=data_transfer_protocol,
+      target_workers=target_workers,
+      scaling_decision_profiling_batches=scaling_decision_profiling_batches)
+
+
+
 def _from_dataset_id(processing_mode,
                      service,
                      dataset_id,
@@ -884,7 +1032,8 @@ def _from_dataset_id(processing_mode,
                      task_refresh_interval_hint_ms=None,
                      data_transfer_protocol=None,
                      compression="AUTO",
-                     target_workers="AUTO"):
+                     target_workers="AUTO",
+                     scaling_decision_profiling_batches=100):
   """Creates a dataset which reads data from the tf.data service.
 
   This transformation is similar to `from_dataset_id`, but supports additional
@@ -947,6 +1096,8 @@ def _from_dataset_id(processing_mode,
     max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
       the number of parallel request a client can send to a single worker. Defaults
       to 1 to default to original behaviour.
+    scaling_decision_profiling_batches: (Optional.) The number of batches to be executed
+      before a worker scaling decision is made.
 
   Returns:
     A `tf.data.Dataset` which reads from the tf.data service.
@@ -1043,7 +1194,9 @@ def _from_dataset_id(processing_mode,
       max_request_pipelining_per_worker=max_request_pipelining_per_worker,
       task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
       compression=compression,
-      target_workers=target_workers)
+      target_workers=target_workers,
+      scaling_decision_profiling_batches=scaling_decision_profiling_batches)
+
   if not compat.forward_compatible(2021, 12, 10):
     if compression == COMPRESSION_AUTO:
       dataset = dataset.map(
@@ -1056,131 +1209,3 @@ def _from_dataset_id(processing_mode,
     options.experimental_distribute.auto_shard_policy = AutoShardPolicy.OFF
     dataset = dataset.with_options(options)
   return dataset
-
-
-@tf_export("data.experimental.service.from_dataset_id")
-def from_dataset_id(processing_mode,
-                    service,
-                    dataset_id,
-                    element_spec=None,
-                    job_name=None,
-                    consumer_index=None,
-                    num_consumers=None,
-                    max_outstanding_requests=None,
-                    max_request_pipelining_per_worker=1,
-                    data_transfer_protocol=None,
-                    target_workers="AUTO"):
-  """Creates a dataset which reads data from the tf.data service.
-
-  This is useful when the dataset is registered by one process, then used in
-  another process. When the same process is both registering and reading from
-  the dataset, it is simpler to use `tf.data.experimental.service.distribute`
-  instead.
-
-  Before using `from_dataset_id`, the dataset must have been registered with the
-  tf.data service using `tf.data.experimental.service.register_dataset`.
-  `register_dataset` returns a dataset id for the registered dataset. That is
-  the `dataset_id` which should be passed to `from_dataset_id`.
-
-  The `element_spec` argument indicates the `tf.TypeSpec`s for the elements
-  produced by the dataset. Currently `element_spec` must be explicitly
-  specified, and match the dataset registered under `dataset_id`. `element_spec`
-  defaults to `None` so that in the future we can support automatically
-  discovering the `element_spec` by querying the tf.data service.
-
-  `tf.data.experimental.service.distribute` is a convenience method which
-  combines `register_dataset` and `from_dataset_id` into a dataset
-  transformation.
-  See the documentation for `tf.data.experimental.service.distribute` for more
-  detail about how `from_dataset_id` works.
-
-  >>> dispatcher = tf.data.experimental.service.DispatchServer()
-  >>> dispatcher_address = dispatcher.target.split("://")[1]
-  >>> worker = tf.data.experimental.service.WorkerServer(
-  ...     tf.data.experimental.service.WorkerConfig(
-  ...         dispatcher_address=dispatcher_address))
-  >>> dataset = tf.data.Dataset.range(10)
-  >>> dataset_id = tf.data.experimental.service.register_dataset(
-  ...     dispatcher.target, dataset)
-  >>> dataset = tf.data.experimental.service.from_dataset_id(
-  ...     processing_mode="parallel_epochs",
-  ...     service=dispatcher.target,
-  ...     dataset_id=dataset_id,
-  ...     element_spec=dataset.element_spec)
-  >>> print(list(dataset.as_numpy_iterator()))
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-  Args:
-    processing_mode: A `tf.data.experimental.service.ShardingPolicy` specifying
-      how to shard the dataset among tf.data workers. See
-      `tf.data.experimental.service.ShardingPolicy` for details. For backwards
-      compatibility, `processing_mode` may also be set to the strings
-      `"parallel_epochs"` or `"distributed_epoch"`, which are respectively
-      equivalent to `ShardingPolicy.OFF` and `ShardingPolicy.DYNAMIC`.
-    service: A string or a tuple indicating how to connect to the tf.data
-      service. If it's a string, it should be in the format
-      `[<protocol>://]<address>`, where `<address>` identifies the dispatcher
-        address and `<protocol>` can optionally be used to override the default
-        protocol to use. If it's a tuple, it should be (protocol, address).
-    dataset_id: The id of the dataset to read from. This id is returned by
-      `register_dataset` when the dataset is registered with the tf.data
-      service.
-    element_spec: A nested structure of `tf.TypeSpec`s representing the type of
-      elements produced by the dataset. This argument is only required inside a
-      tf.function. Use `tf.data.Dataset.element_spec` to get the element spec
-      for a given dataset.
-    job_name: (Optional.) The name of the job. If provided, it must be a
-      non-empty string. This argument makes it possible for multiple datasets to
-      share the same job. The default behavior is that the dataset creates
-      anonymous, exclusively owned jobs.
-    consumer_index: (Optional.) The index of the consumer in the range from `0`
-      to `num_consumers`. Must be specified alongside `num_consumers`. When
-      specified, consumers will read from the job in a strict round-robin order,
-      instead of the default first-come-first-served order.
-    num_consumers: (Optional.) The number of consumers which will consume from
-      the job. Must be specified alongside `consumer_index`. When specified,
-      consumers will read from the job in a strict round-robin order, instead of
-      the default first-come-first-served order. When `num_consumers` is
-      specified, the dataset must have infinite cardinality to prevent a
-      producer from running out of data early and causing consumers to go out of
-      sync.
-    max_outstanding_requests: (Optional.) A limit on how many elements may be
-      requested at the same time. You can use this option to control the amount
-      of memory used, since `distribute` won't use more than `element_size` *
-      `max_outstanding_requests` of memory.
-    data_transfer_protocol: (Optional.) The protocol to use for transferring
-      data with the tf.data service. By default, data is transferred using gRPC.
-    target_workers: (Optional.) Which workers to read from. If `"AUTO"`, tf.data
-      runtime decides which workers to read from. If `"ANY"`, reads from any
-      tf.data service workers. If `"LOCAL"`, only reads from local in-processs
-      tf.data service workers. `"AUTO"` works well for most cases, while users
-      can specify other targets. For example, `"LOCAL"` helps avoid RPCs and
-      data copy if every TF worker colocates with a tf.data service worker.
-      Consumers of a shared job must use the same `target_workers`. Defaults to
-      `"AUTO"`.
-
-    EASL:
-    max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
-      the number of parallel request a client can send to a single worker. Defaults
-      to 1 to default to original behaviour.
-
-  Returns:
-    A `tf.data.Dataset` which reads from the tf.data service.
-  """
-  _validate_job_name(job_name)
-  if job_name is not None:
-    job_name = string_ops.string_join(
-        ["dataset_id=", string_ops.as_string(dataset_id), job_name], "/")
-
-  return _from_dataset_id(
-      processing_mode=processing_mode,
-      service=service,
-      dataset_id=dataset_id,
-      element_spec=element_spec,
-      job_name=job_name,
-      consumer_index=consumer_index,
-      num_consumers=num_consumers,
-      max_outstanding_requests=max_outstanding_requests,
-      max_request_pipelining_per_worker=max_request_pipelining_per_worker,
-      data_transfer_protocol=data_transfer_protocol,
-      target_workers=target_workers)

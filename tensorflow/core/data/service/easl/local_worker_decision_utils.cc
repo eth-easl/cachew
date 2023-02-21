@@ -126,6 +126,16 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   double extra_worker_cost = dispatcher_config.worker_cost() * (1.0 - relative_improvement);
   double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() + second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
+  bool opt_for_cost = dispatcher_config.optimize_cost();
+  double threshold;
+  if (opt_for_cost) {
+    threshold = extra_worker_cost;
+  } else {
+    threshold = dispatcher_config.scaling_threshold_up();
+  }
+  VLOG(0) << "Optimizing for cost: " << opt_for_cost << " Current improvement threshold is: "
+          << threshold;
+
   VLOG(0) << "Relative Improvement: " << relative_improvement;
 
   // How can this be more than 1 ?!
