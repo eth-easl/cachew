@@ -83,10 +83,10 @@ class DataServiceDatasetOp : public DatasetOpKernel {
   // EASL
   static constexpr const char* const kMaxRequestPipeliningPerTask =
       "max_request_pipelining_per_task";
-  static constexpr const char* const kScalingDecisionProfilingBatches =
-      "scaling_decision_profiling_batches";
+  //static constexpr const char* const kScalingDecisionProfilingBatches =
+  //    "scaling_decision_profiling_batches";
 
-      explicit DataServiceDatasetOp(OpKernelConstruction* ctx);
+  explicit DataServiceDatasetOp(OpKernelConstruction* ctx);
 
  protected:
   void MakeDataset(OpKernelContext* ctx, DatasetBase** output) override;

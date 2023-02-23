@@ -97,8 +97,8 @@ namespace data {
 // EASL
 /* static */ constexpr const char* const
     DataServiceDatasetOp::kMaxRequestPipeliningPerTask;
-/* static */ constexpr const char* const
-    DataServiceDatasetOp::kScalingDecisionProfilingBatches;
+// /* static */ constexpr const char* const
+//    DataServiceDatasetOp::kScalingDecisionProfilingBatches;
 
 
 namespace {
@@ -172,7 +172,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           const std::string& data_transfer_protocol,
           const std::string& job_name, absl::optional<int64_t> consumer_index,
           absl::optional<int64_t> num_consumers, int64_t max_outstanding_requests,
-          int64_t max_request_pipelining_per_task, int64_t scaling_decision_profiling_batches,
+          int64_t max_request_pipelining_per_task, //int64_t scaling_decision_profiling_batches,
           int64_t task_refresh_interval_ms,
           const TargetWorkers target_workers, const DataServiceMetadata& metadata,
           IterationCounter* iteration_counter, bool owns_resource,
@@ -1584,7 +1584,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
     // scaling_decision_profiling_batches_ controls how many batches are to be
     // processed before making a worker scaling decision.
-    int64 scaling_decision_profiling_batches_ TF_GUARDED_BY(mu_);
+    //int64 scaling_decision_profiling_batches_ TF_GUARDED_BY(mu_);
 
     // The number of threads in `worker_threads_` which are still running.
     int64_t num_running_worker_threads_ TF_GUARDED_BY(mu_) = 0;
@@ -1683,7 +1683,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
   // EASL
   const int64 max_request_pipelining_per_task_;
-  const int64 scaling_decision_profiling_batches_;
+  //const int64 scaling_decision_profiling_batches_;
 };
 
 DataServiceDatasetOp::DataServiceDatasetOp(OpKernelConstruction* ctx)
@@ -1871,7 +1871,7 @@ void DataServiceDatasetOp::MakeDataset(OpKernelContext* ctx,
       ctx, op_version_, dataset_id, processing_mode, address, protocol,
       data_transfer_protocol_, job_name, consumer_index, num_consumers,
       max_outstanding_requests, max_request_pipelining_per_task,
-      scaling_decision_profiling_batches,
+      //scaling_decision_profiling_batches,
       task_refresh_interval_hint_ms_, target_workers_, *metadata, iteration_counter,
       owns_resource, iteration_counter_handle, std::move(captured_uncompress_func),
       output_types_, output_shapes_);
