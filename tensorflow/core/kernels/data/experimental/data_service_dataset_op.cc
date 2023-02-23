@@ -193,7 +193,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         num_consumers_(num_consumers),
         max_outstanding_requests_(max_outstanding_requests),
         max_request_pipelining_per_task_(max_request_pipelining_per_task),
-        scaling_decision_profiling_batches_(scaling_decision_profiling_batches),
+        //scaling_decision_profiling_batches_(scaling_decision_profiling_batches),
         task_refresh_interval_ms_(task_refresh_interval_ms),
         target_workers_(target_workers),
         metadata_(metadata),
@@ -322,10 +322,10 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         b->AddScalar(max_request_pipelining_per_task_, &max_request_pipelining_per_task));
     inputs.push_back(max_request_pipelining_per_task);
 
-    Node* scaling_decision_profiling_batches;
+    /*Node* scaling_decision_profiling_batches;
     TF_RETURN_IF_ERROR(
         b->AddScalar(scaling_decision_profiling_batches_, &scaling_decision_profiling_batches));
-    inputs.push_back(scaling_decision_profiling_batches);
+    inputs.push_back(scaling_decision_profiling_batches);*/
 
     Node* iteration_counter_handle = nullptr;
     Tensor handle(DT_RESOURCE, TensorShape({}));
@@ -1802,9 +1802,9 @@ void DataServiceDatasetOp::MakeDataset(OpKernelContext* ctx,
   OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kMaxRequestPipeliningPerTask,
                                           &max_request_pipelining_per_task));
 
-  int64 scaling_decision_profiling_batches;
-  OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kScalingDecisionProfilingBatches,
-                                          &scaling_decision_profiling_batches));
+  //int64 scaling_decision_profiling_batches;
+  //OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kScalingDecisionProfilingBatches,
+  //                                        &scaling_decision_profiling_batches));
 
   ResourceHandle iteration_counter_handle;
   OP_REQUIRES_OK(
