@@ -16,6 +16,7 @@
 import enum
 import functools
 import six
+import logging
 
 from tensorflow.core.protobuf import data_service_pb2
 from tensorflow.python import tf2
@@ -120,7 +121,6 @@ class ShardingPolicy(enum.IntEnum):
             return data_service_pb2.ProcessingModeDef.HINT
         raise ValueError(f"Unable to convert sharding policy {self!r} to proto.")
 
-
 def _get_validated_sharding_policy(processing_mode):
     """Validates `processing_mode` and converts it to ShardingPolicy."""
 
@@ -136,7 +136,6 @@ def _get_validated_sharding_policy(processing_mode):
                      "`\"parallel_epochs\"`, or `\"distributed_epoch\"`. Got "
                      f"{processing_mode!r}.")
 
-
 def _validate_job_name(job_name):
     if job_name is None:
         return
@@ -146,13 +145,11 @@ def _validate_job_name(job_name):
     if not job_name:
         raise ValueError("`job_name` must not be empty")
 
-
 def _validate_compression(compression):
     valid_compressions = [COMPRESSION_AUTO, COMPRESSION_NONE]
     if compression not in valid_compressions:
         raise ValueError(f"Invalid `compression` argument: {compression}. "
                          f"Must be one of {valid_compressions}.")
-
 
 def _get_compression_proto(compression):
     if compression == COMPRESSION_AUTO:
@@ -162,13 +159,11 @@ def _get_compression_proto(compression):
     raise ValueError(f"Invalid `compression` argument: {compression}. "
                      f"Must be one of {[COMPRESSION_AUTO, COMPRESSION_NONE]}.")
 
-
 def _decide_compression(compression, data_transfer_protocol):
     if (compression == COMPRESSION_AUTO and data_transfer_protocol != "grpc" and
             data_transfer_protocol is not None):
         return COMPRESSION_NONE
     return compression
-
 
 class _DataServiceDatasetV2(dataset_ops.DatasetSource):
     """A `Dataset` that reads elements from the tf.data service."""
@@ -187,7 +182,12 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                  max_request_pipelining_per_worker=1,
                  task_refresh_interval_hint_ms=None,
                  compression="AUTO",
-                 target_workers="AUTO"):
+                 target_workers="AUTO",
+                 scaling_threshold_up=-0.5,
+                 optimize_cost=False,
+                 client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
+                 worker_cost=0.427319, # For an n2-standard-8 VM
+                 batches_per_decision=300):
         """Constructs a _DataServiceDatasetV2.
 
         Args:
@@ -236,7 +236,20 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
             avoid RPCs and data copy if every TF worker colocates with a tf.data
             service worker. Consumers of a shared job must use the same
             `target_workers`. Defaults to `"AUTO"`.
+
+        EASL:
+          scaling_threshold_up: The threshold (in percentage points) used in the
+            Autoscale policy (generally used for scaling up)
+          optimize_cost: whether to optimize for cost (rather than training time)
+          client_cost: hourly cost of the client
+          worker_cost: hourly cost of a worker
+          batches_per_decision: batches to profile for a scaling decision
         """
+
+        logging.info("Settings in DSDO V2 constructor were: optimize cost=" + str(optimize_cost) + " client cost=" +
+                 str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
+
         if consumer_index is None != num_consumers is None:
             raise ValueError(
                 "Must either set both `consumer_index` and `num_consumers`, "
@@ -284,6 +297,27 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
             max_request_pipelining_per_worker,
             dtype=dtypes.int64,
             name="max_request_pipelining_per_task")
+        
+        self._scaling_threshold_up = ops.convert_to_tensor(
+            scaling_threshold_up,
+            dtype=dtypes.float64,
+            name="scaling_threshold_up")
+        self._optimize_cost = ops.convert_to_tensor(
+            optimize_cost,
+            dtype=dtypes.bool,
+            name="optimize_cost")
+        self._client_cost = ops.convert_to_tensor(
+            client_cost,
+            dtype=dtypes.float64,
+            name="client_cost")
+        self._worker_cost = ops.convert_to_tensor(
+            worker_cost,
+            dtype=dtypes.float64,
+            name="worker_cost")
+        self._batches_per_decision = ops.convert_to_tensor(
+            batches_per_decision,
+            dtype=dtypes.float64,
+            name="batches_per_decision")
 
         if compat.forward_compatible(2021, 12, 10):
             self._element_spec = element_spec
@@ -322,6 +356,11 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                 iteration_counter=(
                     gen_experimental_dataset_ops.dummy_iteration_counter()),
                 target_workers=target_workers,
+                scaling_threshold_up=self._scaling_threshold_up,
+                optimize_cost=self._optimize_cost,
+                client_cost=self._client_cost,
+                worker_cost=self._worker_cost,
+                batches_per_decision=self._batches_per_decision,
                 uncompress=uncompress,
                 uncompress_fn=uncompress_func.function,
                 **compat_kwargs,
@@ -341,6 +380,11 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                 iteration_counter=(
                     gen_experimental_dataset_ops.dummy_iteration_counter()),
                 target_workers=target_workers,
+                scaling_threshold_up=self._scaling_threshold_up,
+                optimize_cost=self._optimize_cost,
+                client_cost=self._client_cost,
+                worker_cost=self._worker_cost,
+                batches_per_decision=self._batches_per_decision,
                 **compat_kwargs,
                 **self._flat_structure)
         super(_DataServiceDatasetV2, self).__init__(variant_tensor)
@@ -358,7 +402,8 @@ class _DataServiceDatasetV1(dataset_ops.DatasetV1Adapter):
                  protocol, data_transfer_protocol, job_name, consumer_index,
                  num_consumers, max_outstanding_requests,
                  max_request_pipelining_per_worker, task_refresh_interval_hint_ms,
-                 compression, target_workers):
+                 compression, target_workers, scaling_threshold_up, optimize_cost,
+                 client_cost, worker_cost, batches_per_decision):
         self._wrapped = _DataServiceDatasetV2(
             dataset_id=dataset_id,
             processing_mode=processing_mode,
@@ -373,7 +418,12 @@ class _DataServiceDatasetV1(dataset_ops.DatasetV1Adapter):
             max_request_pipelining_per_worker=max_request_pipelining_per_worker,
             task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
             compression=compression,
-            target_workers=target_workers)
+            target_workers=target_workers
+            scaling_threshold_up=scaling_threshold_up,
+            optimize_cost=optimize_cost,
+            client_cost=client_cost,
+            worker_cost=worker_cost,
+            batches_per_decision=batches_per_decision)
         super(_DataServiceDatasetV1, self).__init__(self._wrapped)
 
 
@@ -421,7 +471,12 @@ def _distribute(processing_mode,
                 task_refresh_interval_hint_ms=None,
                 data_transfer_protocol=None,
                 compression="AUTO",
-                target_workers="AUTO"):
+                target_workers="AUTO",
+                scaling_threshold_up=-0.5,
+                optimize_cost=False,
+                client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
+                worker_cost=0.427319, # For an n2-standard-8 VM
+                batches_per_decision=300):
     """A transformation that moves dataset processing to the tf.data service.
 
     This transformation is similar to `distribute`, but supports additional
@@ -478,7 +533,12 @@ def _distribute(processing_mode,
       max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
         the number of parallel request a client can send to a single worker. Defaults
         to 1 to default to original behaviour.
-
+      scaling_threshold_up: The threshold (in percentage points) used in the
+        Autoscale policy (generally used for scaling up)
+      optimize_cost: whether to optimize for cost (rather than training time)
+      client_cost: hourly cost of the client
+      worker_cost: hourly cost of a worker
+      batches_per_decision: batches to profile for a scaling decision
 
     Returns:
       Dataset: A `Dataset` of the elements produced by the data service.
@@ -486,6 +546,10 @@ def _distribute(processing_mode,
     processing_mode = _get_validated_sharding_policy(processing_mode)
     _validate_compression(compression)
     compression = _decide_compression(compression, data_transfer_protocol)
+
+    logging.info("Settings in inner _distribute() were: optimize cost=" + str(optimize_cost) + " client cost=" +
+                 str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
 
     def _apply_fn(dataset):  # pylint: disable=missing-docstring
         dataset_id = _register_dataset(service, dataset, compression=compression)
@@ -502,7 +566,12 @@ def _distribute(processing_mode,
             task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
             data_transfer_protocol=data_transfer_protocol,
             compression=compression,
-            target_workers=target_workers)
+            target_workers=target_workers,
+            scaling_threshold_up=scaling_threshold_up,
+            optimize_cost=optimize_cost,
+            client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
+            worker_cost=worker_cost, # For an n2-standard-8 VM
+            batches_per_decision=batches_per_decision)
 
     return _apply_fn
 
@@ -517,7 +586,12 @@ def distribute(processing_mode,
                max_request_pipelining_per_worker=1, # like default behaviour.
                data_transfer_protocol=None,
                compression="AUTO",
-               target_workers="AUTO"):
+               target_workers="AUTO",
+               scaling_threshold_up=-0.5,
+               optimize_cost=False,
+               client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
+               worker_cost=0.427319, # For an n2-standard-8 VM
+               batches_per_decision=300):
     """A transformation that moves dataset processing to the tf.data service.
 
     When you iterate over a dataset containing the `distribute` transformation,
@@ -737,11 +811,21 @@ def distribute(processing_mode,
       max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
         the number of parallel request a client can send to a single worker. Defaults
         to 1 to default to original behaviour.
+      scaling_threshold_up: The threshold (in percentage points) used in the
+        Autoscale policy (generally used for scaling up)
+      optimize_cost: whether to optimize for cost (rather than training time)
+      client_cost: hourly cost of the client
+      worker_cost: hourly cost of a worker
+      batches_per_decision: batches to profile for a scaling decision
 
     Returns:
       Dataset: A `Dataset` of the elements produced by the data service.
     """
     _validate_job_name(job_name)
+    logging.info("Settings in outer distribute were: optimize cost=" + str(optimize_cost) + " client cost=" +
+                 str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
+
     return _distribute(
         processing_mode=processing_mode,
         service=service,
@@ -752,7 +836,12 @@ def distribute(processing_mode,
         max_request_pipelining_per_worker=max_request_pipelining_per_worker,
         data_transfer_protocol=data_transfer_protocol,
         compression=compression,
-        target_workers=target_workers)
+        target_workers=target_workers,
+        scaling_threshold_up=scaling_threshold_up,  
+        optimize_cost=optimize_cost,
+        client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
+        worker_cost=worker_cost, # For an n2-standard-8 VM
+        batches_per_decision=batches_per_decision)
 
 
 def _register_dataset(service, dataset, compression):
@@ -884,7 +973,12 @@ def _from_dataset_id(processing_mode,
                      task_refresh_interval_hint_ms=None,
                      data_transfer_protocol=None,
                      compression="AUTO",
-                     target_workers="AUTO"):
+                     target_workers="AUTO",
+                     scaling_threshold_up=-0.5,
+                     optimize_cost=False,
+                     client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
+                     worker_cost=0.427319, # For an n2-standard-8 VM
+                     batches_per_decision=300):
     """Creates a dataset which reads data from the tf.data service.
 
     This transformation is similar to `from_dataset_id`, but supports additional
@@ -947,10 +1041,21 @@ def _from_dataset_id(processing_mode,
       max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
         the number of parallel request a client can send to a single worker. Defaults
         to 1 to default to original behaviour.
+      scaling_threshold_up: The threshold (in percentage points) used in the
+        Autoscale policy (generally used for scaling up)
+      optimize_cost: whether to optimize for cost (rather than training time)
+      client_cost: hourly cost of the client
+      worker_cost: hourly cost of a worker
+      batches_per_decision: batches to profile for a scaling decision
 
     Returns:
       A `tf.data.Dataset` which reads from the tf.data service.
     """
+
+    logging.info("Settings in _from_dataset_id were: optimize cost=" + str(optimize_cost) + " client cost=" +
+                 str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
+
     def _get_element_spec():
         """Fetches the element spec from the server."""
         data_service_metadata = None
@@ -1043,7 +1148,12 @@ def _from_dataset_id(processing_mode,
         max_request_pipelining_per_worker=max_request_pipelining_per_worker,
         task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
         compression=compression,
-        target_workers=target_workers)
+        target_workers=target_workers,
+        scaling_threshold_up=scaling_threshold_up,
+        optimize_cost=optimize_cost,
+        client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
+        worker_cost=worker_cost, # For an n2-standard-8 VM
+        batches_per_decision=batches_per_decision)
     if not compat.forward_compatible(2021, 12, 10):
         if compression == COMPRESSION_AUTO:
             dataset = dataset.map(
@@ -1069,7 +1179,12 @@ def from_dataset_id(processing_mode,
                     max_outstanding_requests=None,
                     max_request_pipelining_per_worker=1,
                     data_transfer_protocol=None,
-                    target_workers="AUTO"):
+                    target_workers="AUTO",
+                    scaling_threshold_up=-0.5,
+                    optimize_cost=False,
+                    client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
+                    worker_cost=0.427319, # For an n2-standard-8 VM
+                    batches_per_decision=300):
     """Creates a dataset which reads data from the tf.data service.
 
     This is useful when the dataset is registered by one process, then used in
@@ -1163,6 +1278,12 @@ def from_dataset_id(processing_mode,
       max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
         the number of parallel request a client can send to a single worker. Defaults
         to 1 to default to original behaviour.
+      scaling_threshold_up: The threshold (in percentage points) used in the
+        Autoscale policy (generally used for scaling up)
+      optimize_cost: whether to optimize for cost (rather than training time)
+      client_cost: hourly cost of the client
+      worker_cost: hourly cost of a worker
+      batches_per_decision: batches to profile for a scaling decision
 
     Returns:
       A `tf.data.Dataset` which reads from the tf.data service.
@@ -1183,4 +1304,9 @@ def from_dataset_id(processing_mode,
         max_outstanding_requests=max_outstanding_requests,
         max_request_pipelining_per_worker=max_request_pipelining_per_worker,
         data_transfer_protocol=data_transfer_protocol,
-        target_workers=target_workers)
+        target_workers=target_workers,
+        scaling_threshold_up=scaling_threshold_up,
+        optimize_cost=optimize_cost,
+        client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
+        worker_cost=worker_cost, # For an n2-standard-8 VM
+        batches_per_decision=batches_per_decision)

@@ -228,6 +228,12 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
             avoid RPCs and data copy if every TF worker colocates with a tf.data
             service worker. Consumers of a shared job must use the same
             `target_workers`. Defaults to `"AUTO"`.
+        EASL:
+          max_request_pipelining_per_worker: (Optional.) We add this parameter to increase
+            the number of parallel request a client can send to a single worker. Defaults
+            to 1 to default to original behaviour.
+          scaling_decision_profiling_batches: (Optional.) The number of batches to be executed
+            before a worker scaling decision is made.
         """
         if consumer_index is None != num_consumers is None:
             raise ValueError(

@@ -15,6 +15,7 @@
 """A Python interface for creating dataset servers."""
 
 import collections
+import logging
 
 # pylint: disable=invalid-import-order,g-bad-import-order, unused-import
 from tensorflow.core.protobuf import service_config_pb2
@@ -117,12 +118,15 @@ class DispatcherConfig(
               scaling_policy=1,
               log_dir="",
               log_dumps_interval_ms=None,
-              scaling_threshold_up=0.07,
-              optimize_cost=True,
+              scaling_threshold_up=-0.5,
+              optimize_cost=False,
               client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
               worker_cost=0.427319, # For an n2-standard-8 VM
               batches_per_decision=300
               ):
+    logging.info("Settings in constructor were: optimize cost=" + str(optimize_cost) + " client cost=" +
+                 str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
     if protocol is None:
         protocol = _pywrap_utils.TF_DATA_DefaultProtocol()
     job_gc_check_interval_ms = _get_time_or_placeholder(
@@ -200,6 +204,9 @@ class DispatchServer(object):
 
     if isinstance(config, service_config_pb2.DispatcherConfig):
       config_proto = config
+    logging.info("Checking settings in config: optimize cost=" + str(config.optimize_cost) + " client cost=" +
+                 str(config.client_cost) + " worker cost=" + str(config.worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(config.batches_per_decision) + " scaling threshold up=" + str(config.scaling_threshold_up))
     else:
       config_proto = service_config_pb2.DispatcherConfig(
         port=config.port,
