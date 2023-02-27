@@ -418,7 +418,7 @@ class _DataServiceDatasetV1(dataset_ops.DatasetV1Adapter):
             max_request_pipelining_per_worker=max_request_pipelining_per_worker,
             task_refresh_interval_hint_ms=task_refresh_interval_hint_ms,
             compression=compression,
-            target_workers=target_workers
+            target_workers=target_workers,
             scaling_threshold_up=scaling_threshold_up,
             optimize_cost=optimize_cost,
             client_cost=client_cost,

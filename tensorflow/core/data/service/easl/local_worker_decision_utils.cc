@@ -129,7 +129,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   VLOG(0) << "local_worker_decision_utils settings " << dispatcher_config.optimize_cost() <<
           " client cost=" << dispatcher_config.client_cost() << " worker cost=" << dispatcher_config.worker_cost() <<
           " batches_per_decision (deprecated)=" << dispatcher_config.batches_per_decision() <<
-          " scaling threshold up=" << dispatcher_config.>>scaling_threshold_up();
+          " scaling threshold up=" << dispatcher_config.scaling_threshold_up();
 
   bool opt_for_cost = dispatcher_config.optimize_cost();
   double threshold;

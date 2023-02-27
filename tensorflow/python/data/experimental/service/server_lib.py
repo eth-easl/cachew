@@ -202,11 +202,12 @@ class DispatchServer(object):
           "`DispatcherServer`.")
     self._config = config
 
-    if isinstance(config, service_config_pb2.DispatcherConfig):
-      config_proto = config
-    logging.info("Checking settings in config: optimize cost=" + str(config.optimize_cost) + " client cost=" +
+    logging.info("Checking settings in Disp config constructor: optimize cost=" + str(config.optimize_cost) + " client cost=" +
                  str(config.client_cost) + " worker cost=" + str(config.worker_cost) + " batches_per_decision (deprecated)=" +
                  str(config.batches_per_decision) + " scaling threshold up=" + str(config.scaling_threshold_up))
+
+    if isinstance(config, service_config_pb2.DispatcherConfig):
+      config_proto = config
     else:
       config_proto = service_config_pb2.DispatcherConfig(
         port=config.port,
