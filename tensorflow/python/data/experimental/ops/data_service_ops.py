@@ -316,7 +316,7 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
             name="worker_cost")
         self._batches_per_decision = ops.convert_to_tensor(
             batches_per_decision,
-            dtype=dtypes.float64,
+            dtype=dtypes.int64,
             name="batches_per_decision")
 
         if compat.forward_compatible(2021, 12, 10):
