@@ -1641,7 +1641,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
     // Number of batches to sample before sending scalability metrics to dispatcher
     uint32 buffer_period;
-    const uint32 BATCH_INTERVAL = 200;
+    const uint32 BATCH_INTERVAL = 500;
     //const uint32 BATCH_INTERVAL = scaling_decision_profiling_batches_;
     const uint32 RESCALE_BUFFER_INTERVAL = 150;
     const uint32 EPOCH_START_BUFFER_INTERVAL = 200;

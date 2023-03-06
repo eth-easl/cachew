@@ -356,11 +356,11 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                 iteration_counter=(
                     gen_experimental_dataset_ops.dummy_iteration_counter()),
                 target_workers=target_workers,
-                scaling_threshold_up=self._scaling_threshold_up,
+                '''scaling_threshold_up=self._scaling_threshold_up,
                 optimize_cost=self._optimize_cost,
                 client_cost=self._client_cost,
                 worker_cost=self._worker_cost,
-                batches_per_decision=self._batches_per_decision,
+                batches_per_decision=self._batches_per_decision,'''
                 uncompress=uncompress,
                 uncompress_fn=uncompress_func.function,
                 **compat_kwargs,
@@ -380,11 +380,11 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                 iteration_counter=(
                     gen_experimental_dataset_ops.dummy_iteration_counter()),
                 target_workers=target_workers,
-                scaling_threshold_up=self._scaling_threshold_up,
+                '''scaling_threshold_up=self._scaling_threshold_up,
                 optimize_cost=self._optimize_cost,
                 client_cost=self._client_cost,
                 worker_cost=self._worker_cost,
-                batches_per_decision=self._batches_per_decision,
+                batches_per_decision=self._batches_per_decision,'''
                 **compat_kwargs,
                 **self._flat_structure)
         super(_DataServiceDatasetV2, self).__init__(variant_tensor)
