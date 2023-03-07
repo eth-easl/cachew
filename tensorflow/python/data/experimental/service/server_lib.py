@@ -118,7 +118,7 @@ class DispatcherConfig(
               scaling_policy=1,
               log_dir="",
               log_dumps_interval_ms=None,
-              scaling_threshold_up=-0.5,
+              scaling_threshold_up=0.03,
               optimize_cost=False,
               client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
               worker_cost=0.427319, # For an n2-standard-8 VM
