@@ -121,6 +121,9 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   double stl_batch_time = second_to_last_metrics->last_x_batch_time_ms();
   double l_batch_time = last_metrics->last_x_batch_time_ms();
   double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
+  if (l_batch_time < 0 || stl_batch_time < 0) {
+    VLOG(0) << "Failed to record batch time correctly. l_batch_time: " << l_batch_time << ", stl_batch_time: " << stl_batch_time;
+  }
   //double extra_worker_cost = WOKRER_COST * (1.0 - relative_improvement);
   //double extra_worker_saving = relative_improvement * (CLIENT_COST + second_to_last_metrics->remote_worker_count() * WOKRER_COST);
   double extra_worker_cost = dispatcher_config.worker_cost() * (1.0 - relative_improvement);
@@ -137,6 +140,10 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     threshold = extra_worker_cost;
   } else {
     threshold = dispatcher_config.scaling_threshold_up();
+    if (threshold <= 0.0) {
+      threshold = 0.03;
+      VLOG(0) << "Manually set threshold to 0.03";
+    }
   }
   VLOG(0) << "Optimizing for cost: " << opt_for_cost << " Current improvement threshold is: "
           << threshold;
