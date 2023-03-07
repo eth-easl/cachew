@@ -148,7 +148,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   VLOG(0) << "Optimizing for cost: " << opt_for_cost << " Current improvement threshold is: "
           << threshold;
 
-  VLOG(0) << "Relative Improvement: " << relative_improvement;
+  VLOG(0) << "Relative Improvement: " << relative_improvement << " l_batch_time: " << l_batch_time << ", stl_batch_time: " << stl_batch_time;
 
   // How can this be more than 1 ?!
   if (relative_improvement > 1.3 || relative_improvement < -1.3) {
