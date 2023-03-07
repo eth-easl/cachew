@@ -183,7 +183,7 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                  task_refresh_interval_hint_ms=None,
                  compression="AUTO",
                  target_workers="AUTO",
-                 scaling_threshold_up=-0.5,
+                 scaling_threshold_up=0.03,
                  optimize_cost=False,
                  client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                  worker_cost=0.427319, # For an n2-standard-8 VM
@@ -472,7 +472,7 @@ def _distribute(processing_mode,
                 data_transfer_protocol=None,
                 compression="AUTO",
                 target_workers="AUTO",
-                scaling_threshold_up=-0.5,
+                scaling_threshold_up=0.03,
                 optimize_cost=False,
                 client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                 worker_cost=0.427319, # For an n2-standard-8 VM
@@ -587,7 +587,7 @@ def distribute(processing_mode,
                data_transfer_protocol=None,
                compression="AUTO",
                target_workers="AUTO",
-               scaling_threshold_up=-0.5,
+               scaling_threshold_up=0.03,
                optimize_cost=False,
                client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                worker_cost=0.427319, # For an n2-standard-8 VM
@@ -974,7 +974,7 @@ def _from_dataset_id(processing_mode,
                      data_transfer_protocol=None,
                      compression="AUTO",
                      target_workers="AUTO",
-                     scaling_threshold_up=-0.5,
+                     scaling_threshold_up=0.03,
                      optimize_cost=False,
                      client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                      worker_cost=0.427319, # For an n2-standard-8 VM
@@ -1180,7 +1180,7 @@ def from_dataset_id(processing_mode,
                     max_request_pipelining_per_worker=1,
                     data_transfer_protocol=None,
                     target_workers="AUTO",
-                    scaling_threshold_up=-0.5,
+                    scaling_threshold_up=0.03,
                     optimize_cost=False,
                     client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                     worker_cost=0.427319, # For an n2-standard-8 VM
