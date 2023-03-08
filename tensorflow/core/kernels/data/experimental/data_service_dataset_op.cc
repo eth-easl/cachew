@@ -816,6 +816,12 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
               ((double)(batch_timestamps_us_[metrics_count - 1])
                   - batch_timestamps_us_[metrics_count - BATCH_INTERVAL])
                   / EnvTime::kMillisToMicros;
+          if (last_x_batch_time_ms <= 0.0) {
+            VLOG(0) << "DSDO: last_x_batch_time_ms data collection failed: " << last_x_batch_time_ms;
+            VLOG(0) << "Last timestamp: " << batch_timestamps_us_[metrics_count - 1];
+            VLOG(0) << "Starting timestamp: " << batch_timestamps_us_[metrics_count - BATCH_INTERVAL];
+            VLOG(0) << "EnvTime::kMillisToMicros: " << EnvTime::kMillisToMicros;
+          }
 
           // Compute the relative_wait_fraction & the average size of the result queue
           double relative_wait_fraction = 0.0;

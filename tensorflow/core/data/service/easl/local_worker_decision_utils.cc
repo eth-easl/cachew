@@ -122,7 +122,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   double l_batch_time = last_metrics->last_x_batch_time_ms();
   double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
   if (l_batch_time < 0 || stl_batch_time < 0) {
-    VLOG(0) << "Failed to record batch time correctly. l_batch_time: " << l_batch_time << ", stl_batch_time: " << stl_batch_time;
+    VLOG(0) << "Failed to record batch time correctly!!! l_batch_time: " << l_batch_time << ", stl_batch_time: " << stl_batch_time;
   }
   //double extra_worker_cost = WOKRER_COST * (1.0 - relative_improvement);
   //double extra_worker_saving = relative_improvement * (CLIENT_COST + second_to_last_metrics->remote_worker_count() * WOKRER_COST);
