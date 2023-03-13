@@ -204,12 +204,23 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     case JobScalingState::DECREASING_REMOTE: {
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
-      if (relative_improvement < -kPerformanceDecreaseTolerance ||
+
+      // Calculate how much performance degradation is still economical
+      double saved_worker_cost = dispatcher_config.worker_cost();
+      double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+      bool removing_worker_helped = saved_worker_cost > extra_time_cost;
+      VLOG(0) << "Removing the extra worker was economical: " << removing_worker_helped;
+      VLOG(0) << "Removing the worker saved $" << saved_worker_cost << ". The increased training time incurred an extra cost of $" << extra_time_cost;
+
+      if (//relative_improvement < -kPerformanceDecreaseTolerance ||
+        !removing_worker_helped ||
         last_metrics->remote_worker_count() == 0
       ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump_out)";
         // jump out
-        if (relative_improvement < -kPerformanceDecreaseTolerance) {
+        if (//relative_improvement < -kPerformanceDecreaseTolerance
+            !removing_worker_helped
+            ) {
           remote_worker_count = last_metrics->remote_worker_count() + 1;
           local_worker_count = last_metrics->local_worker_count();
         } else {
