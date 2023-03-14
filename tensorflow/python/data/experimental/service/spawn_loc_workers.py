@@ -5,7 +5,7 @@ from tensorflow.python.ops import gen_experimental_dataset_ops as ged_ops
 from tensorflow.python.util.tf_export import tf_export
 from tensorflow.python.data.experimental.service import server_lib
 
-@tf_export("data.experimental.spawn_loc_workers")
+@tf_export("data.experimental.service.spawn_loc_workers")
 def spawn_loc_workers(workers=1,
                       disptacher='localhost'):
 
