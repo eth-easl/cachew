@@ -460,33 +460,6 @@ def _parse_service(service):
     # TODO(aaudibert): Considering validating reachability of address here.
     return (protocol, address)
 
-@tf_export("data.experimental.service.spawn_loc_workers")
-def spawn_loc_workers(workers=1,
-                      dispatcher='localhost'):
-
-    '''
-    A function for spawning local workers under the hood.
-
-    Args:
-      workers: the number of workers you want to spawn
-      disptacher: the name of the dispatcher
-    '''
-
-    loc_workers = []
-
-    print(f"Spawning {workers} Local workers to {disptacher}")
-    for idx in range(workers):
-        loc_workers.append(
-            server_lib.WorkerServer(
-                server_lib.WorkerConfig(
-                    dispatcher_address=disptacher,
-                    heartbeat_interval_ms=1000,
-                    # port=38000 + idx
-                )
-            )
-        )
-    return loc_workers
-
 def _distribute(processing_mode,
                 service,
                 job_name=None,

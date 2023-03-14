@@ -460,3 +460,30 @@ class WorkerServer(object):
   def _num_tasks(self):
     """Returns the number of tasks currently being executed on the worker."""
     return self._server.num_tasks()
+
+@tf_export("data.experimental.service.spawn_loc_workers")
+def spawn_loc_workers(workers=1,
+                      dispatcher='localhost'):
+
+    '''
+    A function for spawning local workers under the hood.
+
+    Args:
+      workers: the number of workers you want to spawn
+      disptacher: the name of the dispatcher
+    '''
+
+    loc_workers = []
+
+    print(f"Spawning {workers} local workers to {dispatcher}")
+    for idx in range(workers):
+        loc_workers.append(
+            WorkerServer(
+                WorkerConfig(
+                    dispatcher_address=dispatcher,
+                    heartbeat_interval_ms=1000,
+                    # port=38000 + idx
+                )
+            )
+        )
+    return loc_workers

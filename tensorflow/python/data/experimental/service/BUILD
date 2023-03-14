@@ -68,18 +68,3 @@ py_library(
         "//tensorflow/python/data/experimental/ops:data_service_ops",
     ],
 )
-
--- py_library(
---     name = "spawn_loc_workers",
---     srcs = [
---         "spawn_loc_workers.py",
---     ],
---     srcs_version = "PY3",
---     visibility = ["//tensorflow:internal"],
---     deps = [
---         "//tensorflow/python:experimental_dataset_ops_gen",
---         "//tensorflow/python/data/ops:dataset_ops",
---         "//tensorflow/python/data/util:structure",
---         "//tensorflow/python/data/experimental/ops/service:server_lib"
---     ],
--- )
