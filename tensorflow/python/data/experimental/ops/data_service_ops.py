@@ -462,7 +462,7 @@ def _parse_service(service):
 
 @tf_export("data.experimental.service.spawn_loc_workers")
 def spawn_loc_workers(workers=1,
-                      disptacher='localhost'):
+                      dispatcher='localhost'):
 
     '''
     A function for spawning local workers under the hood.
@@ -476,7 +476,7 @@ def spawn_loc_workers(workers=1,
 
     print(f"Spawning {workers} Local workers to {disptacher}")
     for idx in range(workers):
-        workers.append(
+        loc_workers.append(
             server_lib.WorkerServer(
                 server_lib.WorkerConfig(
                     dispatcher_address=disptacher,
