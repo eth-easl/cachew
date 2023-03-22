@@ -24,6 +24,7 @@ from tensorflow.python.compat import compat
 from tensorflow.python.data.experimental.ops import compression_ops
 from tensorflow.python.data.experimental.service import _pywrap_server_lib
 from tensorflow.python.data.experimental.service import _pywrap_utils
+from tensorflow.python.data.experimental.service import WorkerServer, WorkerConfig
 from tensorflow.python.data.ops import dataset_ops
 from tensorflow.python.data.experimental.ops.service_cache_ops import service_cache_mark
 from tensorflow.python.data.ops import options as options_lib
@@ -475,7 +476,8 @@ def _distribute(processing_mode,
                 optimize_cost=False,
                 client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                 worker_cost=0.427319, # For an n2-standard-8 VM
-                batches_per_decision=300):
+                batches_per_decision=300,
+                loc_workers_to_spawn=0):
     """A transformation that moves dataset processing to the tf.data service.
 
     This transformation is similar to `distribute`, but supports additional
@@ -550,6 +552,19 @@ def _distribute(processing_mode,
                  str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
                  str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
 
+    logging.info("Spawning " + str(loc_workers_to_spawn) + " local workers to " + service)
+    loc_workers = []
+    for idx in range(loc_workers_to_spawn):
+        loc_workers.append(
+            WorkerServer(
+                WorkerConfig(
+                    dispatcher_address=service,
+                    heartbeat_interval_ms=1000,
+                    # port=38000 + idx
+                )
+            )
+        )
+
     def _apply_fn(dataset):  # pylint: disable=missing-docstring
         dataset_id = _register_dataset(service, dataset, compression=compression)
         return _from_dataset_id(
@@ -570,7 +585,8 @@ def _distribute(processing_mode,
             optimize_cost=optimize_cost,
             client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
             worker_cost=worker_cost, # For an n2-standard-8 VM
-            batches_per_decision=batches_per_decision)
+            batches_per_decision=batches_per_decision,
+            loc_workers_to_spawn=loc_workers_to_spawn)
 
     return _apply_fn
 
@@ -589,7 +605,8 @@ def distribute(processing_mode,
                optimize_cost=False,
                client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                worker_cost=0.427319, # For an n2-standard-8 VM
-               batches_per_decision=300):
+               batches_per_decision=300,
+               loc_workers_to_spawn=0):
     """A transformation that moves dataset processing to the tf.data service.
 
     When you iterate over a dataset containing the `distribute` transformation,
@@ -839,8 +856,8 @@ def distribute(processing_mode,
         optimize_cost=optimize_cost,
         client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
         worker_cost=worker_cost, # For an n2-standard-8 VM
-        batches_per_decision=batches_per_decision)
-
+        batches_per_decision=batches_per_decision,
+        loc_workers_to_spawn=loc_workers_to_spawn)
 
 def _register_dataset(service, dataset, compression):
     """Registers a dataset with the tf.data service.
@@ -976,7 +993,8 @@ def _from_dataset_id(processing_mode,
                      optimize_cost=False,
                      client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                      worker_cost=0.427319, # For an n2-standard-8 VM
-                     batches_per_decision=300):
+                     batches_per_decision=300,
+                     loc_workers_to_spawn=0):
     """Creates a dataset which reads data from the tf.data service.
 
     This transformation is similar to `from_dataset_id`, but supports additional
@@ -1151,7 +1169,8 @@ def _from_dataset_id(processing_mode,
         optimize_cost=optimize_cost,
         client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
         worker_cost=worker_cost, # For an n2-standard-8 VM
-        batches_per_decision=batches_per_decision)
+        batches_per_decision=batches_per_decision,
+        loc_workers_to_spawn=loc_workers_to_spawn)
     if not compat.forward_compatible(2021, 12, 10):
         if compression == COMPRESSION_AUTO:
             dataset = dataset.map(
@@ -1182,7 +1201,8 @@ def from_dataset_id(processing_mode,
                     optimize_cost=False,
                     client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                     worker_cost=0.427319, # For an n2-standard-8 VM
-                    batches_per_decision=300):
+                    batches_per_decision=300,
+                    loc_workers_to_spawn=0):
     """Creates a dataset which reads data from the tf.data service.
 
     This is useful when the dataset is registered by one process, then used in
@@ -1307,4 +1327,5 @@ def from_dataset_id(processing_mode,
         optimize_cost=optimize_cost,
         client_cost=client_cost, # For a v2-8 TPU VM in eu-west4-a
         worker_cost=worker_cost, # For an n2-standard-8 VM
-        batches_per_decision=batches_per_decision)
+        batches_per_decision=batches_per_decision,
+        loc_workers_to_spawn=loc_workers_to_spawn)
