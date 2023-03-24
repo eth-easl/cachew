@@ -66,13 +66,13 @@ message DispatcherConfig {
   // The op ordering policy to be applied
   int64 order_policy = 19;
   // Whether to optimize for cost rather than training time
-  bool optimize_cost = 19;
+  bool optimize_cost = 20;
   // The cost of the client ($ per hour)
-  double client_cost = 20;
+  double client_cost = 21;
   // The cost of the worker ($ per hour)
-  double worker_cost = 21;
+  double worker_cost = 22;
   // The number of batches for profiling before a scaling decision is made
-  int32 batches_per_decision = 22;
+  int32 batches_per_decision = 23;
 }
 
 // Configuration for a tf.data service WorkerServer.
