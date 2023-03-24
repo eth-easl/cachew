@@ -475,7 +475,7 @@ def spawn_loc_workers(workers=1,
 
     loc_workers = []
 
-    logging.info("Spawning " + str(workers) + " local workers to " + dispatcher)
+    print(f"Spawning {workers} local workers to {dispatcher}")
     for idx in range(workers):
         loc_workers.append(
             WorkerServer(
