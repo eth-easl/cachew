@@ -18,18 +18,20 @@ namespace easl {
 namespace local_worker_decision {
 
 namespace {
-    int MAX_WORKERS_PER_JOB = 100;
-    double kMinBatchTimeRelativeImprovementDown = 0.03;
-    uint32 kInStabilityBeforeScaling = 20;
-    double kMinQueueSizeRelativeGrowth = 1.5; // +50%
-    double kMinBatchTimeRelativeGrowth = 1.5; // +50%
+int MAX_WORKERS_PER_JOB = 100;                                 // UNUSED!
+double kMinBatchTimeRelativeImprovementDown = 0.03;            // UNUSED!
+uint32 kInStabilityBeforeScaling = 20;                         // UNUSED!
+double kMinQueueSizeRelativeGrowth = 1.5; // +50%              // UNUSED!
+double kMinBatchTimeRelativeGrowth = 1.5; // +50%              // UNUSED!
 
-    // Why do we have these worker count limits??
-    int MAX_LOCAL_WORKERS_PER_JOB = 100; //5;
-    int MAX_REMOTE_WORKERS_PER_JOB = 10; //8;
+    int MAX_LOCAL_WORKERS_PER_JOB = 10;
+    int MAX_REMOTE_WORKERS_PER_JOB = 20;
     double kPerformanceErrorBar = 0.10;
-    // combine with costs
     double kPerformanceDecreaseTolerance = 0.10;
+
+    // cost model
+    double CLIENT_COST = 4.96;
+    double WOKRER_COST = 0.427319;
 }
 
 void debug_print_local_remote(std::string debug_string, int64 remote_worker_count, int64 local_worker_count) {
@@ -128,8 +130,34 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   double stl_batch_time = second_to_last_metrics->last_x_batch_time_ms();
   double l_batch_time = last_metrics->last_x_batch_time_ms();
   double relative_improvement = 1.0 - l_batch_time / stl_batch_time;
+  if (l_batch_time < 0 || stl_batch_time < 0) {
+    VLOG(0) << "Failed to record batch time correctly!!! l_batch_time: " << l_batch_time << ", stl_batch_time: " << stl_batch_time;
+  }
+  double extra_worker_cost = dispatcher_config.worker_cost() * (1.0 - relative_improvement);
+  double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() +
+             second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
-  VLOG(0) << "Relative Improvement: " << relative_improvement;
+  VLOG(0) << "local_worker_decision_utils settings " << dispatcher_config.optimize_cost() <<
+          " client cost=" << dispatcher_config.client_cost() << " worker cost=" << dispatcher_config.worker_cost() <<
+          " batches_per_decision (deprecated)=" << dispatcher_config.batches_per_decision() <<
+          " scaling threshold up=" << dispatcher_config.scaling_threshold_up();
+
+  bool opt_for_cost = dispatcher_config.optimize_cost();
+  double threshold;
+  if (opt_for_cost) {
+    threshold = extra_worker_cost;
+  } else {
+    threshold = dispatcher_config.scaling_threshold_up();
+    if (threshold <= 0.0) {
+      threshold = 0.03;
+      VLOG(0) << "Manually set threshold to 0.03";
+    }
+  }
+  VLOG(0) << "Optimizing for cost: " << opt_for_cost << " Current improvement threshold is: "
+          << threshold;
+
+  VLOG(0) << "Relative Improvement: " << relative_improvement << " l_batch_time: "
+          << l_batch_time << ", stl_batch_time: " << stl_batch_time;
 
   // How can this be > 1 ??
   if (relative_improvement > 1.3 || relative_improvement < -1.3) {
@@ -151,8 +179,11 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       }
       else {
         // we're scaling up, which is a normal behavior
-        if (relative_improvement > dispatcher_config.scaling_threshold_up() &&
-            last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB &&
+        bool extra_worker_helped = (dispatcher_config.optimize_cost() && extra_worker_saving > extra_worker_cost) ||
+                                   (!dispatcher_config.optimize_cost() && relative_improvement > dispatcher_config.scaling_threshold_up());
+        if (//relative_improvement > dispatcher_config.scaling_threshold_up() &&
+          //extra_worker_saving > extra_worker_cost &&
+          extra_worker_helped && last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB &&
             available_workers > 0) {
           remote_worker_count = last_metrics->remote_worker_count() + 1;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
@@ -184,12 +215,23 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     case JobScalingState::DECREASING_REMOTE: {
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
-      if (relative_improvement < -kPerformanceDecreaseTolerance ||
+
+      // Calculate how much performance degradation is still economical
+      double saved_worker_cost = dispatcher_config.worker_cost();
+      double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+      bool removing_worker_helped = saved_worker_cost > extra_time_cost;
+      VLOG(0) << "Removing the extra worker was economical: " << removing_worker_helped;
+      VLOG(0) << "Removing the worker saved $" << saved_worker_cost << ". The increased training time incurred an extra cost of $" << extra_time_cost;
+
+      if (//relative_improvement < -kPerformanceDecreaseTolerance ||
+        !removing_worker_helped ||
         last_metrics->remote_worker_count() == 0
       ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump_out)";
         // jump out
-        if (relative_improvement < -kPerformanceDecreaseTolerance) {
+        if (//relative_improvement < -kPerformanceDecreaseTolerance
+            !removing_worker_helped
+        ) {
           remote_worker_count = last_metrics->remote_worker_count() + 1;
           local_worker_count = last_metrics->local_worker_count();
         } else {

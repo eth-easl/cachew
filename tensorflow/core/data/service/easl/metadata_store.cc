@@ -706,6 +706,11 @@ Status MetadataStore::UpdateModelMetrics(
   ModelMetrics::Metrics& metrics) {
   std::shared_ptr<ModelMetrics> model_metrics;
   Status s = GetModelMetrics(job_id, model_metrics);
+  // Test if we are getting correct batch times metrics (i.e. the duration is not negative)
+  double l_batch_time = metrics.last_x_batch_time_ms();
+  if (l_batch_time <= 0) {
+    VLOG(0) << "Incorrect batch time metrics: " << l_batch_time;
+  }
   if (s.ok()) {
     model_metrics->UpdateClientMetrics(client_id, metrics);
   } 

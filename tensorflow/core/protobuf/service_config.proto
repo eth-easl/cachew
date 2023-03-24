@@ -7,7 +7,7 @@ import "tensorflow/core/protobuf/data_service.proto";
 option go_package = "github.com/tensorflow/tensorflow/tensorflow/go/core/protobuf/for_core_protos_go_proto";
 
 // Configuration for a tf.data service DispatchServer.
-// Next id: 20
+// Next id: 24
 message DispatcherConfig {
   // The port for the dispatcher to bind to. A value of 0 indicates that the
   // dispatcher may bind to any available port.
@@ -65,6 +65,14 @@ message DispatcherConfig {
   double scaling_threshold_up = 18;
   // The op ordering policy to be applied
   int64 order_policy = 19;
+  // Whether to optimize for cost rather than training time
+  bool optimize_cost = 19;
+  // The cost of the client ($ per hour)
+  double client_cost = 20;
+  // The cost of the worker ($ per hour)
+  double worker_cost = 21;
+  // The number of batches for profiling before a scaling decision is made
+  int32 batches_per_decision = 22;
 }
 
 // Configuration for a tf.data service WorkerServer.

@@ -15,6 +15,7 @@
 """A Python interface for creating dataset servers."""
 
 import collections
+import logging
 
 # pylint: disable=invalid-import-order,g-bad-import-order, unused-import
 from tensorflow.core.protobuf import service_config_pb2
@@ -47,7 +48,8 @@ class DispatcherConfig(
         "job_gc_check_interval_ms", "job_gc_timeout_ms", "cache_policy",
         "cache_format", "cache_compression", "cache_ops_parallelism", "cache_path",
         "scaling_policy", "log_dir", "log_dumps_interval_ms",
-        "scaling_threshold_up", "order_policy"])):
+        "scaling_threshold_up", "order_policy","scaling_threshold_up", "optimize_cost",
+        "client_cost", "worker_cost", "batches_per_decision"])):
   """Configuration class for tf.data service dispatchers.
 
   Fields:
@@ -81,12 +83,12 @@ class DispatcherConfig(
       the time it takes to reclaim the resources from expired jobs.
 
     EASL
-    cache_policy: The cache policy applied by the dispatcher (e.g. no-chache,
+    cache_policy: The cache policy applied by the dispatcher (e.g. no-cache,
       all-cache..).
     cache_format: The file format used for the cache of the service.
     cache_compression: The compression schema (if any) to use for the caching ops
     cache_ops_parallelism: The number of parallel threads the caching ops
-      shoujld use for reading/writing to cache
+      should use for reading/writing to cache
     cache_path: The base path to use for storing the cache contents.
     scaling_policy: The scaling policy applied by the dispatcher.
     log_dir: The directory to put the logs into. If set not empty (""), logs will be printed there.
@@ -94,7 +96,11 @@ class DispatcherConfig(
         Only valid if log_dir is not empty.
     scaling_threshold_up: The threshold (in percentage points) used in the
       Autoscale policy (generally used for scaling up)
-    order_policy: The op ordering policy to be applied (0==no reodering, 1==AutoOrder policy)
+    order_policy: The op ordering policy to be applied (0==no reordering, 1==AutoOrder policy)
+    optimize_cost: whether to optimize for cost (rather than training time)
+    client_cost: hourly cost of the client
+    worker_cost: hourly cost of a worker
+    batches_per_decision: batches to profile for a scaling decision
   """
 
   def __new__(cls,
@@ -113,8 +119,18 @@ class DispatcherConfig(
               scaling_policy=1,
               log_dir="",
               log_dumps_interval_ms=None,
-              scaling_threshold_up=0.07,
-              order_policy=1):
+              scaling_threshold_up=0.03,
+              order_policy=1,
+              optimize_cost=False,
+              client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
+              worker_cost=0.427319, # For an n2-standard-8 VM
+              batches_per_decision=300
+              ):
+
+    logging.info("Settings in constructor were: optimize cost=" + str(optimize_cost) + " client cost=" +
+                 str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
+
     if protocol is None:
         protocol = _pywrap_utils.TF_DATA_DefaultProtocol()
     job_gc_check_interval_ms = _get_time_or_placeholder(
@@ -129,7 +145,8 @@ class DispatcherConfig(
                               cache_policy, cache_format, cache_compression,
                               cache_ops_parallelism, cache_path, scaling_policy,
                               log_dir, log_dumps_interval_ms,
-                              scaling_threshold_up, order_policy)
+                              scaling_threshold_up, order_policy, optimize_cost,
+                              client_cost, worker_cost, batches_per_decision)
 
 
 @tf_export("data.experimental.service.DispatchServer", v1=[])
@@ -189,6 +206,9 @@ class DispatchServer(object):
           "Make sure to set `work_dir` in the `config` object passed to "
           "`DispatcherServer`.")
     self._config = config
+    logging.info("Checking settings in config: optimize cost=" + str(config.optimize_cost) + " client cost=" +
+                 str(config.client_cost) + " worker cost=" + str(config.worker_cost) + " batches_per_decision (deprecated)=" +
+                 str(config.batches_per_decision) + " scaling threshold up=" + str(config.scaling_threshold_up))
 
     if isinstance(config, service_config_pb2.DispatcherConfig):
       config_proto = config
@@ -210,7 +230,11 @@ class DispatchServer(object):
         log_dir=config.log_dir,
         log_dumps_interval_ms=config.log_dumps_interval_ms,
         scaling_threshold_up=config.scaling_threshold_up,
-        order_policy=config.order_policy)
+        order_policy=config.order_policy,
+        optimize_cost=config.optimize_cost,
+        client_cost=config.client_cost,
+        worker_cost=config.worker_cost,
+        batches_per_decision=config.batches_per_decision)
 
     self._server = _pywrap_server_lib.TF_DATA_NewDispatchServer(
         config_proto.SerializeToString())
@@ -441,3 +465,29 @@ class WorkerServer(object):
   def _num_tasks(self):
     """Returns the number of tasks currently being executed on the worker."""
     return self._server.num_tasks()
+
+@tf_export("data.experimental.service.spawn_loc_workers")
+def spawn_loc_workers(workers=1,
+                      dispatcher='localhost'):
+
+    '''
+    A function for spawning local workers under the hood.
+    Args:
+      workers: the number of workers you want to spawn
+      disptacher: the name of the dispatcher
+    '''
+
+    loc_workers = []
+
+    print(f"Spawning {workers} local workers to {dispatcher}")
+    for idx in range(workers):
+        loc_workers.append(
+            WorkerServer(
+                WorkerConfig(
+                    dispatcher_address=dispatcher,
+                    heartbeat_interval_ms=1000,
+                    # port=38000 + idx
+                )
+            )
+        )
+    return loc_workers
