@@ -48,7 +48,7 @@ class DispatcherConfig(
         "job_gc_check_interval_ms", "job_gc_timeout_ms", "cache_policy",
         "cache_format", "cache_compression", "cache_ops_parallelism", "cache_path",
         "scaling_policy", "log_dir", "log_dumps_interval_ms",
-        "scaling_threshold_up", "order_policy","scaling_threshold_up", "optimize_cost",
+        "scaling_threshold_up", "order_policy", "optimize_cost",
         "client_cost", "worker_cost", "batches_per_decision"])):
   """Configuration class for tf.data service dispatchers.
 
