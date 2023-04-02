@@ -2105,8 +2105,9 @@ name=None))
           deter = dataset._deterministic if hasattr(dataset, "_deterministic") else False
           new_input_ds = ParallelMapDataset(dataset._input_dataset._input_dataset,
                                             dataset._map_func._func,
-                                            dataset._use_inter_op_parallelism,
+                                            dataset._num_parallel_calls,
                                             deter,
+                                            use_inter_op_parallelism=dataset._use_inter_op_parallelism,
                                             preserve_cardinality=dataset._preserve_cardinality,
                                             name=dataset._metadata.name,
                                             keep_position=dataset._keep_position,
@@ -2133,16 +2134,18 @@ name=None))
             deter = dataset._input_dataset._deterministic if hasattr(dataset._input_dataset, "_deterministic") else False
             new_ds = ParallelMapDataset(final_input_ds,
                                         dataset._input_dataset._map_func._func,
-                                        dataset._input_dataset._use_inter_op_parallelism,
+                                        dataset._input_dataset._num_parallel_calls,
                                         deter,
+                                        use_inter_op_parallelism=dataset._input_dataset._use_inter_op_parallelism,
                                         preserve_cardinality=dataset._input_dataset._preserve_cardinality,
                                         name=dataset._input_dataset._metadata.name,
                                         position=dataset._position)
           else:
             new_ds = ParallelMapDataset(final_input_ds,
                                         dataset._map_func._func,
-                                        dataset._use_inter_op_parallelism,
+                                        dataset._num_parallel_calls,
                                         deter,
+                                        use_inter_op_parallelism=dataset._use_inter_op_parallelism,
                                         preserve_cardinality=dataset._preserve_cardinality,
                                         name=dataset._metadata.name,
                                         position=dataset._position)
@@ -2186,11 +2189,6 @@ name=None))
     def move_filters_up(dataset):
       return dataset
 
-    # Recursively try to move last op upwards
-    #def move_up(dataset):
-
-
-
     def order_unknown_resize_by_metrics(dataset, op_o):
       logging.info("Determining unknown resizes by metrics")
       #n_ds = dsu.get_source_ds(dataset)
@@ -2229,6 +2227,7 @@ name=None))
                                     dataset._map_func._func,
                                     dataset._num_parallel_calls,
                                     dataset._deterministic,
+                                    use_inter_op_parallelism=dataset._use_inter_op_parallelism,
                                     preserve_cardinality=True,
                                     name=dataset._metadata.name,
                                     keep_position=False,
@@ -2236,7 +2235,7 @@ name=None))
       else:
         return dataset
       
-      # Making the new auter dataset
+      # Making the new outer dataset
       if isinstance(dataset._input_dataset, MapDataset):
         new_ds = MapDataset(new_in,
                             dataset._input_dataset._map_func._func,
@@ -2249,6 +2248,7 @@ name=None))
                                     dataset._input_dataset._map_func._func,
                                     dataset._input_dataset._num_parallel_calls,
                                     dataset._input_dataset._deterministic,
+                                    use_inter_op_parallelism=dataset._input_dataset._use_inter_op_parallelism,
                                     preserve_cardinality=True,
                                     name=dataset._input_dataset._metadata.name,
                                     keep_position=False,
@@ -2464,8 +2464,9 @@ name=None))
             elif isinstance(self, ParallelMapDataset):
               new_ds = ParallelMapDataset(new_self,
                                           self._map_func._func,
-                                          self._use_inter_op_parallelism,
+                                          self._num_parallel_calls,
                                           self._deterministic,
+                                          use_inter_op_parallelism=self._use_inter_op_parallelism,
                                           preserve_cardinality=self._preserve_cardinality,
                                           name=self._metadata.name,
                                           keep_position=self._keep_position,
@@ -2564,8 +2565,9 @@ name=None))
             elif isinstance(self, ParallelMapDataset):
               new_ds = ParallelMapDataset(new_self,
                                           self._map_func._func,
-                                          self._use_inter_op_parallelism,
+                                          self._num_parallel_calls,
                                           self._deterministic,
+                                          use_inter_op_parallelism=self._use_inter_op_parallelism,
                                           preserve_cardinality=self._preserve_cardinality,
                                           name=self._metadata.name,
                                           keep_position=self._keep_position,
@@ -5667,7 +5669,6 @@ def _padding_values_or_default(padding_values, input_dataset):
   return nest.map_structure_up_to(padding_values, value_or_default,
                                   padding_values, default_padding)
 
-
 class PaddedBatchDataset(UnaryDataset):
   """A `Dataset` that batches and pads contiguous elements from its input."""
 
@@ -5752,7 +5753,6 @@ class PaddedBatchDataset(UnaryDataset):
   def element_spec(self):
     return self._structure
 
-
 class MapDataset(UnaryDataset):
   """A `Dataset` that maps a function over elements in its input."""
 
@@ -5802,7 +5802,6 @@ class MapDataset(UnaryDataset):
 
   def _transformation_name(self):
     return "Dataset.map()"
-
 
 class ParallelMapDataset(UnaryDataset):
   """A `Dataset` that maps a function over elements in its input in parallel."""
@@ -5866,7 +5865,6 @@ class ParallelMapDataset(UnaryDataset):
   def _transformation_name(self):
     return "Dataset.map()"
 
-
 class FlatMapDataset(UnaryDataset):
   """A `Dataset` that maps a function over its input and flattens the result."""
 
@@ -5899,7 +5897,6 @@ class FlatMapDataset(UnaryDataset):
 
   def _transformation_name(self):
     return "Dataset.flat_map()"
-
 
 class InterleaveDataset(UnaryDataset):
   """A `Dataset` that interleaves the result of transformed inputs."""

@@ -69,19 +69,19 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
                                  std::vector<std::string> &pipeline_nodes,
                                  std::vector<float> &inflationFactors,
                                  int64 job_id) {
-  VLOG(0) << "Calculating inflation factors";
+  VLOG(1) << "Calculating inflation factors";
   std::shared_ptr<::tensorflow::data::easl::JobMetrics> job_metrics;
   TF_RETURN_IF_ERROR(metadata_store.GetJobMetrics(job_id, job_metrics));
-  VLOG(0) << "Got job metrics";
+  VLOG(1) << "Got job metrics";
 
   std::shared_ptr<::tensorflow::data::easl::InputPipelineMetrics> i_p_metrics;
   metadata_store.GetInputPipelineMetrics(job_id, i_p_metrics);
-  VLOG(0) << "Got input pipeline metrics";
+  VLOG(1) << "Got input pipeline metrics";
 
   std::vector<std::string> worker_ips;
   std::shared_ptr<::tensorflow::data::easl::NodeMetrics> final_node_metrics;
   TF_RETURN_IF_ERROR(metadata_store.GetLastNodeMetrics(job_id, final_node_metrics));
-  VLOG(0) << "Got LastNodeMetrics";
+  VLOG(1) << "Got LastNodeMetrics";
   for (auto e : final_node_metrics->metrics_) {
     worker_ips.push_back(e.first);
   }
@@ -97,13 +97,13 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
 
   std::string final_node = pipeline_nodes[pipeline_nodes.size()-1];
-  VLOG(0) << "Found final node, first 15 are: ";
+  VLOG(1) << "Found final node, first 15 are: ";
   int count = 15;
   if (nodes_in_pipeline < count) {
     count = nodes_in_pipeline;
   }
   for (int i = 0; i < count; ++i) {
-    VLOG(0) << pipeline_nodes[i];
+    VLOG(1) << pipeline_nodes[i];
   }
 
   // 1. Sort the pipeline nodes by id
@@ -132,7 +132,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     }
   }
   std::vector<std::string>pipeline_nodes_sorted_filtered = std::vector<std::string>(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.begin() + tf_rec_pos);
-  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.size() << " nodes";
+  VLOG(1) << "The main pipeline has " << pipeline_nodes_sorted_filtered.size() << " nodes";
 
   // 3. Remove any Prefetch, MemoryCache, MemoryCacheImpl, AssertCardinality, TensorSlice, ParallelInterleaveV4 nodes
   //    (we aren't interested in those)
@@ -149,7 +149,6 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
         cur_node.find("ParallelInterleaveV4") != std::string::npos ||
         cur_node.find("TensorSlice") != std::string::npos ||
         cur_node.find("FlatMap") != std::string::npos
-
     ) {
       nodes_to_remove.push_back(i);
       //pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin() + i);
@@ -159,7 +158,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       inflationFactors.push_back(0);
     }
   }
-  VLOG(0) << nodes_to_remove.size() << " nodes are not interesting to us";
+  VLOG(1) << nodes_to_remove.size() << " nodes are not interesting to us";
   for (int i = nodes_to_remove.size()-1; i >= 0; --i) {
     pipeline_nodes_sorted_filtered.erase(pipeline_nodes_sorted_filtered.begin()+nodes_to_remove[i]);
   }
@@ -194,6 +193,27 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   VLOG(0) << "In total " << total_elems_produced << " elements were produced by the input pipeline.";
 
   // Examine the metric for each worker 1 by 1
+
+  // Calculate how many bytes were produced remotely / locally in the final node
+  int64 bytes_produced_remotely = 0;
+  int64 bytes_produced_locally = 0;
+  for (int i = 0; i < num_workers; ++i) {
+    tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
+    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
+    if (worker_ips[i].find("localhost:") == std::string::npos) {
+      if (it != final_node_worker_metrics.end()) {
+        bytes_produced_remotely += it->second->num_elements();
+      }
+    } else {
+      if (it != final_node_worker_metrics.end()) {
+        bytes_produced_locally += it->second->num_elements();
+      }
+    }
+  }
+
+  VLOG(0) << "Bytes produced remotely: " << bytes_produced_remotely;
+  VLOG(0) << "Bytes produced locally: " << bytes_produced_locally;
+
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
@@ -205,7 +225,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       if (it != worker_metrics.end()) {
         int64 bc = it->second->bytes_consumed();
         int64 bp = it->second->bytes_produced();
-        VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
+        VLOG(1) << "consumed " << bc << " bytes, produced " << bp << " bytes";
         if (bc == 0) {
           float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
         } else {

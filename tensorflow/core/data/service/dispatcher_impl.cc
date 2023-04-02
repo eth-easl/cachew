@@ -414,6 +414,11 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
   TF_RETURN_IF_ERROR(CheckStarted());
   VLOG(0) << "Received worker heartbeat request from worker "
           << request->worker_address();
+
+  //if (request->worker_address().find("localhost:") == std::string::npos) {
+
+  //}
+
   mutex_lock l(mu_);
   const std::string& worker_address = request->worker_address();
   // Assigned tasks from the perspective of the dispatcher.
@@ -570,7 +575,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
     }
   }
 
-  VLOG(0) << "Finished worker heartbeat for worker at address "
+  VLOG(1) << "Finished worker heartbeat for worker at address "
           << request->worker_address();
   return Status::OK();
 }
