@@ -2430,7 +2430,6 @@ name=None))
         if (move_upstream or new_ds._move_upstream) and not in_ds_keep_pos:
 
           new_ds = move_op_upstream(new_ds)
-          
           return new_ds
 
         # Case where the previous (self) op changes to a more expensive data type => move the original downstream
@@ -2484,7 +2483,6 @@ name=None))
         new_ds._move_downstream = False
       return new_ds
 
-        
     else:
       new_ds = ParallelMapDataset(
           self,

@@ -36,10 +36,9 @@ using ConfigMap =
     std::map<string, tensorflow::RewriterConfig_CustomGraphOptimizer>;
 
 // tf.data optimizations, in the order we want to perform them.
-// TBD: Where exactly should the auto_order optimizer go!!!!!!!!
-//constexpr std::array<const char*, 24> kTFDataOptimizations = {
-constexpr std::array<const char*, 26> kTFDataOptimizations = {
-    "auto_order",
+// C++ level auto_order and summarize optimizers are currently obsolete
+constexpr std::array<const char*, 24> kTFDataOptimizations = {
+    //"auto_order",
     "noop_elimination",
     "disable_intra_op_parallelism",
     "use_private_thread_pool",
@@ -63,8 +62,8 @@ constexpr std::array<const char*, 26> kTFDataOptimizations = {
     "add_get_op",
     "add_put_op_at_marker",
     "add_get_op_at_marker",
-    "make_deterministic",
-    "summarize"
+    "make_deterministic"//,
+    //"summarize"
 };
 
 // Parses a list of string optimizer configurations into a map from
@@ -111,7 +110,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   // Stores the optimized item so far.
   GrapplerItem optimized_item = item;
 
-  VLOG(0) << "Before optimizations happen";
+  VLOG(1) << "Before optimizations happen";
 
   // Perform optimizations in a meaningful order.
   for (const auto& optimization : kTFDataOptimizations) {
@@ -137,7 +136,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
     auto* func = flib.Find(name);
     // Skip non tf.data functions.
     if (!data::IsTFDataFunction(*func)) continue;
-    VLOG(0) << "Optimize function: function=" << func->signature().name();
+    VLOG(1) << "Optimize function: function=" << func->signature().name();
     optimized_functions = true;
 
     // Make a GrapplerItem from a FunctionDef.
@@ -170,7 +169,7 @@ Status TFDataMetaOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   }
   if (optimized_functions) {
     *output->mutable_library() = flib.ToProto();
-    VLOG(0) << "Done with optimizing and updating f_lib";
+    VLOG(1) << "Done with optimizing and updating f_lib";
   }
   return Status::OK();
 }

@@ -121,12 +121,12 @@ void DefaultOptimizationGraphRewrites(
     }
     if (optimization_options.optional_auto_order_case() !=
         OptimizationOptions::kAutoOrder) {
-      VLOG(0) << "DEBUG: Setting OptimizationOptions::kAutoOrder UPPER LOC";
+      VLOG(1) << "DEBUG: Setting OptimizationOptions::kAutoOrder UPPER LOC";
       optimization_default->insert(kAutoOrderOpt);
     }
     if (optimization_options.optional_summarize_case() !=
         OptimizationOptions::kSummarize) {
-      VLOG(0) << "DEBUG: Setting OptimizationOptions::kSummarize UPPER LOC";
+      VLOG(1) << "DEBUG: Setting OptimizationOptions::kSummarize UPPER LOC";
       optimization_default->insert(kSummarizeOpt);
     }
   }
@@ -199,7 +199,7 @@ void DefaultOptimizationGraphRewrites(
   }
   if (optimization_options.optional_auto_order_case() ==
       OptimizationOptions::kAutoOrder) {
-    VLOG(0) << "DEBUG: Setting OptimizationOptions::kAutoOrder LOWER LOC";
+    VLOG(1) << "DEBUG: Setting OptimizationOptions::kAutoOrder LOWER LOC";
     if (optimization_options.auto_order()) {
       optimization_enabled->insert(kAutoOrderOpt);
     } else {
@@ -208,7 +208,7 @@ void DefaultOptimizationGraphRewrites(
   }
   if (optimization_options.optional_summarize_case() ==
       OptimizationOptions::kSummarize) {
-    VLOG(0) << "DEBUG: Setting OptimizationOptions::kSummarize LOWER LOC";
+    VLOG(1) << "DEBUG: Setting OptimizationOptions::kSummarize LOWER LOC";
     if (optimization_options.summarize()) {
       optimization_enabled->insert(kSummarizeOpt);
     } else {

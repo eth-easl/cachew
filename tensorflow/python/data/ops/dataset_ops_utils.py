@@ -169,8 +169,7 @@ def get_ds_dtypes_shapes(dataset):
     #logging.info(str(elem_spec.dtype).split('\'')[1])
   else:
     logging.info("Unsupported spec type")
-  logging.info(types)
-  logging.info(shapes)
+  logging.info(str(types) + ' ' + str(shapes))
   return types, shapes
 
 def should_reorder(org_types, org_shapes, new_types, new_shapes):
