@@ -194,9 +194,6 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   // Examine the metric for each worker 1 by 1
 
-  VLOG(0) << "Bytes produced remotely: " << bytes_produced_remotely;
-  VLOG(0) << "Bytes produced locally: " << bytes_produced_locally;
-
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
@@ -270,6 +267,17 @@ Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
   }
   int num_workers = worker_ips.size();
   VLOG(0) << "In total " << num_workers << " workers worked on this job";
+
+  int nodes_in_pipeline = 0;
+  for (auto e : i_p_metrics->metrics_) {
+    nodes_in_pipeline++;
+    pipeline_nodes.push_back(e.first);
+    //inflationFactors.push_back(0);
+  }
+  VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
+
+  std::string final_node = pipeline_nodes[pipeline_nodes.size()-1];
+  VLOG(0) << "Final node is: " << final_node;
 
   // Calculate how many bytes were produced remotely / locally in the final node
   for (int i = 0; i < num_workers; ++i) {
