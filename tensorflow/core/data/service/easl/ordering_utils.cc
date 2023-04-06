@@ -194,23 +194,6 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   // Examine the metric for each worker 1 by 1
 
-  // Calculate how many bytes were produced remotely / locally in the final node
-  int64 bytes_produced_remotely = 0;
-  int64 bytes_produced_locally = 0;
-  for (int i = 0; i < num_workers; ++i) {
-    tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
-    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
-    if (worker_ips[i].find("localhost:") == std::string::npos) {
-      if (it != final_node_worker_metrics.end()) {
-        bytes_produced_remotely += it->second->num_elements();
-      }
-    } else {
-      if (it != final_node_worker_metrics.end()) {
-        bytes_produced_locally += it->second->num_elements();
-      }
-    }
-  }
-
   VLOG(0) << "Bytes produced remotely: " << bytes_produced_remotely;
   VLOG(0) << "Bytes produced locally: " << bytes_produced_locally;
 
@@ -260,9 +243,50 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   pipeline_nodes.clear();
   pipeline_nodes = pipeline_nodes_sorted_filtered_2;
-  VLOG(0) << "Check: pipeline_nodes now has " << pipeline_nodes.size();
+  VLOG(0) << "Check: pipeline_nodes now has " << pipeline_nodes.size() << " nodes.";
 
   return Status::OK();
+}
+
+Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
+                    int64 job_id,
+                    int64 bytes_produced_locally,
+                    int64 bytes_produced_remotely){
+  VLOG(0) << "Calculating bytes sent";
+  std::shared_ptr<::tensorflow::data::easl::JobMetrics> job_metrics;
+  TF_RETURN_IF_ERROR(metadata_store.GetJobMetrics(job_id, job_metrics));
+  VLOG(1) << "Got job metrics";
+
+  std::shared_ptr<::tensorflow::data::easl::InputPipelineMetrics> i_p_metrics;
+  metadata_store.GetInputPipelineMetrics(job_id, i_p_metrics);
+  VLOG(1) << "Got input pipeline metrics";
+
+  std::vector<std::string> worker_ips;
+  std::shared_ptr<::tensorflow::data::easl::NodeMetrics> final_node_metrics;
+  TF_RETURN_IF_ERROR(metadata_store.GetLastNodeMetrics(job_id, final_node_metrics));
+  VLOG(1) << "Got LastNodeMetrics";
+  for (auto e : final_node_metrics->metrics_) {
+    worker_ips.push_back(e.first);
+  }
+  int num_workers = worker_ips.size();
+  VLOG(0) << "In total " << num_workers << " workers worked on this job";
+
+  // Calculate how many bytes were produced remotely / locally in the final node
+  for (int i = 0; i < num_workers; ++i) {
+    tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
+    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
+    auto it = final_node_worker_metrics.find(final_node);
+    if (worker_ips[i].find("localhost:") == std::string::npos) {
+      if (it != final_node_worker_metrics.end()) {
+        bytes_produced_remotely += it->second->bytes_produced();
+      }
+    } else {
+      if (it != final_node_worker_metrics.end()) {
+        bytes_produced_locally += it->second->bytes_produced();
+      }
+    }
+  }
+
 }
 
 Status OpOrderUpdate(

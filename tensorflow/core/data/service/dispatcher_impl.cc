@@ -475,7 +475,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
 
       if(!s.ok()) {
         // Ignore metrics if job has already been removed from metadata store.
-        // Otherwise return status error.
+        // Otherwise, return status error.
         VLOG(0) << "(DataServiceDispatcherImpl::WorkerHeartbeat) "
                      << "Could not update node names " << s.error_message();
         if(!errors::IsNotFound(s)){ return s; }
@@ -571,6 +571,17 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         else {
           VLOG(0) << "So far " << element_count << " elements produced";
         }
+
+        // Only for NSDI paper numbers: log final bytes produced & sent over the network
+        int64 bytes_produced_locally = 0;
+        int64 bytes_produced_remotely = 0;
+        Status s4 = service::easl::ordering_utils::GetBytesSent(metadata_store_,
+                                                                job_id,
+                                                                bytes_produced_locally,
+                                                                bytes_produced_remotely);
+        VLOG(0) << "So far " << bytes_produced_remotely << " bytes produced remotely, "
+            << bytes_produced_locally << " bytes produced locally";
+
       }
     }
   }
@@ -1721,10 +1732,10 @@ Status DataServiceDispatcherImpl::ClientHeartbeat(
   bool inf_factors_exist;
   InfFactorMetrics inf_factors;
   if (s.ok()) {
-    VLOG(0) << "Found inflation metrics";
+    VLOG(1) << "Found inflation metrics";
     //response->set_has_inf_factors(true);
     for (int i = 0; i < pipeline_nodes.size(); ++i) {
-      VLOG(0) << "Node " << pipeline_nodes[i] << " inflation factor " << inflation_factors[i];
+      VLOG(1) << "Node " << pipeline_nodes[i] << " inflation factor " << inflation_factors[i];
 
       // Avoid reordering, when de/inflation just appears by noise
       if (inflation_factors[i] < 1.05 && inflation_factors[i] > 0.95) {

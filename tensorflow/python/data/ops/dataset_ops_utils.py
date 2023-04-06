@@ -107,13 +107,13 @@ dtypes_by_bytes = ["<dtype: \'int8\'>",
 
 dtypes_by_bytes = ["int8",
                    "uint8",
-                   #"bfloat16",
                    "float16",
                    "int16",
                    "float32",
                    "int32",
                    "float64",
-                   "int64"
+                   "int64",
+                   "bfloat16"
                    ]
 
 def get_ds_dtypes_shapes(dataset):
@@ -158,7 +158,6 @@ def get_ds_dtypes_shapes(dataset):
         shapes += list(val.shape)
         #logging.info(val.shape)
       
-
   elif str(type(elem_spec)) == "<class 'tensorflow.python.framework.tensor_spec.TensorSpec'>":
     types.append('Elem_spec')
 

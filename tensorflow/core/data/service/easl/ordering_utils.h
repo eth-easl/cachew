@@ -27,6 +27,10 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
                                  std::vector<float> &inflationFactors,
                                  int64 job_id);
 
+Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
+                    int64 job_id,
+                    int64 bytes_produced_locally,
+                    int64 bytes_produced_remotely);
 
 Status OpOrderUpdate(
     const std::string& job_type,
