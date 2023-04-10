@@ -258,6 +258,43 @@ Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
   metadata_store.GetInputPipelineMetrics(job_id, i_p_metrics);
   VLOG(1) << "Got input pipeline metrics";
 
+  int nodes_in_pipeline = 0;
+  std::vector<std::string> pipeline_nodes;
+  for (auto e : i_p_metrics->metrics_) {
+    nodes_in_pipeline++;
+    pipeline_nodes.push_back(e.first);
+  }
+  VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
+
+  std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
+  for (std::string n : pipeline_nodes) {
+    VLOG(1) << "Org str was " << n;
+    std::string pos_str =
+        n.substr(n.find("(id:") + 4, n.length() - n.find("(id:") - 5);
+    VLOG(1) << "Pos_str was " << pos_str;
+    int pos = std::stoi(pos_str) - 1;
+    VLOG(1) << "Pos was " << pos;
+    try {
+      pipeline_nodes_sorted[pos] = n;
+    } catch (const std::exception& e) {
+      VLOG(0) << "Invalid key";
+    }
+  }
+  VLOG(0) << "Sorted the pipeline nodes";
+
+  // 2. Remove any nodes after 1st TFRecord node
+  int tf_rec_pos = 0;
+
+  for (int i = 0; i < nodes_in_pipeline; ++i) {
+    if (pipeline_nodes_sorted[i].find("TFRecord") != std::string::npos) {
+      tf_rec_pos = i;
+      VLOG(0) << "TFRecord is at position " << tf_rec_pos;
+      break;
+    }
+  }
+  std::vector<std::string>pipeline_nodes_sorted_filtered = std::vector<std::string>(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.begin() + tf_rec_pos);
+  VLOG(0) << "The main pipeline has " << pipeline_nodes_sorted_filtered.size() << " nodes";
+
   std::vector<std::string> worker_ips;
   std::shared_ptr<::tensorflow::data::easl::NodeMetrics> final_node_metrics;
   TF_RETURN_IF_ERROR(metadata_store.GetLastNodeMetrics(job_id, final_node_metrics));
@@ -268,7 +305,34 @@ Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
   int num_workers = worker_ips.size();
   VLOG(0) << "In total " << num_workers << " workers worked on this job";
 
-  std::string sink_node;
+  for (int i = 0; i < num_workers; ++i) {
+    ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
+    Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
+    VLOG(0) << "Worker " << i << " was " << worker_ips[i];
+    for (int j = 0; j < pipeline_nodes_sorted_filtered.size(); ++j) {
+      VLOG(0) << "Node " << pipeline_nodes_sorted_filtered[j];
+      auto it = worker_metrics.find(pipeline_nodes_sorted_filtered[j]);
+      if (it != worker_metrics.end()) {
+        int64 bc = it->second->bytes_consumed();
+        int64 bp = it->second->bytes_produced();
+        VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
+        if (bc == 0) {
+          float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
+        } else {
+          float inflation_f = 1.0 * bp / bc;
+          inflationFactors[j] += elems_produced_final[i] * inflation_f;
+        }
+      }
+      //VLOG(0) << "Done";
+    }
+  }
+
+
+
+
+
+
+  /*std::string sink_node;
   int nodes_in_pipeline = 0;
   std::vector<std::string> pipeline_nodes;
   for (auto e : i_p_metrics->metrics_) {
@@ -313,7 +377,7 @@ Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
         VLOG(0) << "Locally produced: " << bytes_produced_remotely;
       }
     }
-  }
+  }*/
 }
 
 Status OpOrderUpdate(
