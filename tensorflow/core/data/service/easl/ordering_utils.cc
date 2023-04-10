@@ -285,16 +285,32 @@ Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
 
   // Calculate how many bytes were produced remotely / locally in the final node
   for (int i = 0; i < num_workers; ++i) {
-    tensorflow::data::easl::NodeMetrics::MetricsCollection sink_node_worker_metrics;
-    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], sink_node_worker_metrics));
-    auto it = sink_node_worker_metrics.find(final_node);
+    ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
+    Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
+
+    if (!s.ok()) {
+      VLOG(0) << "Couldn't fetch worker metrics";
+    }
+
+    //tensorflow::data::easl::NodeMetrics::MetricsCollection sink_node_worker_metrics;
+    //TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], sink_node_worker_metrics));
+
+
+    auto it = worker_metrics.find(sink_node);
+
+
+    //auto it = sink_node_worker_metrics.find(sink_node);
     if (worker_ips[i].find("localhost:") == std::string::npos) {
-      if (it != sink_node_worker_metrics.end()) {
+      VLOG(0) << "Remote worker";
+      if (it != worker_metrics.end()) {
         bytes_produced_remotely += it->second->bytes_produced();
+        VLOG(0) << "Remotely produced: " << bytes_produced_remotely;
       }
     } else {
-      if (it != sink_node_worker_metrics.end()) {
+      VLOG(0) << "Local worker";
+      if (it != worker_metrics.end()) {
         bytes_produced_locally += it->second->bytes_produced();
+        VLOG(0) << "Locally produced: " << bytes_produced_remotely;
       }
     }
   }
