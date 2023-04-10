@@ -138,8 +138,13 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   //    (we aren't interested in those)
   std::vector<int> nodes_to_remove;
   std::vector<std::string>pipeline_nodes_sorted_filtered_2;
+  std::string sink_node;
   for (int i = pipeline_nodes_sorted_filtered.size() - 1; i >= 0; --i) {
     std::string cur_node = pipeline_nodes_sorted_filtered[i];
+    if (cur_node.find("(id:1)")) {
+      sink_node = cur_node;
+      VLOG(0) << "The sink node is " << sink_node;
+    }
     if (
         cur_node.find("TFRecord") != std::string::npos ||
         cur_node.find("Prefetch") != std::string::npos ||
@@ -194,6 +199,8 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   // Examine the metric for each worker 1 by 1
 
+  int64 rem_bytes = 0;
+  int64 loc_bytes = 0;
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
@@ -215,8 +222,20 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       }
       //VLOG(0) << "Done";
     }
+
+    // Log amount of remotely / locally produced bytes
+    auto it = worker_metrics.find(sink_node);
+    int64 bp = it->second->bytes_produced();
+    bool remote = worker_ips[i].find("localhost:") == std::string::npos
+    VLOG(0) << "The sink node produced " << bp << " bytes! The worker was remote: " << remote;
+    if (remote) {
+      rem_bytes += bp;
+    } else {
+      loc_bytes += bp;
+    }
   }
   VLOG(0) << "Calculated all inflation factors";
+  VLOG(0) << "Remotely " << rem_bytes << " bytes produced, locally " << loc_bytes << " bytes produced.";
 
   // Divide inflation factors by the no. of elems
   for (int i = 0; i < pipeline_nodes_sorted_filtered_2.size(); ++i) {

@@ -547,7 +547,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         // If the job produced enough elements calculate the metrics for the AutoOrder policy
         bool is_ordered;
         metadata_store_.IsJobOrdered(job_id, is_ordered);
-        if (element_count >= kElementThreshold && !is_ordered) {
+        if (element_count >= kElementThreshold && (!is_ordered || ((element_count % 100) < 5)) {
           metadata_store_.SetJobIsOrdered(job_id);
 
           // Update the info for the AutoOrder policy
@@ -562,25 +562,25 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           std::shared_ptr<const Dataset> ds;
           TF_RETURN_IF_ERROR(state_.DatasetFromId(task_object->job->dataset_id, ds));
           VLOG(0) << "dispatcher_impl: Got " << inflation_factors.size() << " inflation factors";
-          VLOG(0) << "Check: pipeline_nodes now has " << pipeline_nodes.size();
-          VLOG(0) << "Going to update the 'order_state_";
+          VLOG(1) << "Check: pipeline_nodes now has " << pipeline_nodes.size();
+          VLOG(1) << "Going to update the 'order_state_";
           order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
                                               inflation_factors);
-          VLOG(0) << "Updated order state";
+          VLOG(1) << "Updated order state";
         }
         else {
           VLOG(0) << "So far " << element_count << " elements produced";
         }
 
         // Only for NSDI paper numbers: log final bytes produced & sent over the network
-        int64 bytes_produced_locally = 0;
+        /*int64 bytes_produced_locally = 0;
         int64 bytes_produced_remotely = 0;
         Status s4 = service::easl::ordering_utils::GetBytesSent(metadata_store_,
                                                                 job_id,
                                                                 bytes_produced_locally,
                                                                 bytes_produced_remotely);
         VLOG(0) << "So far " << bytes_produced_remotely << " bytes produced remotely, "
-            << bytes_produced_locally << " bytes produced locally";
+            << bytes_produced_locally << " bytes produced locally";*/
 
       }
     }
