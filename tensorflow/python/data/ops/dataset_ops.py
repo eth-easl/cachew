@@ -2551,7 +2551,7 @@ name=None))
                                           preserve_cardinality=True,
                                           name=name,
                                           keep_position=keep_position,
-                                          position=self.position)
+                                          position=self._position)
             logging.info("Moved neutral op upwards (2)")
             if isinstance(self, MapDataset):
               new_ds = MapDataset(new_self,

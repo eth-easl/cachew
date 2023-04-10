@@ -268,33 +268,36 @@ Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
   int num_workers = worker_ips.size();
   VLOG(0) << "In total " << num_workers << " workers worked on this job";
 
+  std::string sink_node;
   int nodes_in_pipeline = 0;
+  std::vector<std::string> pipeline_nodes;
   for (auto e : i_p_metrics->metrics_) {
     nodes_in_pipeline++;
     pipeline_nodes.push_back(e.first);
-    //inflationFactors.push_back(0);
+    if (e.first.find("(id:1)") != std::string::npos) {
+      sink_node = e.first;
+    }
   }
   VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
 
-  std::string final_node = pipeline_nodes[pipeline_nodes.size()-1];
-  VLOG(0) << "Final node is: " << final_node;
+  //std::string final_node = pipeline_nodes[pipeline_nodes.size()-1];
+  VLOG(0) << "Sink node is: " << sink_node;
 
   // Calculate how many bytes were produced remotely / locally in the final node
   for (int i = 0; i < num_workers; ++i) {
-    tensorflow::data::easl::NodeMetrics::MetricsCollection final_node_worker_metrics;
-    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], final_node_worker_metrics));
-    auto it = final_node_worker_metrics.find(final_node);
+    tensorflow::data::easl::NodeMetrics::MetricsCollection sink_node_worker_metrics;
+    TF_RETURN_IF_ERROR(i_p_metrics->GetWorkerMetrics(worker_ips[i], sink_node_worker_metrics));
+    auto it = sink_node_worker_metrics.find(final_node);
     if (worker_ips[i].find("localhost:") == std::string::npos) {
-      if (it != final_node_worker_metrics.end()) {
+      if (it != sink_node_worker_metrics.end()) {
         bytes_produced_remotely += it->second->bytes_produced();
       }
     } else {
-      if (it != final_node_worker_metrics.end()) {
+      if (it != sink_node_worker_metrics.end()) {
         bytes_produced_locally += it->second->bytes_produced();
       }
     }
   }
-
 }
 
 Status OpOrderUpdate(
@@ -368,9 +371,6 @@ Status OpOrderUpdate(
 
       std::vector<std::vector<std::string>> target_interval_orders;
       Status s1 = GetIntervalOrders(reorderable_intervals, inf_f_intervals, target_interval_orders);
-
-
-
 
       tensorflow::grappler::MutableGraphView graph(graph_def);
       Status s2 = optimizer.ApplyOptimization(graph, *graph_def);
