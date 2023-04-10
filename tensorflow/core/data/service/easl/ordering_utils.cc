@@ -316,12 +316,6 @@ Status GetBytesSent(::tensorflow::data::easl::MetadataStore& metadata_store,
         int64 bc = it->second->bytes_consumed();
         int64 bp = it->second->bytes_produced();
         VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
-        if (bc == 0) {
-          float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
-        } else {
-          float inflation_f = 1.0 * bp / bc;
-          inflationFactors[j] += elems_produced_final[i] * inflation_f;
-        }
       }
       //VLOG(0) << "Done";
     }
