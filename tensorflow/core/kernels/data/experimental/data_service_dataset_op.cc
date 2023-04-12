@@ -821,7 +821,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
               ((double)(batch_timestamps_us_[metrics_count - 1])
                   - batch_timestamps_us_[metrics_count - BATCH_INTERVAL])
                   / EnvTime::kMillisToMicros;
-          double last_x_batch_time_ms_chrono = batch_timestamps_ms_[metrics_count - 1])
+          double last_x_batch_time_ms_chrono = batch_timestamps_ms_[metrics_count - 1]
               - batch_timestamps_ms_[metrics_count - BATCH_INTERVAL];
           VLOG(0) << "Last timestamp:              " << batch_timestamps_us_[metrics_count - 1];
           VLOG(0) << "Starting timestamp:          " << batch_timestamps_us_[metrics_count - BATCH_INTERVAL];

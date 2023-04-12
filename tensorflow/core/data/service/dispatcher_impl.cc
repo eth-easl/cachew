@@ -547,7 +547,8 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         // If the job produced enough elements calculate the metrics for the AutoOrder policy
         bool is_ordered;
         metadata_store_.IsJobOrdered(job_id, is_ordered);
-        if (element_count >= kElementThreshold && (!is_ordered || ((element_count % 100) < 5))) {
+        // get data roughly every 500 batches (same interval as for scaling decisions)
+        if (element_count >= kElementThreshold && (!is_ordered || ((element_count % 500) < 10))) {
           metadata_store_.SetJobIsOrdered(job_id);
 
           // Update the info for the AutoOrder policy
