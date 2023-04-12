@@ -25,6 +25,7 @@ limitations under the License.
 #include <stdio.h>  // defines FILENAME_MAX
 #include <unistd.h> // for getcwd()
 #include <iostream>
+#include <chrono>
 
 #include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
@@ -446,6 +447,8 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       // EASL - metrics collection
       ++num_elements_;
       uint64 time_now = Env::Default()->NowMicros();
+      uint64 time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+      batch_timestamps_ms_.push_back(time_ms);
       batch_timestamps_us_.push_back(time_now);
       // batch_timestamps_us_duplicate_.push_back(time_now);
       bool hadToWait = false;
@@ -818,11 +821,15 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
               ((double)(batch_timestamps_us_[metrics_count - 1])
                   - batch_timestamps_us_[metrics_count - BATCH_INTERVAL])
                   / EnvTime::kMillisToMicros;
+          double last_x_batch_time_ms_chrono = batch_timestamps_ms_[metrics_count - 1])
+              - batch_timestamps_ms_[metrics_count - BATCH_INTERVAL];
+          VLOG(0) << "Last timestamp:              " << batch_timestamps_us_[metrics_count - 1];
+          VLOG(0) << "Starting timestamp:          " << batch_timestamps_us_[metrics_count - BATCH_INTERVAL];
+          VLOG(0) << "Last timestamp (chorno):     " << batch_timestamps_ms_[metrics_count - 1];
+          VLOG(0) << "Starting timestamp (chorno): " << batch_timestamps_ms_[metrics_count - BATCH_INTERVAL];
           if (last_x_batch_time_ms <= 0.0) {
-            VLOG(0) << "DSDO: last_x_batch_time_ms data collection failed: " << last_x_batch_time_ms;
-            VLOG(0) << "Last timestamp: " << batch_timestamps_us_[metrics_count - 1];
-            VLOG(0) << "Starting timestamp: " << batch_timestamps_us_[metrics_count - BATCH_INTERVAL];
-            VLOG(0) << "EnvTime::kMillisToMicros: " << EnvTime::kMillisToMicros;
+            VLOG(0) << "DSDO: last_x_batch_time_ms data collection failed!!!!!!!!! " << last_x_batch_time_ms;
+            VLOG(0) << "DSDO: last_x_batch_time_ms data collection failed!!!!!!!!! " << last_x_batch_time_ms_chrono;
           }
 
           // Compute the relative_wait_fraction & the average size of the result queue
@@ -1681,6 +1688,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     const uint32 EPOCH_START_BUFFER_INTERVAL = 200;
 
     std::vector<uint64> batch_timestamps_us_ TF_GUARDED_BY(mu_);
+    std::vector<uint64> batch_timestamps_ms_ TF_GUARDED_BY(mu_);
     std::vector<double> wait_times_ms_ TF_GUARDED_BY(mu_);
     std::vector<uint32> result_queue_size_ TF_GUARDED_BY(mu_);
     std::vector<bool> had_to_wait_ TF_GUARDED_BY(mu_);

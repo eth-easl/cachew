@@ -224,7 +224,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     }
 
     // Log amount of remotely / locally produced bytes
-    /*auto it = worker_metrics.find(sink_node);
+    auto it = worker_metrics.find(sink_node);
     int64 bp = it->second->bytes_produced();
     bool remote = worker_ips[i].find("localhost:") == std::string::npos;
     VLOG(0) << "The sink node produced " << bp << " bytes! The worker was remote: " << remote;
@@ -232,7 +232,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
       rem_bytes += bp;
     } else {
       loc_bytes += bp;
-    }*/
+    }
   }
   VLOG(0) << "Calculated all inflation factors";
   VLOG(0) << "Remotely " << rem_bytes << " bytes produced, locally " << loc_bytes << " bytes produced.";
