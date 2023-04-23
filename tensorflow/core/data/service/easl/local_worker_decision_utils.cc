@@ -160,7 +160,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
           << l_batch_time << ", stl_batch_time: " << stl_batch_time;
 
   // How can this be > 1 ??
-  if (relative_improvement > 1.3 || relative_improvement < -1.3) {
+  if (relative_improvement >= 1.0 || relative_improvement < -1.3) {
     VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC) Relative improvement "
             << "was unstable: " << relative_improvement
             << "; discarding it...";
