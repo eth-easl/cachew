@@ -1382,7 +1382,7 @@ REGISTER_OP("DataServiceDataset")
     .Input("job_name: string")
     .Input("max_outstanding_requests: int64")
     .Input("max_request_pipelining_per_task: int64") // EASL
-    .Input("fast_flow_offloading: float64") // EASL
+    .Input("fast_flow_offloading: int64") // EASL
     /*.Input("scaling_threshold_up: float64") // EASL
     .Input("optimize_cost: bool") // EASL
     .Input("client_cost: float64") // EASL
@@ -1412,7 +1412,7 @@ REGISTER_OP("DataServiceDatasetV2")
     .Input("num_consumers: int64")
     .Input("max_outstanding_requests: int64")
     .Input("max_request_pipelining_per_task: int64") // EASL
-    .Input("fast_flow_offloading: float64") // EASL
+    .Input("fast_flow_offloading: int64") // EASL
     /*.Input("scaling_threshold_up: float64") // EASL
     .Input("optimize_cost: bool") // EASL
     .Input("client_cost: float64") // EASL
@@ -1441,7 +1441,7 @@ REGISTER_OP("DataServiceDatasetV3")
     .Input("num_consumers: int64")
     .Input("max_outstanding_requests: int64")
     .Input("max_request_pipelining_per_task: int64") // EASL
-    .Input("fast_flow_offloading: float64") // EASL
+    .Input("fast_flow_offloading: int64") // EASL
     /*.Input("scaling_threshold_up: float64") // EASL
     .Input("optimize_cost: bool") // EASL
     .Input("client_cost: float64") // EASL

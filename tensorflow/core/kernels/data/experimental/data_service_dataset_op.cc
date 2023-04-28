@@ -176,7 +176,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           const std::string& job_name, absl::optional<int64_t> consumer_index,
           absl::optional<int64_t> num_consumers, int64_t max_outstanding_requests,
           int64_t max_request_pipelining_per_task, //int64_t scaling_decision_profiling_batches,
-          float_t fast_flow_offloading,
+          int64 fast_flow_offloading,
           int64_t task_refresh_interval_ms,
           const TargetWorkers target_workers, const DataServiceMetadata& metadata,
           IterationCounter* iteration_counter, bool owns_resource,
@@ -1226,18 +1226,20 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
       if (ShouldProcessAnyTask()) {
         // FastFlow: decide if we need to forward a request to remote or local
-        float_t current_ratio = (local_request_counter_ + remote_request_counter_) != 0 ?
+        double temp_target_ratio = fast_flow_offloading_ / 100.0;
+        double current_ratio = (local_request_counter_ + remote_request_counter_) != 0 ?
                                 (((float) remote_request_counter_) / (local_request_counter_ + remote_request_counter_))
                                 : 0.0;
 
-        bool send_remote = current_ratio < fast_flow_offloading_;
+        bool send_remote = current_ratio < temp_target_ratio;
 
         VLOG(0) << "(FastFlow) Sending remote task? " << send_remote
                       << "\n\t > Current ratio (remote request fraction): "
                       << current_ratio << " = "
                       << remote_request_counter_ << " / " << (remote_request_counter_ + local_request_counter_)
                       << "\n\t > Target ratio (remote request fraction): "
-                      << fast_flow_offloading_;
+                      << temp_target_ratio << " (as parameter "
+                      << fast_flow_offloading_ << ")";
 
         std::shared_ptr<Task> task = GetAnyTaskToProcess(send_remote);
         if (task) {
@@ -1659,9 +1661,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     // requests can be sent to a single task.
     int64 max_request_pipelining_per_task_ TF_GUARDED_BY(mu_);
 
-    // Number between [0, 1] that controls the  amount of requests for data
+    // Number between [0, 100] that controls the  amount of requests for data
     // that should be offloaded to remote workers
-    float_t fast_flow_offloading_ TF_GUARDED_BY(mu_);
+    int64 fast_flow_offloading_ TF_GUARDED_BY(mu_);
 
     // Related to the fast_flow_offloading_ parameter; these measure the amount
     // of requests forwarded to remote and local tasks / workers
@@ -1769,7 +1771,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
   // EASL
   const int64 max_request_pipelining_per_task_;
-  const float_t fast_flow_offloading_;
+  const int64 fast_flow_offloading_;
   //const int64 scaling_decision_profiling_batches_;
 };
 
@@ -1889,7 +1891,7 @@ void DataServiceDatasetOp::MakeDataset(OpKernelContext* ctx,
   OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kMaxRequestPipeliningPerTask,
                                           &max_request_pipelining_per_task));
 
-  float_t fast_flow_offloading;
+  int64 fast_flow_offloading;
   OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kFastFlowOffloading,
                                           &fast_flow_offloading));
 
