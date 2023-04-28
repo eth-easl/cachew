@@ -1337,6 +1337,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         if ((is_remote && local_tasks_.contains(task->info.worker_address()))
           || (!is_remote && !local_tasks_.contains(task->info.worker_address()))) {
           // Skip this task if it's the opposite of what we're looking for
+          AdvanceTaskIndex();
           continue;
         }
 
