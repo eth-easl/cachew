@@ -176,6 +176,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           const std::string& job_name, absl::optional<int64_t> consumer_index,
           absl::optional<int64_t> num_consumers, int64_t max_outstanding_requests,
           int64_t max_request_pipelining_per_task, //int64_t scaling_decision_profiling_batches,
+          float_t fast_flow_offloading,
           int64_t task_refresh_interval_ms,
           const TargetWorkers target_workers, const DataServiceMetadata& metadata,
           IterationCounter* iteration_counter, bool owns_resource,
@@ -196,6 +197,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         num_consumers_(num_consumers),
         max_outstanding_requests_(max_outstanding_requests),
         max_request_pipelining_per_task_(max_request_pipelining_per_task),
+        fast_flow_offloading_(fast_flow_offloading),
         //scaling_decision_profiling_batches_(scaling_decision_profiling_batches),
         task_refresh_interval_ms_(task_refresh_interval_ms),
         target_workers_(target_workers),
@@ -325,6 +327,11 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         b->AddScalar(max_request_pipelining_per_task_, &max_request_pipelining_per_task));
     inputs.push_back(max_request_pipelining_per_task);
 
+    Node* fast_flow_offloading;
+    TF_RETURN_IF_ERROR(
+        b->AddScalar(fast_flow_offloading_, &fast_flow_offloading));
+    inputs.push_back(fast_flow_offloading);
+
     /*Node* scaling_decision_profiling_batches;
     TF_RETURN_IF_ERROR(
         b->AddScalar(scaling_decision_profiling_batches_, &scaling_decision_profiling_batches));
@@ -381,8 +388,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         : DatasetIterator<Dataset>(params),
           iterator_index_(iterator_index),
           max_outstanding_requests_(params.dataset->max_outstanding_requests_),
-          max_request_pipelining_per_task_(params.dataset->max_request_pipelining_per_task_){
-    }
+          max_request_pipelining_per_task_(params.dataset->max_request_pipelining_per_task_),
+          fast_flow_offloading_(params.dataset->fast_flow_offloading_),
+          remote_request_counter_(0), local_request_counter_(0) {}
 
     ~Iterator() override {
       // TODO (DADA) - revert to 1
@@ -1217,10 +1225,31 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
 
       if (ShouldProcessAnyTask()) {
-        std::shared_ptr<Task> task = GetAnyTaskToProcess();
+        // FastFlow: decide if we need to forward a request to remote or local
+        float_t current_ratio = (local_request_counter_ + remote_request_counter_) != 0 ?
+                                (((float) remote_request_counter_) / (local_request_counter_ + remote_request_counter_))
+                                : 0.0;
+
+        bool send_remote = current_ratio < fast_flow_offloading_;
+
+        VLOG(0) << "(FastFlow) Sending remote task? " << send_remote
+                      << "\n\t > Current ratio (remote request fraction): "
+                      << current_ratio << " = "
+                      << remote_request_counter_ << " / " << (remote_request_counter_ + local_request_counter_)
+                      << "\n\t > Target ratio (remote request fraction): "
+                      << fast_flow_offloading_;
+
+        std::shared_ptr<Task> task = GetAnyTaskToProcess(send_remote);
         if (task) {
+          // FastFlow: count request only if task could be found
+          if (send_remote) {
+            ++remote_request_counter_;
+          } else {
+            ++local_request_counter_;
+          }
           VLOG(3) << "Selected a task to process: "
-                  << task->info.ShortDebugString();
+                  << task->info.ShortDebugString() << "; was remote: "
+                  << send_remote;
           return task;
         }
       }
@@ -1298,10 +1327,17 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
     // Searches for a task to process, visiting tasks in-order and giving every
     // task a chance to proceed.
-    std::shared_ptr<Task> GetAnyTaskToProcess()
+    std::shared_ptr<Task> GetAnyTaskToProcess(bool is_remote = false)
         TF_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
       for (int i = 0; i < tasks_.size(); ++i) {
         std::shared_ptr<Task>& task = tasks_[next_task_index_];
+
+        if ((is_remote && local_tasks_.contains(task->info.worker_address()))
+          || (!is_remote && !local_tasks_.contains(task->info.worker_address()))) {
+          // Skip this task if it's the opposite of what we're looking for
+          continue;
+        }
+
         if (StrictRoundRobin() &&
             (task->in_use ||
              current_round_ >= round_robin_round_limit_.value_or(
@@ -1623,6 +1659,15 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     // requests can be sent to a single task.
     int64 max_request_pipelining_per_task_ TF_GUARDED_BY(mu_);
 
+    // Number between [0, 1] that controls the  amount of requests for data
+    // that should be offloaded to remote workers
+    float_t fast_flow_offloading_ TF_GUARDED_BY(mu_);
+
+    // Related to the fast_flow_offloading_ parameter; these measure the amount
+    // of requests forwarded to remote and local tasks / workers
+    int64 remote_request_counter_ TF_GUARDED_BY(mu_);
+    int64 local_request_counter_ TF_GUARDED_BY(mu_);
+
     // scaling_decision_profiling_batches_ controls how many batches are to be
     // processed before making a worker scaling decision.
     //int64 scaling_decision_profiling_batches_ TF_GUARDED_BY(mu_);
@@ -1724,6 +1769,7 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
 
   // EASL
   const int64 max_request_pipelining_per_task_;
+  const float_t fast_flow_offloading_;
   //const int64 scaling_decision_profiling_batches_;
 };
 
@@ -1843,6 +1889,10 @@ void DataServiceDatasetOp::MakeDataset(OpKernelContext* ctx,
   OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kMaxRequestPipeliningPerTask,
                                           &max_request_pipelining_per_task));
 
+  float_t fast_flow_offloading;
+  OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kFastFlowOffloading,
+                                          &fast_flow_offloading));
+
   //int64 scaling_decision_profiling_batches;
   //OP_REQUIRES_OK(ctx, ParseScalarArgument(ctx, kScalingDecisionProfilingBatches,
   //                                        &scaling_decision_profiling_batches));
@@ -1912,6 +1962,7 @@ void DataServiceDatasetOp::MakeDataset(OpKernelContext* ctx,
       ctx, op_version_, dataset_id, processing_mode, address, protocol,
       data_transfer_protocol_, job_name, consumer_index, num_consumers,
       max_outstanding_requests, max_request_pipelining_per_task,
+      fast_flow_offloading,
       //scaling_decision_profiling_batches,
       task_refresh_interval_hint_ms_, target_workers_, *metadata, iteration_counter,
       owns_resource, iteration_counter_handle, std::move(captured_uncompress_func),
