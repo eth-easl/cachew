@@ -24,14 +24,15 @@ uint32 kInStabilityBeforeScaling = 20;                         // UNUSED!
 double kMinQueueSizeRelativeGrowth = 1.5; // +50%              // UNUSED!
 double kMinBatchTimeRelativeGrowth = 1.5; // +50%              // UNUSED!
 
-    int MAX_LOCAL_WORKERS_PER_JOB = 10;
-    int MAX_REMOTE_WORKERS_PER_JOB = 20;
-    double kPerformanceErrorBar = 0.10;
-    double kPerformanceDecreaseTolerance = 0.10;
+int MAX_LOCAL_WORKERS_PER_JOB = 10;
+int MAX_REMOTE_WORKERS_PER_JOB = 30;
+double kPerformanceErrorBar = 0.10;
+double kPerformanceDecreaseTolerance = 0.10;
+double minImprovementThresholdRemote = 0.005;
 
-    // cost model
-    double CLIENT_COST = 4.96;
-    double WOKRER_COST = 0.427319;
+// cost model
+double CLIENT_COST = 8.80;       // TPU v3-8                   // UNUSED!
+double WORKER_COST = 0.427319;                                 // UNUSED!
 }
 
 void debug_print_local_remote(std::string debug_string, int64 remote_worker_count, int64 local_worker_count) {
@@ -149,8 +150,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   } else {
     threshold = dispatcher_config.scaling_threshold_up();
     if (threshold <= 0.0) {
-      threshold = 0.03;
-      VLOG(0) << "Manually set threshold to 0.03";
+      threshold = minImprovementThresholdRemote;
+      VLOG(0) << "Manually set threshold to " << minImprovementThresholdRemote;
     }
   }
   VLOG(0) << "Optimizing for cost: " << opt_for_cost << " Current improvement threshold is: "
