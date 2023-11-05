@@ -28,7 +28,7 @@ int MAX_LOCAL_WORKERS_PER_JOB = 10;
 int MAX_REMOTE_WORKERS_PER_JOB = 30;
 double kPerformanceErrorBar = 0.10;
 double kPerformanceDecreaseTolerance = 0.10;
-double minImprovementThresholdRemote = 0.005;
+double minImprovementThresholdRemote = 0.03;
 
 // cost model
 double CLIENT_COST = 8.80;       // TPU v3-8                   // UNUSED!
@@ -134,11 +134,12 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   if (l_batch_time < 0 || stl_batch_time < 0) {
     VLOG(0) << "Failed to record batch time correctly!!! l_batch_time: " << l_batch_time << ", stl_batch_time: " << stl_batch_time;
   }
+
   double extra_worker_cost = dispatcher_config.worker_cost() * (1.0 - relative_improvement);
   double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() +
              second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
-  VLOG(0) << "local_worker_decision_utils settings " << dispatcher_config.optimize_cost() <<
+  VLOG(0) << "local_worker_decision_utils settings: Opt for cost " << dispatcher_config.optimize_cost() <<
           " client cost=" << dispatcher_config.client_cost() << " worker cost=" << dispatcher_config.worker_cost() <<
           " batches_per_decision (deprecated)=" << dispatcher_config.batches_per_decision() <<
           " scaling threshold up=" << dispatcher_config.scaling_threshold_up();
@@ -186,7 +187,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
           //extra_worker_saving > extra_worker_cost &&
           extra_worker_helped && last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB &&
             available_workers > 0) {
-          remote_worker_count = last_metrics->remote_worker_count() + 1;
+          // Add 4 workers at a time for TPU v3-8
+          remote_worker_count = last_metrics->remote_worker_count() + 4;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
                   << "Improvement large enough:\n"
                   << " > improvement: " << relative_improvement << "\n"
@@ -219,7 +221,9 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
 
       // Calculate how much performance degradation is still economical
       double saved_worker_cost = dispatcher_config.worker_cost();
-      double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+      // Doesn't work properly for v3-8 (still uses v2-8 costs) !!!!!!!!!!!!!!!!!!!!!!
+      //double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+      double extra_time_cost = -relative_improvement * (8.8 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
       bool removing_worker_helped = saved_worker_cost > extra_time_cost;
       VLOG(0) << "Removing the extra worker was economical: " << removing_worker_helped;
       VLOG(0) << "Removing the worker saved $" << saved_worker_cost << ". The increased training time incurred an extra cost of $" << extra_time_cost;
