@@ -58,10 +58,10 @@ constexpr std::array<const char*, 24> kTFDataOptimizations = {
     "disable_prefetch_legacy_autotune",
     "enable_gradient_descent",
     "append_forty_two",
-    "add_put_op",
-    "add_get_op",
-    "add_put_op_at_marker",
-    "add_get_op_at_marker",
+    //"add_put_op",
+    //"add_get_op",
+    //"add_put_op_at_marker",
+    //"add_get_op_at_marker",
     "make_deterministic"//,
     //"summarize"
 };
