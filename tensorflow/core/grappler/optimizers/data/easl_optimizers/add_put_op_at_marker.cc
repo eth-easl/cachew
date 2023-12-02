@@ -88,7 +88,7 @@ NodeDef AddPutOpAtMarker::CreatePutOpNode(MutableGraphView* graph, NodeDef* inpu
 
 Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node,
                                    GraphDef *output) {
-  VLOG(0) << "In AddPutOpAtMarker optimizer!";
+  VLOG(0) << "In AddPutOpAtMarker optimizer";
 
   // Define a filtering function which identifies target node
   std::string marker_type = config_.parameter_map().at(kMarkerType).placeholder();
@@ -141,8 +141,6 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
     return errors::Unknown("The target has no inputs.");
   }
 
-  /*
-
   // Create the put_op_node op node, then add it to the graph
   NodeDef put_op_node = CreatePutOpNode(&graph, target_input);
 
@@ -152,8 +150,6 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
 
   // Add the node to the graph
   graph.AddNode(std::move(put_op_node));
-
-  */
 
   return Status::OK();
 }
