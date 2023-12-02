@@ -141,7 +141,9 @@ Status AddPutOp::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node,
   if(!target_input){
     return errors::Unknown("The target has no inputs.");
   }
-  
+
+  /*
+
   // Create the put_op_node op node, then add it to the graph
   NodeDef put_op_node = CreatePutOpNode(&graph, target_input);
 
@@ -151,6 +153,8 @@ Status AddPutOp::ApplyOptimization(MutableGraphView &graph, NodeDef *sink_node,
 
   // Add the node to the graph
   graph.AddNode(std::move(put_op_node));
+
+  */
 
   return Status::OK();
 }

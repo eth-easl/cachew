@@ -133,6 +133,8 @@ Status AddGetOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
     return errors::Unknown("The target has no inputs.");
   }
 
+  /*
+
   // Create the get_op_node op node, then add it to the graph
   NodeDef get_op_node = CreateGetOpNode(&graph, target_input);
 
@@ -144,6 +146,9 @@ Status AddGetOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
 
   // Add the node to the graph
   graph.AddNode(std::move(get_op_node));
+
+
+  */
 
   /*
   // Remove the input nodes and all its children in the graph.
