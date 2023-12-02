@@ -369,9 +369,6 @@ Status AddPutOperator(const DatasetDef& dataset,
                       const uint64 fingerprint,
                       const experimental::DispatcherConfig& dispatcher_config,
                       DatasetDef& updated_dataset) {
-
-  /*
-
   // TODO remove this.
   //updated_dataset = dataset;
   //return Status::OK();
@@ -431,8 +428,6 @@ Status AddPutOperator(const DatasetDef& dataset,
   // sink->mutable_input()->Clear();
   VLOG(1) << "(AddPutOperator) At the end of the method";
 
-   */
-
   return Status::OK();
 }
 
@@ -441,9 +436,6 @@ Status AddGetOperator(const DatasetDef& dataset,
                       const uint64 fingerprint,
                       const experimental::DispatcherConfig& dispatcher_config,
                       DatasetDef& updated_dataset){
-
-  /*
-
   // TODO remove this.
   //updated_dataset = dataset;
   //return Status::OK();
@@ -504,8 +496,6 @@ Status AddGetOperator(const DatasetDef& dataset,
   // sink->mutable_input()->Clear();
   VLOG(1) << "(AddGetOperator) At the end of the method";
 
-   */
-
   return Status::OK();
 }
 
@@ -516,8 +506,6 @@ Status AddPutOperatorAtMarker(const DatasetDef& dataset,
                               const experimental::DispatcherConfig& dispatcher_config,
                               DatasetDef& updated_dataset) {
   VLOG(0) << "(AddPutOperatorAtMarker) At the beginning of the method";
-
-  /*
 
   // Copy over the original dataset
   updated_dataset = dataset;
@@ -583,8 +571,6 @@ Status AddPutOperatorAtMarker(const DatasetDef& dataset,
   // sink->mutable_input()->Clear();
   VLOG(0) << "(AddPutOperatorAtMarker) At the end of the method";
 
-   */
-
   return Status::OK();
 }
 
@@ -594,9 +580,6 @@ Status AddGetOperatorAtMarker(
     const std::string& marker_type,
     const experimental::DispatcherConfig& dispatcher_config,
     DatasetDef& updated_dataset){
-
-  /*
-
   // TODO remove this.
   //updated_dataset = dataset;
   //return Status::OK();
@@ -665,8 +648,6 @@ Status AddGetOperatorAtMarker(
   // Disconnect the 'Sink' node
   // sink->mutable_input()->Clear();
   // VLOG(0) << "(AddGetOperatorAtMarker) At the end of the method";
-
-   */
 
   return Status::OK();
 }
