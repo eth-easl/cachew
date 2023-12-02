@@ -417,7 +417,9 @@ Status AddPutOperator(const DatasetDef& dataset,
 
   // Create the MuttableGraphView
   tensorflow::grappler::MutableGraphView graph(graph_def);
-  optimizer.ApplyOptimization(graph, sink, graph_def);
+
+  // For Pecan we don't use this
+  //optimizer.ApplyOptimization(graph, sink, graph_def);
 
   // Do BFS
   //DoBFS(sink, *graph_def, "AfterAddPutOperator");
@@ -483,7 +485,9 @@ Status AddGetOperator(const DatasetDef& dataset,
 
   // Create the MuttableGraphView
   tensorflow::grappler::MutableGraphView graph(graph_def);
-  optimizer.ApplyOptimization(graph, sink, graph_def);
+
+  // For Pecan we don't use this
+  //optimizer.ApplyOptimization(graph, sink, graph_def);
 
   // Do BFS
   //DoBFS(sink, *graph_def, "AfterAddGetOperator");
@@ -543,7 +547,7 @@ Status AddPutOperatorAtMarker(const DatasetDef& dataset,
     }
   }
 
-  // Create a 'Sink' node and attatch it to the real output
+  // Create a 'Sink' node and attach it to the real output
   NodeDef* sink = graph_def->mutable_node()->Add();
   tensorflow::grappler::graph_utils::SetUniqueGraphNodeName("Sink", graph_def,
                                                             sink);
@@ -556,7 +560,9 @@ Status AddPutOperatorAtMarker(const DatasetDef& dataset,
 
   // Create the MuttableGraphView
   tensorflow::grappler::MutableGraphView graph(graph_def);
-  optimizer.ApplyOptimization(graph, sink, graph_def);
+
+  // For Pecan we don't use this
+  //optimizer.ApplyOptimization(graph, sink, graph_def);
 
   // Do BFS
   //DoBFS(sink, *graph_def, "AfterAddPutAtMarkerOperator");
@@ -567,7 +573,6 @@ Status AddPutOperatorAtMarker(const DatasetDef& dataset,
 
   return Status::OK();
 }
-
 
 Status AddGetOperatorAtMarker(
     const DatasetDef& dataset,
@@ -633,7 +638,9 @@ Status AddGetOperatorAtMarker(
 
   // Create the MuttableGraphView
   tensorflow::grappler::MutableGraphView graph(graph_def);
-  optimizer.ApplyOptimization(graph, sink, graph_def);
+
+  // For Pecan we don't use this
+  //optimizer.ApplyOptimization(graph, sink, graph_def);
 
   // Do BFS
   //DoBFS(sink, *graph_def, "AfterAddGetOperator");
