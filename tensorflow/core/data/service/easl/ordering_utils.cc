@@ -106,7 +106,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     VLOG(1) << pipeline_nodes[i];
   }
 
-  VLOG(0) << "Successfully went through starting nodes"
+  VLOG(0) << "Successfully went through starting nodes";
   // 1. Sort the pipeline nodes by id
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
   for (std::string n : pipeline_nodes) {
