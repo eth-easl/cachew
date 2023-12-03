@@ -95,6 +95,7 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
   auto is_target_node = [marker_type](const NodeDef* node) -> bool {
     return node->op() == kTargetNode && node->attr().at(kMarkerType).s() == marker_type;
   };
+  VLOG(0) << "identified target node";
 
   // Find the first target op by applying BFS
   absl::flat_hash_set<std::string> visited;
@@ -107,6 +108,8 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
     bfs_queue.pop();
     visited.insert(current_node->name());
 
+    VLOG(0) << "current node is " << current_node->name();
+
     VLOG(1) << "@ current_node: " << current_node->op();
 
     // TODO(DanGraur): Add logic here to skip certain nodes (e.g. control)
@@ -117,8 +120,9 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
       break;
     }
 
-    // Iterate throught the neighbors
+    // Iterate through the neighbors
     for (int i = 0; i < current_node->input_size(); ++i) {
+      VLOG(0) << "Visiting nb " << current_node->input(i);
       if (!visited.contains(current_node->input(i))) {
         int idx = graph_utils::FindGraphNodeWithName(current_node->input(i),
                                                      *output);
@@ -133,6 +137,8 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
     VLOG(0) << "Could not find target node " << kTargetNode
             << " with marker_type " << marker_type;
     return Status::OK();
+  } else {
+    VLOG(0) << "target node was found!";
   }
 
   // Find the input of the target node
@@ -143,13 +149,17 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
 
   // Create the put_op_node op node, then add it to the graph
   NodeDef put_op_node = CreatePutOpNode(&graph, target_input);
+  VLOG(0) << "Created new node";
 
   // Copy over the relevant attributes
   (*target->mutable_input())[0] = put_op_node.name();
   // graph_utils::CopyAttribute(kOutputTypes, put_op_node, target);
+  VLOG(0) << "Copied inputs";
 
   // Add the node to the graph
   graph.AddNode(std::move(put_op_node));
+
+  VLOG(0) << "Added node to graph";
 
   return Status::OK();
 }

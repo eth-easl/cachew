@@ -205,15 +205,15 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   for (int i = 0; i < num_workers; ++i) {
     ::tensorflow::data::easl::NodeMetrics::MetricsCollection worker_metrics;
     Status s = i_p_metrics->GetWorkerMetrics(worker_ips[i], worker_metrics);
-    VLOG(1) << "Worker " << i;
+    VLOG(0) << "Worker " << i;
     for (int j = 0; j < pipeline_nodes_sorted_filtered_2.size(); ++j) {
       // TODO: Use the elements produced by the worker on the current node (otherwise filter nodes may be problematic)
-      VLOG(1) << "Node " << pipeline_nodes_sorted_filtered_2[j];
+      VLOG(0) << "Node " << pipeline_nodes_sorted_filtered_2[j];
       auto it = worker_metrics.find(pipeline_nodes_sorted_filtered_2[j]);
       if (it != worker_metrics.end()) {
         int64 bc = it->second->bytes_consumed();
         int64 bp = it->second->bytes_produced();
-        VLOG(1) << "consumed " << bc << " bytes, produced " << bp << " bytes";
+        VLOG(0) << "consumed " << bc << " bytes, produced " << bp << " bytes";
         if (bc == 0) {
           float inflation_f = -1.0; // -1 can be a special placeholder if no bytes were consumed
         } else {
