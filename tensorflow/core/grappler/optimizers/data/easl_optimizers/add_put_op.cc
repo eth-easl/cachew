@@ -172,7 +172,7 @@ Status AddPutOp::OptimizeAndCollectStats(Cluster* cluster,
 }
 
 
-REGISTER_GRAPH_OPTIMIZER_AS(AddPutOp, "add_put_op");
+//REGISTER_GRAPH_OPTIMIZER_AS(AddPutOp, "add_put_op");
 
 }  // namespace easl
 }  // namespace grappler

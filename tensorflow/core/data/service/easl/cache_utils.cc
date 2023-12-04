@@ -100,6 +100,11 @@ Status DetermineJobType(const experimental::DispatcherConfig& dispatcher_config,
     // 31 == Force read cache
     // 40 == Force source cache
     // 41 == Force read source cache
+
+    // We force the pure compute mode; essentially this disables any caching
+    job_type = "COMPUTE";
+    return Status::OK();
+
     // Compute -------------------------------------------------------------------
     if(dispatcher_config.cache_policy() == 2) {
       job_type = "COMPUTE";

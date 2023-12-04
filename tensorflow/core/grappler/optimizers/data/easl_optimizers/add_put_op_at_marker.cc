@@ -181,7 +181,7 @@ Status AddPutOpAtMarker::OptimizeAndCollectStats(Cluster* cluster,
 }
 
 
-REGISTER_GRAPH_OPTIMIZER_AS(AddPutOpAtMarker, "add_put_op_at_marker");
+//REGISTER_GRAPH_OPTIMIZER_AS(AddPutOpAtMarker, "add_put_op_at_marker");
 
 }  // namespace easl
 }  // namespace grappler

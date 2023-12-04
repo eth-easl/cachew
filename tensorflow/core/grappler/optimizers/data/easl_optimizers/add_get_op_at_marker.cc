@@ -189,7 +189,7 @@ Status AddGetOpAtMarker::OptimizeAndCollectStats(Cluster* cluster,
 }
 
 
-REGISTER_GRAPH_OPTIMIZER_AS(AddGetOpAtMarker, "add_get_op_at_marker");
+//REGISTER_GRAPH_OPTIMIZER_AS(AddGetOpAtMarker, "add_get_op_at_marker");
 
 }  // namespace easl
 }  // namespace grappler

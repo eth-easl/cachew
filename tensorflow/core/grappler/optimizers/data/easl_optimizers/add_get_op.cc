@@ -190,7 +190,7 @@ Status AddGetOp::OptimizeAndCollectStats(Cluster* cluster,
 }
 
 
-REGISTER_GRAPH_OPTIMIZER_AS(AddGetOp, "add_get_op");
+//REGISTER_GRAPH_OPTIMIZER_AS(AddGetOp, "add_get_op");
 
 }  // namespace easl
 }  // namespace grappler
