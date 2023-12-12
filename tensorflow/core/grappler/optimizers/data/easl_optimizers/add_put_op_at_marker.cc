@@ -93,7 +93,8 @@ Status AddPutOpAtMarker::ApplyOptimization(MutableGraphView &graph, NodeDef *sin
   // Define a filtering function which identifies target node
   std::string marker_type = config_.parameter_map().at(kMarkerType).placeholder();
   auto is_target_node = [marker_type](const NodeDef* node) -> bool {
-    return node->op() == kTargetNode && node->attr().at(kMarkerType).s() == marker_type;
+    return node->op() == kTargetNode && node->attr().contains(kMarkerType)
+           && node->attr().at(kMarkerType).s() == marker_type;
   };
   VLOG(0) << "identified target node";
 
