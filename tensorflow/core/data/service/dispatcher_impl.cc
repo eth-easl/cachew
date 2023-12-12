@@ -830,37 +830,37 @@ Status DataServiceDispatcherImpl::RegisterDataset(
       dataset_store_->Put(DatasetKey(dataset_id, fingerprint), dataset));
 
   // EASL - Create and store put/get versions of this dataset def.
-  DatasetDef put_dataset;
-  TF_RETURN_IF_ERROR(
-      service::easl::cache_utils::AddPutOperator(
-          dataset, fingerprint, config_, put_dataset));
+//  DatasetDef put_dataset;
+//  TF_RETURN_IF_ERROR(
+//      service::easl::cache_utils::AddPutOperator(
+//          dataset, fingerprint, config_, put_dataset));
   TF_RETURN_IF_ERROR(dataset_store_->Put(
       service::easl::cache_utils::DatasetPutKey(dataset_id, fingerprint),
-          put_dataset));
-  DatasetDef get_dataset;
-  TF_RETURN_IF_ERROR(
-      service::easl::cache_utils::AddGetOperator(
-          dataset, fingerprint, config_, get_dataset));
+      dataset));
+//  DatasetDef get_dataset;
+//  TF_RETURN_IF_ERROR(
+//      service::easl::cache_utils::AddGetOperator(
+//          dataset, fingerprint, config_, get_dataset));
   TF_RETURN_IF_ERROR(dataset_store_->Put(
       service::easl::cache_utils::DatasetGetKey(dataset_id, fingerprint),
-          get_dataset));
+      dataset));
 
   // EASL - Create and store put/get for source data of this dataset
-  DatasetDef put_source_dataset;
-  TF_RETURN_IF_ERROR(
-      service::easl::cache_utils::AddPutOperatorAtMarker(
-          dataset, fingerprint, "source_cache", config_, put_source_dataset));
+//  DatasetDef put_source_dataset;
+//  TF_RETURN_IF_ERROR(
+//      service::easl::cache_utils::AddPutOperatorAtMarker(
+//          dataset, fingerprint, "source_cache", config_, put_source_dataset));
   TF_RETURN_IF_ERROR(dataset_store_->Put(
       service::easl::cache_utils::DatasetPutSourceKey(dataset_id, fingerprint),
-          put_source_dataset));
+      dataset));
 
-    DatasetDef get_source_dataset;
-    TF_RETURN_IF_ERROR(
-        service::easl::cache_utils::AddGetOperatorAtMarker(
-            dataset, fingerprint, "source_cache", config_, get_source_dataset));
+//    DatasetDef get_source_dataset;
+//    TF_RETURN_IF_ERROR(
+//        service::easl::cache_utils::AddGetOperatorAtMarker(
+//            dataset, fingerprint, "source_cache", config_, get_source_dataset));
     TF_RETURN_IF_ERROR(dataset_store_->Put(
         service::easl::cache_utils::DatasetGetSourceKey(dataset_id, fingerprint),
-            get_source_dataset));
+        dataset));
   VLOG(0) << "Added put/get versions for dataset fingerprint " << fingerprint;
 
   // DatasetDef reordered_dataset;
