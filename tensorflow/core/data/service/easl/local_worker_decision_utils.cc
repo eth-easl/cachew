@@ -187,8 +187,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
           //extra_worker_saving > extra_worker_cost &&
           extra_worker_helped && last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB &&
             available_workers > 0) {
-          // Add 4 workers at a time for TPU v3-8
-          remote_worker_count = last_metrics->remote_worker_count() + 4;
+          // Add 1 workers at a time for TPU v3-8 with speech model
+          remote_worker_count = last_metrics->remote_worker_count() + 1;
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
                   << "Improvement large enough:\n"
                   << " > improvement: " << relative_improvement << "\n"
