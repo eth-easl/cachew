@@ -102,7 +102,9 @@ constexpr const char kBytesPerS[] = "bytes_per_s";
 constexpr const char kActiveTime[] = "active_time";
 constexpr const char kWorkingTime[] = "working_time";
 
-const uint64 kElementThreshold = 1e9;
+// Controls the interval after which the AutoOrder C++ layer logic is applied;
+// Set this to a negative value (e.g. -1) if you want to disable this logic
+const uint64 kElementThreshold = -1;
 const bool kEnableEventLogging = true;
 
 using DispatcherConfig = experimental::DispatcherConfig;
@@ -548,7 +550,7 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         bool is_ordered;
         metadata_store_.IsJobOrdered(job_id, is_ordered);
         // get data roughly every 500 batches (same interval as for scaling decisions)
-        if (element_count >= kElementThreshold && (!is_ordered || ((element_count % 500) < 10))) {
+        if (kElementThreshold >= 0 && element_count >= kElementThreshold && (!is_ordered || ((element_count % 500) < 10))) {
           metadata_store_.SetJobIsOrdered(job_id);
 
           // Update the info for the AutoOrder policy
