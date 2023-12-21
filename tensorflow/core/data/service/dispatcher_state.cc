@@ -677,28 +677,30 @@ void DispatcherState::UpdateJobTargetWorkerCountRemoteAndLocal(
           << ", and " << num_local_tasks_to_end << " respectively";
 
   TasksById current_tasks = tasks_by_job_[job_id];
-  auto it = current_tasks.begin();
-  for (int i=0; it != current_tasks.end() &&
-        (num_remote_tasks_to_end > 0 || num_local_tasks_to_end > 0) ; i++){
+  for (auto it = current_tasks.begin(); it != current_tasks.end() &&
+        (num_remote_tasks_to_end > 0 || num_local_tasks_to_end > 0) ; it++) {
 
     auto task = it->second;
 
-    if (!ending_tasks_by_job_[job_id].contains(task->task_id)){
-      ending_tasks_by_job_[job_id][task->task_id] = task;
-      if (job->is_local_worker(task->worker_address)) {
+    if (!ending_tasks_by_job_[job_id].contains(task->task_id)) {
+      if (job->is_local_worker(task->worker_address)
+          && num_local_tasks_to_end > 0) {
         num_local_tasks_to_end--;
-      }
-      else {
+        ending_tasks_by_job_[job_id][task->task_id] = task;
+      } else if (!job->is_local_worker(task->worker_address)
+                 && num_remote_tasks_to_end > 0) {
         num_remote_tasks_to_end--;
+        ending_tasks_by_job_[job_id][task->task_id] = task;
       }
-      // TODO: we may have some delay here when updating the workers
-//      job->current_remote_worker_count--;
-      VLOG(0) << "EASL - (UpdateJobTargetWorkerCountRemoteAndLocal) - ending task " << task->task_id;
+      VLOG(0)
+        << "EASL - (UpdateJobTargetWorkerCountRemoteAndLocal) - ending task "
+        << task->task_id;
     }
-    it++;
   }
   if (num_remote_tasks_to_end > 0 || num_local_tasks_to_end > 0){
-    VLOG(0) << "EASL (UpdateJobTargetWorkerCountRemoteAndLocal) - not able to end enough tasks.";
+    VLOG(0) << "EASL (UpdateJobTargetWorkerCountRemoteAndLocal) - "
+                 << "not able to end enough tasks; remaining (remote, local): "
+                 <<  num_remote_tasks_to_end  << ", " << num_local_tasks_to_end;
   }
 
 }
