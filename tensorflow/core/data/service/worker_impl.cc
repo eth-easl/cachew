@@ -596,11 +596,15 @@ Status DataServiceWorkerImpl::Heartbeat() TF_LOCKS_EXCLUDED(mu_) {
       VLOG(0) << "Deleting task " << task_id
               << " at the request of the dispatcher";
       if (!tasks_.contains(task_id)) {
+        VLOG(0) << "Task " << task_id << " could not be found for deletion!";
         continue;
       }
       tasks_to_delete.push_back(std::move(tasks_[task_id]));
       tasks_.erase(task_id);
       finished_tasks_.insert(task_id);
+
+      // EASL - Added to list to gracefully terminate the task on the dispatcher
+      pending_completed_tasks_.insert(task_id);
     }
   }
   for (const auto& task : tasks_to_delete) {

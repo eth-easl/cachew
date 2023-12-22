@@ -28,7 +28,6 @@ bool kUsingTPUv2 = true;
 double kTPUv2Cost = 4.96;
 double kTPUv3Cost = 8.8;
 
-
 int MAX_LOCAL_WORKERS_PER_JOB = 10;
 int MAX_REMOTE_WORKERS_PER_JOB = 30;
 double kPerformanceErrorBar = 0.10;

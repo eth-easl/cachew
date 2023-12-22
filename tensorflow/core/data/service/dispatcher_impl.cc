@@ -622,7 +622,12 @@ Status DataServiceDispatcherImpl::WorkerUpdate(
     for (auto& update : request->updates()) {
       int64 task_id = update.task_id();
       std::shared_ptr<const Task> task;
-      TF_RETURN_IF_ERROR(state_.TaskFromId(task_id, task));
+
+      Status task_search_status = state_.TaskFromId(task_id, task);
+      if (!task_search_status.ok()) {
+        // This task could not be found; we will skip to the next task
+        continue;
+      }
       if (update.completed()) {
         if (task->finished) {
           VLOG(1) << "Received completion update for already-finished task "
