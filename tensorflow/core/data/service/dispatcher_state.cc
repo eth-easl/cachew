@@ -829,6 +829,21 @@ Status DispatcherState::IsEarlyEndedTask(const int64 job_id, const int64 task_id
   return Status::OK();
 }
 
+Status DispatcherState::IsEarlyEndedTask(const std::string& worker_address,
+                                         const int64_t task_id,
+                                         bool& is_early_ended_task) {
+  if (jobs_by_worker_.contains(worker_address)) {
+    for (auto& job_pair : jobs_by_worker_[worker_address]) {
+      if (ending_tasks_by_job_[job_pair.first].contains(task_id)) {
+        is_early_ended_task = true;
+        return Status::OK();
+      }
+    }
+  }
+  is_early_ended_task = false;
+  return Status::OK();
+}
+
 void DispatcherState::AddFutureEndedJob(int64 job_id,
   int32 split_provider_index) {
   std::string key = std::to_string(job_id) + "_" + std::to_string(

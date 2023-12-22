@@ -306,6 +306,9 @@ class DispatcherState {
 
   Status IsEarlyEndedTask(const int64 job_id, const int64 task_id, bool& is_early_ended_task);
 
+  Status IsEarlyEndedTask(const std::string& worker_address,
+      const int64_t task_id, bool& is_early_ended_task);
+
   void AddFutureEndedJob(int64 job_id, int32 split_provider_index);
   bool IsFutureEndedJob(int64 job_id, int32 split_provider_index);
   // If the dispatcher config explicitly specifies a list of workers, validates

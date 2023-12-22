@@ -81,6 +81,12 @@ constexpr int64_t kDefaultJobGcCheckIntervalMs = 10 * 60 * 1000;  // 10 minutes.
 constexpr int64_t kDefaultJobGcTimeoutMs = 5 * 60 * 1000;         // 5 minutes.
 constexpr int64_t kDefaultClientTimeoutMs = 2 * 60 * 1000;        // 2 minutes.
 
+// If this is true, early ended tasks (by the AutoScaling/AutoPlacement
+// policies) will be removed on the first incoming worker heartbeat. Bar from
+// the open requests between client and worker, remaining data and batches
+// will be immediately dropped in the worker.
+constexpr bool kFastRemoveWorkers = true;
+
 constexpr std::array<const char*, 8> kNodeNameSharingOps = {
     "HashTable",
     "HashTableV2",
@@ -321,13 +327,16 @@ Status DataServiceDispatcherImpl::RestoreSplitProviders(
 Status DataServiceDispatcherImpl::FindTasksToDelete(
     const absl::flat_hash_set<int64_t>& current_tasks,
     const std::vector<std::shared_ptr<const Task>> assigned_tasks,
-    WorkerHeartbeatResponse* response) {
+    WorkerHeartbeatResponse* response, const std::string& worker_address) {
   absl::flat_hash_set<int64_t> assigned_ids;
   for (const auto& assigned : assigned_tasks) {
     assigned_ids.insert(assigned->task_id);
   }
   for (int64_t current_task : current_tasks) {
-    if (!assigned_ids.contains(current_task)) {
+    bool is_early_removed;
+    state_.IsEarlyEndedTask(worker_address, current_task, is_early_removed);
+    if (!assigned_ids.contains(current_task)
+        || (kFastRemoveWorkers && is_early_removed)) {
       response->add_tasks_to_delete(current_task);
     }
   }
@@ -447,7 +456,8 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
   current_tasks.insert(request->current_tasks().cbegin(),
                        request->current_tasks().cend());
   TF_RETURN_IF_ERROR(
-      FindTasksToDelete(current_tasks, assigned_tasks, response));
+      FindTasksToDelete(current_tasks, assigned_tasks, response,
+                        worker_address));
   TF_RETURN_IF_ERROR(
       FindNewTasks(worker_address, current_tasks, assigned_tasks, response));
 
@@ -550,7 +560,8 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
         bool is_ordered;
         metadata_store_.IsJobOrdered(job_id, is_ordered);
         // get data roughly every 500 batches (same interval as for scaling decisions)
-        if (kElementThreshold >= 0 && element_count >= kElementThreshold && (!is_ordered || ((element_count % 500) < 10))) {
+        if (kElementThreshold >= 0 && element_count >= kElementThreshold
+            && (!is_ordered || ((element_count % 500) < 10))) {
           metadata_store_.SetJobIsOrdered(job_id);
 
           // Update the info for the AutoOrder policy
