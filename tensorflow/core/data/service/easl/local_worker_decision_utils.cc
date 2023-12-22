@@ -24,6 +24,11 @@ uint32 kInStabilityBeforeScaling = 20;                         // UNUSED!
 double kMinQueueSizeRelativeGrowth = 1.5; // +50%              // UNUSED!
 double kMinBatchTimeRelativeGrowth = 1.5; // +50%              // UNUSED!
 
+bool kUsingTPUv2 = true;
+double kTPUv2Cost = 4.96;
+double kTPUv3Cost = 8.8;
+
+
 int MAX_LOCAL_WORKERS_PER_JOB = 10;
 int MAX_REMOTE_WORKERS_PER_JOB = 30;
 double kPerformanceErrorBar = 0.10;
@@ -224,7 +229,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       // Doesn't work properly for v3-8 (still uses v2-8 costs) !!!!!!!!!!!!!!!!!!!!!!
       //double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
-      double extra_time_cost = -relative_improvement * (4.96 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+      double client_cost = kUsingTPUv2 ? kTPUv2Cost : kTPUv3Cost;
+      double extra_time_cost = -relative_improvement * (client_cost + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
       //double extra_time_cost = -relative_improvement * (8.8 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
       bool removing_worker_helped = saved_worker_cost > extra_time_cost;
       VLOG(0) << "Removing the extra worker was economical: " << removing_worker_helped;
