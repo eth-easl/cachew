@@ -335,8 +335,15 @@ Status DataServiceDispatcherImpl::FindTasksToDelete(
   for (int64_t current_task : current_tasks) {
     bool is_early_removed;
     state_.IsEarlyEndedTask(worker_address, current_task, is_early_removed);
-    if (!assigned_ids.contains(current_task)
-        || (kFastRemoveWorkers && is_early_removed)) {
+
+    // Remove worker on hearbeat only if feature is enabled (kFastRemoveWorkers)
+    is_early_removed = is_early_removed && kFastRemoveWorkers;
+    if (is_early_removed) {
+      VLOG(0) << "(FindTasksToDelete) Scheduling worker " << worker_address
+              << " for early removal.";
+    }
+
+    if (!assigned_ids.contains(current_task) || is_early_removed) {
       response->add_tasks_to_delete(current_task);
     }
   }
