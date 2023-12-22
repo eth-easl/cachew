@@ -223,7 +223,9 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       double saved_worker_cost = dispatcher_config.worker_cost();
       // Doesn't work properly for v3-8 (still uses v2-8 costs) !!!!!!!!!!!!!!!!!!!!!!
       //double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
-      double extra_time_cost = -relative_improvement * (8.8 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+
+      double extra_time_cost = -relative_improvement * (4.96 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+      //double extra_time_cost = -relative_improvement * (8.8 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
       bool removing_worker_helped = saved_worker_cost > extra_time_cost;
       VLOG(0) << "Removing the extra worker was economical: " << removing_worker_helped;
       VLOG(0) << "Removing the worker saved $" << saved_worker_cost << ". The increased training time incurred an extra cost of $" << extra_time_cost;
