@@ -468,15 +468,20 @@ Status DataServiceWorkerImpl::SendTaskUpdates() TF_LOCKS_EXCLUDED(mu_) {
             << " task updates to dispatcher";
     task_progress.reserve(pending_completed_tasks_.size());
     for (int task_id : pending_completed_tasks_) {
+      VLOG(0) << "(SendTaskUpdates) Preparing task " << task_id << "for "
+                   << "WorkerUpdate.";
       task_progress.emplace_back();
       task_progress.back().set_task_id(task_id);
       task_progress.back().set_completed(true);
     }
   }
 
+  VLOG(0) << "(SendTaskUpdates) Sending the worker update";
   TF_RETURN_IF_ERROR(dispatcher_->WorkerUpdate(worker_address_, task_progress));
   mutex_lock l(mu_);
   for (const auto& update : task_progress) {
+    VLOG(0) << "(SendTaskUpdates) Cleaning up " << update.task_id()
+                 << " from pending_completed_tasks_.";
     pending_completed_tasks_.erase(update.task_id());
   }
   VLOG(3) << "Sent " << task_progress.size() << " task updates ";
@@ -604,6 +609,7 @@ Status DataServiceWorkerImpl::Heartbeat() TF_LOCKS_EXCLUDED(mu_) {
       finished_tasks_.insert(task_id);
 
       // EASL - Added to list to gracefully terminate the task on the dispatcher
+      VLOG(0) << "Inserted " << task_id << " in pending_completed_tasks_.";
       pending_completed_tasks_.insert(task_id);
     }
   }

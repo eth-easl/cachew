@@ -624,18 +624,24 @@ Status DataServiceDispatcherImpl::WorkerUpdate(
       std::shared_ptr<const Task> task;
 
       Status task_search_status = state_.TaskFromId(task_id, task);
+      VLOG(0) << "(WorkerUpdate) Update for task " << task_id << " from "
+                   << "worker " << request->worker_address();
       if (!task_search_status.ok()) {
         // This task could not be found; we will skip to the next task
+        VLOG(0) << "(WorkerUpdate) Task " << task_id << "could not be found";
         continue;
       }
       if (update.completed()) {
         if (task->finished) {
-          VLOG(1) << "Received completion update for already-finished task "
-                  << task->task_id << " on worker " << task->worker_address;
+          VLOG(0) << "(WorkerUpdate) Received completion update for "
+                       << "already-finished task " << task->task_id
+                       << " on worker " << task->worker_address;
           continue;
         }
         Update update;
         update.mutable_finish_task()->set_task_id(task_id);
+        VLOG(0) << "(WorkerUpdate) Task " << task_id
+                     << "scheduled for dispatcher-level cleanup.";
         TF_RETURN_IF_ERROR(Apply(update));
 
         // EASL - Set dataset as cached if this was a caching job and the job is finished.
