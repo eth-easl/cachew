@@ -78,6 +78,8 @@ constexpr int64_t kRetryIntervalMicros = 5 * 1000 * 1000;        // 5 seconds.
 constexpr int64_t kDefaultHeartBeatIntervalMs = 30 * 1000;       // 30 seconds.
 constexpr int64_t kDefaultDispatcherTimeoutMs = 60 * 60 * 1000;  // 1 hour.
 
+constexpr const bool kEASLEarlyWorkerRemoval = true;
+
 using WorkerConfig = experimental::WorkerConfig;
 
 // Moves the element into the response. If the tensor contains a single
@@ -464,7 +466,7 @@ Status DataServiceWorkerImpl::SendTaskUpdates() TF_LOCKS_EXCLUDED(mu_) {
   std::vector<TaskProgress> task_progress;
   {
     mutex_lock l(mu_);
-    VLOG(3) << "Sending " << pending_completed_tasks_.size()
+    VLOG(0) << "Sending " << pending_completed_tasks_.size()
             << " task updates to dispatcher";
     task_progress.reserve(pending_completed_tasks_.size());
     for (int task_id : pending_completed_tasks_) {
@@ -609,8 +611,12 @@ Status DataServiceWorkerImpl::Heartbeat() TF_LOCKS_EXCLUDED(mu_) {
       finished_tasks_.insert(task_id);
 
       // EASL - Added to list to gracefully terminate the task on the dispatcher
-      VLOG(0) << "Inserted " << task_id << " in pending_completed_tasks_.";
-      pending_completed_tasks_.insert(task_id);
+      if (kEASLEarlyWorkerRemoval) {
+        VLOG(0) << "Inserted " << task_id
+          << " in pending_completed_tasks_.";
+        pending_completed_tasks_.insert(task_id);
+        task_completion_cv_.notify_one();
+      }
     }
   }
   for (const auto& task : tasks_to_delete) {
