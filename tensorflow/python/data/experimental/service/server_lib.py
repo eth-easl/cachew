@@ -125,7 +125,7 @@ class DispatcherConfig(
               optimize_cost=False,
               client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
               worker_cost=0.427319, # For an n2-standard-8 VM
-              batches_per_decision=500,
+              batches_per_decision=100,
               worker_steps=1,
               ):
 
