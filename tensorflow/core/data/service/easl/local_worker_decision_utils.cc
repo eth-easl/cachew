@@ -102,7 +102,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
 
   if (metrics_history.size() == 1) { // Cannot be smaller than 1
     VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal_INCDEC) - no metrics_history -> increasing worker count";
-    remote_worker_count = metrics_history.back()->remote_worker_count() + 1;
+    remote_worker_count = metrics_history.back()->remote_worker_count()
+        + dispatcher_config.worker_steps();
     local_worker_count = metrics_history.back()->local_worker_count();
     metadata_store.SetJobTargetRemoteWorkerCount(job_id, remote_worker_count);
     metadata_store.SetJobTargetLocalWorkerCount(job_id, local_worker_count);
@@ -193,7 +194,9 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
           extra_worker_helped && last_metrics->remote_worker_count() < MAX_REMOTE_WORKERS_PER_JOB &&
             available_workers > 0) {
           // Add 1 workers at a time for TPU v3-8
-          remote_worker_count = last_metrics->remote_worker_count() + 1;
+          remote_worker_count = last_metrics->remote_worker_count() +
+              std::min<int64_t>(
+                  available_workers, dispatcher_config.worker_steps());
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
                   << "Improvement large enough:\n"
                   << " > improvement: " << relative_improvement << "\n"

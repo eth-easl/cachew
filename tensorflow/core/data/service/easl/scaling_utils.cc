@@ -75,7 +75,8 @@ Status DynamicWorkerCountUpdate(
     VLOG(0) << "EASL (DynamicWorkerCountUpdate) - is_scaling is true";
     if (metrics_history.size() == 1) { // Cannot be smaller than 1
       VLOG(0) << "EASL (DynamicWorkerCountUpdate) - no metrics_history -> increasing worker count";
-      worker_count = metrics_history.back()->worker_count() + 1;
+      worker_count = metrics_history.back()->worker_count()
+          + dispatcher_config.worker_steps();
       metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
       return Status::OK();
     }
@@ -117,7 +118,8 @@ Status DynamicWorkerCountUpdate(
     if (second_to_last_metrics->worker_count() < last_metrics->worker_count()) {
       // We are scaling up
       if (relative_improvement > dispatcher_config.scaling_threshold_up()) {
-        worker_count = last_metrics->worker_count() + 1;
+        worker_count = last_metrics->worker_count()
+            + dispatcher_config.worker_steps();
         VLOG(0) << "(EASL::DynamicWorkerCountUpdate::ScalingUp) "
                 << "Improvement large enough:\n"
                 << " > improvement: " << relative_improvement << "\n"
@@ -203,7 +205,8 @@ Status DynamicWorkerCountUpdate(
       if (isfinite(relative_queue_size)
           && relative_batch_time > kMinBatchTimeRelativeGrowth) {
         VLOG(0) << "Triggering upscale";
-        worker_count = converged_metrics->worker_count() + 1;
+        worker_count = converged_metrics->worker_count()
+            + dispatcher_config.worker_steps();
         metadata_store.SetJobTargetWorkerCount(job_id, worker_count);
         metadata_store.SetJobIsScaling(job_id);
         return Status::OK();
