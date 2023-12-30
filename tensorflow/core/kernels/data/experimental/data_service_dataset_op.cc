@@ -812,21 +812,21 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
       {
         // Protect the metrics
         mutex_lock l(mu_);
-        if (had_to_wait_.size() >= 100) {
+        if (had_to_wait_.size() >= 1000) {
           VLOG(0) << "EASL (Heartbeat) - Enough measurements for "
                        << "scalability metrics " << had_to_wait_.size() << " batches";
           // Compute the last x batch time
           int32 metrics_count = had_to_wait_.size();
           double last_x_batch_time_ms =
               ((double)(batch_timestamps_us_[metrics_count - 1])
-                  - batch_timestamps_us_[metrics_count - 100])
+                  - batch_timestamps_us_[metrics_count - 1000])
                   / EnvTime::kMillisToMicros;
           double last_x_batch_time_ms_chrono = batch_timestamps_ms_[metrics_count - 1]
-              - batch_timestamps_ms_[metrics_count - 100];
+              - batch_timestamps_ms_[metrics_count - 1000];
           VLOG(0) << "Last timestamp:              " << batch_timestamps_us_[metrics_count - 1];
-          VLOG(0) << "Starting timestamp:          " << batch_timestamps_us_[metrics_count - 100];
+          VLOG(0) << "Starting timestamp:          " << batch_timestamps_us_[metrics_count - 1000];
           VLOG(0) << "Last timestamp (chorno):     " << batch_timestamps_ms_[metrics_count - 1];
-          VLOG(0) << "Starting timestamp (chorno): " << batch_timestamps_ms_[metrics_count - 100];
+          VLOG(0) << "Starting timestamp (chorno): " << batch_timestamps_ms_[metrics_count - 1000];
           if (last_x_batch_time_ms <= 0.0) {
             VLOG(0) << "DSDO: last_x_batch_time_ms data collection failed!!!!!!!!! " << last_x_batch_time_ms;
             VLOG(0) << "DSDO: last_x_batch_time_ms data collection failed!!!!!!!!! " << last_x_batch_time_ms_chrono;
@@ -835,14 +835,14 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
           // Compute the relative_wait_fraction & the average size of the result queue
           double relative_wait_fraction = 0.0;
           double result_queue_size = 0.0;
-          for (int32 i = metrics_count - 100;
+          for (int32 i = metrics_count - 1000;
             i < metrics_count; ++i) {
             relative_wait_fraction += wait_times_ms_[i];
             result_queue_size += result_queue_size_[i];
           }
 
           relative_wait_fraction /= last_x_batch_time_ms;
-          result_queue_size /= 100;
+          result_queue_size /= 1000;
 
           // Add the metrics to the request
           req.set_has_scalability_metrics(true);
