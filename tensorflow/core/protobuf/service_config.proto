@@ -74,7 +74,7 @@ message DispatcherConfig {
   // The number of batches for profiling before a scaling decision is made
   int32 batches_per_decision = 23;
   // The number of workers added in an increment in AutoScaling/AutoPlacement
-  int32 worker_steps = 24
+  int32 worker_steps = 24;
 }
 
 // Configuration for a tf.data service WorkerServer.
