@@ -283,6 +283,10 @@ Status DataServiceDispatcherImpl::Start() {
     latest_client_heartbeats_time_[client_id] =
         absl::FromUnixMicros(env_->NowMicros());
   }
+
+  // EASL - Print contents of the dispatcher config to check param correctness
+  config_.PrintDebugString();
+
   // Initialize the journal writer in `Start` so that we fail fast in case it
   // can't be initialized.
   TF_RETURN_IF_ERROR(journal_writer_.value()->EnsureInitialized());

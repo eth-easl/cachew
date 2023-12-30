@@ -49,7 +49,7 @@ class DispatcherConfig(
         "cache_format", "cache_compression", "cache_ops_parallelism", "cache_path",
         "scaling_policy", "log_dir", "log_dumps_interval_ms",
         "scaling_threshold_up", "order_policy", "optimize_cost",
-        "client_cost", "worker_cost", "batches_per_decision"])):
+        "client_cost", "worker_cost", "batches_per_decision", "worker_steps"])):
   """Configuration class for tf.data service dispatchers.
 
   Fields:
@@ -101,6 +101,7 @@ class DispatcherConfig(
     client_cost: hourly cost of the client
     worker_cost: hourly cost of a worker
     batches_per_decision: batches to profile for a scaling decision
+    worker_steps: workers added in a step of AutoPlacement/AutoScaling
   """
 
   def __new__(cls,
@@ -124,12 +125,14 @@ class DispatcherConfig(
               optimize_cost=False,
               client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
               worker_cost=0.427319, # For an n2-standard-8 VM
-              batches_per_decision=300
+              batches_per_decision=500,
+              worker_steps=1,
               ):
 
     logging.info("Settings in constructor were: optimize cost=" + str(optimize_cost) + " client cost=" +
                  str(client_cost) + " worker cost=" + str(worker_cost) + " batches_per_decision (deprecated)=" +
-                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up))
+                 str(batches_per_decision) + " scaling threshold up=" + str(scaling_threshold_up) +
+                 " worker_steps=" + str(worker_steps))
 
     if protocol is None:
         protocol = _pywrap_utils.TF_DATA_DefaultProtocol()
@@ -146,7 +149,8 @@ class DispatcherConfig(
                               cache_ops_parallelism, cache_path, scaling_policy,
                               log_dir, log_dumps_interval_ms,
                               scaling_threshold_up, order_policy, optimize_cost,
-                              client_cost, worker_cost, batches_per_decision)
+                              client_cost, worker_cost, batches_per_decision,
+                              worker_steps)
 
 
 @tf_export("data.experimental.service.DispatchServer", v1=[])
@@ -208,7 +212,8 @@ class DispatchServer(object):
     self._config = config
     logging.info("Checking settings in config: optimize cost=" + str(config.optimize_cost) + " client cost=" +
                  str(config.client_cost) + " worker cost=" + str(config.worker_cost) + " batches_per_decision (deprecated)=" +
-                 str(config.batches_per_decision) + " scaling threshold up=" + str(config.scaling_threshold_up))
+                 str(config.batches_per_decision) + " scaling threshold up=" + str(config.scaling_threshold_up) +
+                 " worker_steps=" + str(config.worker_steps))
 
     if isinstance(config, service_config_pb2.DispatcherConfig):
       config_proto = config
@@ -234,7 +239,8 @@ class DispatchServer(object):
         optimize_cost=config.optimize_cost,
         client_cost=config.client_cost,
         worker_cost=config.worker_cost,
-        batches_per_decision=config.batches_per_decision)
+        batches_per_decision=config.batches_per_decision,
+        worker_steps=config.worker_steps)
 
     self._server = _pywrap_server_lib.TF_DATA_NewDispatchServer(
         config_proto.SerializeToString())
