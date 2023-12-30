@@ -68,6 +68,8 @@ class DataServiceDatasetOp : public DatasetOpKernel {
   static constexpr const char* const kNumConsumers = "num_consumers";
   static constexpr const char* const kMaxOutstandingRequests =
       "max_outstanding_requests";
+
+
   static constexpr const char* const kTaskRefreshIntervalHintMs =
       "task_refresh_interval_hint_ms";
   static constexpr const char* const kTargetWorkers = "target_workers";
@@ -83,8 +85,9 @@ class DataServiceDatasetOp : public DatasetOpKernel {
   // EASL
   static constexpr const char* const kMaxRequestPipeliningPerTask =
       "max_request_pipelining_per_task";
-  //static constexpr const char* const kScalingDecisionProfilingBatches =
-  //    "scaling_decision_profiling_batches";
+
+  static constexpr const char* const kBatchesPerDecision =
+      "batches_per_decision";
 
   explicit DataServiceDatasetOp(OpKernelConstruction* ctx);
 

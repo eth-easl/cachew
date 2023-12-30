@@ -1385,8 +1385,8 @@ REGISTER_OP("DataServiceDataset")
     /*.Input("scaling_threshold_up: float64") // EASL
     .Input("optimize_cost: bool") // EASL
     .Input("client_cost: float64") // EASL
-    .Input("worker_cost: float64") // EASL
-    .Input("batches_per_decision: int64") // EASL*/
+    .Input("worker_cost: float64") // EASL */
+    .Input("batches_per_decision: int64") // EASL
     .Input("iteration_counter: resource")
     .Output("handle: variant")
     .Attr("task_refresh_interval_hint_ms: int = -1")
@@ -1414,8 +1414,8 @@ REGISTER_OP("DataServiceDatasetV2")
     /*.Input("scaling_threshold_up: float64") // EASL
     .Input("optimize_cost: bool") // EASL
     .Input("client_cost: float64") // EASL
-    .Input("worker_cost: float64") // EASL
-    .Input("batches_per_decision: int64") // EASL*/
+    .Input("worker_cost: float64") // EASL */
+    .Input("batches_per_decision: int64") // EASL
     .Input("iteration_counter: resource")
     .Output("handle: variant")
     .Attr("task_refresh_interval_hint_ms: int = -1")
@@ -1442,8 +1442,8 @@ REGISTER_OP("DataServiceDatasetV3")
     /*.Input("scaling_threshold_up: float64") // EASL
     .Input("optimize_cost: bool") // EASL
     .Input("client_cost: float64") // EASL
-    .Input("worker_cost: float64") // EASL
-    .Input("batches_per_decision: int64") // EASL*/
+    .Input("worker_cost: float64") // EASL */
+    .Input("batches_per_decision: int64") // EASL
     .Input("iteration_counter: resource")
     .Output("handle: variant")
     .Attr("task_refresh_interval_hint_ms: int = -1")
