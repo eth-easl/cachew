@@ -34,9 +34,6 @@ double kPerformanceErrorBar = 0.10;
 double kPerformanceDecreaseTolerance = 0.10;
 double minImprovementThresholdRemote = 0.03;
 
-// cost model
-double CLIENT_COST = 8.80;       // TPU v3-8                   // UNUSED!
-double WORKER_COST = 0.427319;                                 // UNUSED!
 }
 
 void debug_print_local_remote(std::string debug_string, int64 remote_worker_count, int64 local_worker_count) {
@@ -150,9 +147,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
           " scaling threshold up=" << dispatcher_config.scaling_threshold_up() <<
           " worker_steps=" << dispatcher_config.worker_steps();
 
-  bool opt_for_cost = dispatcher_config.optimize_cost();
   double threshold;
-  if (opt_for_cost) {
+  if (dispatcher_config.optimize_cost()) {
     threshold = extra_worker_cost;
   } else {
     threshold = dispatcher_config.scaling_threshold_up();
@@ -161,8 +157,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       VLOG(0) << "Manually set threshold to " << minImprovementThresholdRemote;
     }
   }
-  VLOG(0) << "Optimizing for cost: " << opt_for_cost << " Current improvement threshold is: "
-          << threshold;
+  VLOG(0) << "Optimizing for cost: " << dispatcher_config.optimize_cost()
+          << " Current improvement threshold is: " << threshold;
 
   VLOG(0) << "Relative Improvement: " << relative_improvement << " l_batch_time: "
           << l_batch_time << ", stl_batch_time: " << stl_batch_time;
@@ -232,8 +228,10 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       // Doesn't work properly for v3-8 (still uses v2-8 costs) !!!!!!!!!!!!!!!!!!!!!!
       //double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
-      double client_cost = kUsingTPUv2 ? kTPUv2Cost : kTPUv3Cost;
-      double extra_time_cost = -relative_improvement * (client_cost + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
+      double extra_time_cost = -relative_improvement * (
+          dispatcher_config.client_cost()
+          + last_metrics->remote_worker_count()
+          * dispatcher_config.worker_cost());
       //double extra_time_cost = -relative_improvement * (8.8 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
       bool removing_worker_helped = saved_worker_cost > extra_time_cost;
       VLOG(0) << "Removing the extra worker was economical: " << removing_worker_helped;
