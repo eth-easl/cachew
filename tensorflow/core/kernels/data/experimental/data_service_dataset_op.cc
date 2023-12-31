@@ -804,7 +804,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     void Heartbeat(IteratorContext* ctx) TF_LOCKS_EXCLUDED(mu_) {
       ClientHeartbeatRequest req;
 
-      if(num_elements_ == 0){
+      VLOG(0) << "(Heartbeat) Started heartbeat; target batches "
+              << batches_per_decision_;
+      if (num_elements_ == 0){
         VLOG(3) << "EASL - client heartbeat: still no elements processed.";
       } else {
         VLOG(3) << "heartbeat - num_elements_: " << num_elements_;
@@ -816,7 +818,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         mutex_lock l(mu_);
         if (had_to_wait_.size() >= batches_per_decision_) {
           VLOG(0) << "EASL (Heartbeat) - Enough measurements for "
-                       << "scalability metrics " << had_to_wait_.size() << " batches";
+                       << "scalability metrics " << had_to_wait_.size()
+                       << " batches; target batches are "
+                       << batches_per_decision_;
           // Compute the last x batch time
           int32 metrics_count = had_to_wait_.size();
           double last_x_batch_time_ms =
