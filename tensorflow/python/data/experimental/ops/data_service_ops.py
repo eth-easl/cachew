@@ -187,7 +187,7 @@ class _DataServiceDatasetV2(dataset_ops.DatasetSource):
                optimize_cost=False,
                client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                worker_cost=0.427319, # For an n2-standard-8 VM
-               batches_per_decision=100):
+               batches_per_decision=500):
     """Constructs a _DataServiceDatasetV2.
 
     Args:
@@ -472,7 +472,7 @@ def _distribute(processing_mode,
                 optimize_cost=False,
                 client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                 worker_cost=0.427319, # For an n2-standard-8 VM
-                batches_per_decision=100):
+                batches_per_decision=500):
   """A transformation that moves dataset processing to the tf.data service.
 
   This transformation is similar to `distribute`, but supports additional
@@ -586,7 +586,7 @@ def distribute(processing_mode,
                optimize_cost=False,
                client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                worker_cost=0.427319, # For an n2-standard-8 VM
-               batches_per_decision=100):
+               batches_per_decision=500):
   """A transformation that moves dataset processing to the tf.data service.
 
   When you iterate over a dataset containing the `distribute` transformation,
@@ -972,7 +972,7 @@ def _from_dataset_id(processing_mode,
                      optimize_cost=False,
                      client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                      worker_cost=0.427319, # For an n2-standard-8 VM
-                     batches_per_decision=100):
+                     batches_per_decision=500):
   """Creates a dataset which reads data from the tf.data service.
 
   This transformation is similar to `from_dataset_id`, but supports additional
@@ -1178,7 +1178,7 @@ def from_dataset_id(processing_mode,
                     optimize_cost=False,
                     client_cost=4.96, # For a v2-8 TPU VM in eu-west4-a
                     worker_cost=0.427319, # For an n2-standard-8 VM
-                    batches_per_decision=100):
+                    batches_per_decision=500):
   """Creates a dataset which reads data from the tf.data service.
 
   This is useful when the dataset is registered by one process, then used in
