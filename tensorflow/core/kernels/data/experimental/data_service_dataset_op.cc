@@ -804,8 +804,6 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
     void Heartbeat(IteratorContext* ctx) TF_LOCKS_EXCLUDED(mu_) {
       ClientHeartbeatRequest req;
 
-      VLOG(0) << "(Heartbeat) Started heartbeat; target batches "
-              << batches_per_decision_;
       if (num_elements_ == 0){
         VLOG(3) << "EASL - client heartbeat: still no elements processed.";
       } else {
