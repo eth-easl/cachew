@@ -100,9 +100,9 @@ namespace data {
 
 // EASL
 /* static */ constexpr const char* const
-    DataServiceDatasetOp::kMaxRequestPipeliningPerTask;
-// /* static */ constexpr const char* const
-//    DataServiceDatasetOp::kScalingDecisionProfilingBatches;
+  DataServiceDatasetOp::kMaxRequestPipeliningPerTask;
+/* static */ constexpr const char* const
+  DataServiceDatasetOp::kBatchesPerDecision;
 
 namespace {
 // Default interval between task list refreshes.
@@ -381,7 +381,9 @@ class DataServiceDatasetOp::Dataset : public DatasetBase {
         : DatasetIterator<Dataset>(params),
           iterator_index_(iterator_index),
           max_outstanding_requests_(params.dataset->max_outstanding_requests_),
-          max_request_pipelining_per_task_(params.dataset->max_request_pipelining_per_task_){
+          max_request_pipelining_per_task_(
+              params.dataset->max_request_pipelining_per_task_),
+          batches_per_decision_(params.dataset->batches_per_decision_) {
     }
 
     ~Iterator() override {
