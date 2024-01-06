@@ -100,7 +100,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   if (metrics_history.size() == 1) { // Cannot be smaller than 1
     VLOG(0) << "MUYU (DynamicWorkerCountUpdateWithLocal_INCDEC) - no metrics_history -> increasing worker count";
     remote_worker_count = metrics_history.back()->remote_worker_count()
-        + dispatcher_config.worker_steps();
+        + 1;
     local_worker_count = metrics_history.back()->local_worker_count();
     metadata_store.SetJobTargetRemoteWorkerCount(job_id, remote_worker_count);
     metadata_store.SetJobTargetLocalWorkerCount(job_id, local_worker_count);
@@ -141,7 +141,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() +
              second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
-  VLOG(0) << "local_worker_decision_utils settings: Opt for cost " << dispatcher_config.optimize_cost() <<
+  VLOG(0) << "local_worker_decision_utils settings: Optimize for cost " << dispatcher_config.optimize_cost() <<
           " client cost=" << dispatcher_config.client_cost() << " worker cost=" << dispatcher_config.worker_cost() <<
           " batches_per_decision (deprecated)=" << dispatcher_config.batches_per_decision() <<
           " scaling threshold up=" << dispatcher_config.scaling_threshold_up() <<
@@ -265,7 +265,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         }
       } else {
         // try reduce remote worker count further
-        remote_worker_count = last_metrics->remote_worker_count() - 1;
+        remote_worker_count = last_metrics->remote_worker_count() - dispatcher_config.worker_steps();
         local_worker_count = last_metrics->local_worker_count();
       }
     } break;
