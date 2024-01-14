@@ -102,7 +102,7 @@ constexpr const char kBytesPerS[] = "bytes_per_s";
 constexpr const char kActiveTime[] = "active_time";
 constexpr const char kWorkingTime[] = "working_time";
 
-const uint64 kElementThreshold = 300;
+const uint64 kElementThreshold = 50;
 const bool kEnableEventLogging = true;
 
 using DispatcherConfig = experimental::DispatcherConfig;
@@ -560,14 +560,19 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           if (!s.ok()) {
             VLOG(0) << "Determining inflation factors failed";
           }
-          std::shared_ptr<const Dataset> ds;
-          TF_RETURN_IF_ERROR(state_.DatasetFromId(task_object->job->dataset_id, ds));
-          VLOG(0) << "dispatcher_impl: Got " << inflation_factors.size() << " inflation factors";
-          VLOG(1) << "Check: pipeline_nodes now has " << pipeline_nodes.size();
-          VLOG(1) << "Going to update the 'order_state_";
-          order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
-                                              inflation_factors);
-          VLOG(1) << "Updated order state";
+          if (element_count >= kElementThreshold + 50) {
+            std::shared_ptr<const Dataset> ds;
+            TF_RETURN_IF_ERROR(
+                state_.DatasetFromId(task_object->job->dataset_id, ds));
+            VLOG(0) << "dispatcher_impl: Got " << inflation_factors.size()
+                    << " inflation factors";
+            VLOG(1) << "Check: pipeline_nodes now has "
+                    << pipeline_nodes.size();
+            VLOG(1) << "Going to update the 'order_state_";
+            order_state_.UpdateLatestInfFactors(ds->fingerprint, pipeline_nodes,
+                                                inflation_factors);
+            VLOG(0) << "Updated order state";
+          }
         }
         else {
           VLOG(0) << "So far " << element_count << " elements produced";
@@ -863,7 +868,7 @@ Status DataServiceDispatcherImpl::RegisterDataset(
           get_source_dataset));
   VLOG(0) << "Added put/get versions for dataset fingerprint " << fingerprint;
 
-  // // TODO: Add ggeneration of all possible pipeline orderings here and store them
+  // // TODO: Add generation of all possible pipeline orderings here and store them
   // DatasetDef reordered_dataset;
   // TF_RETURN_IF_ERROR(
   //     service::easl::ordering_utils::AddGetOperatorAtMarker(

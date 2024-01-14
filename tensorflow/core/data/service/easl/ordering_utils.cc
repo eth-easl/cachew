@@ -173,6 +173,9 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     VLOG(0) << pipeline_nodes_sorted_filtered_2[i];
   }
 
+  // Test if we can get to here
+  return Status::OK();
+
   // Use the num elems produced by a specific worker's last node as a weighting means
   std::vector<int> elems_produced_final;
   int total_elems_produced = 0;
