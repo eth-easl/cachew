@@ -7,6 +7,7 @@
 #include <queue>
 #include <vector>
 #include <numeric>
+#include <algorithm>
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/core/framework/node_def_util.h"
@@ -97,8 +98,8 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   VLOG(0) << "In total the pipeline has " << nodes_in_pipeline << " nodes";
 
   std::string final_node = pipeline_nodes[pipeline_nodes.size()-1];
-  VLOG(1) << "Found final node, first 15 are: ";
-  int count = 15;
+  VLOG(1) << "Found final node, first 100 are: ";
+  int count = 100;
   if (nodes_in_pipeline < count) {
     count = nodes_in_pipeline;
   }
@@ -108,7 +109,12 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   // 1. Sort the pipeline nodes by id
   VLOG(0) << "About to sort the pipeline nodes";
+
   std::vector<std::string> pipeline_nodes_sorted(nodes_in_pipeline);
+  // Nodes may have higher id than 'nodes_in_pipeline'
+  std::vector<std::string> excess_pipeline_nodes;
+
+
   for (std::string n : pipeline_nodes) {
     VLOG(0) << "Org str was " << n;
     std::string pos_str =
@@ -116,12 +122,20 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     VLOG(0) << "Pos_str was " << pos_str;
     int pos = std::stoi(pos_str) - 1;
     VLOG(0) << "Pos was " << pos;
-    try {
+    if (pos >= 0 && pos < nodes_in_pipeline) {
       pipeline_nodes_sorted[pos] = n;
-    } catch (const std::exception& e) {
-      VLOG(0) << "Invalid key";
+    } else {
+      excess_pipeline_nodes.push_back(n);
     }
   }
+
+  // Sort the excess pipeline nodes
+  std::sort(excess_pipeline_nodes.begin(), excess_pipeline_nodes.end());
+  // Merge the sorted excess nodes with the sorted pipeline nodes
+  std::merge(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.end(),
+             excess_pipeline_nodes.begin(), excess_pipeline_nodes.end(),
+             std::back_inserter(pipeline_nodes_sorted));
+
   VLOG(0) << "Sorted the pipeline nodes";
 
   // 2. Remove any nodes after 1st TFRecord node
