@@ -116,12 +116,12 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
 
   for (std::string n : pipeline_nodes) {
-    VLOG(0) << "Org str was " << n;
+    VLOG(1) << "Org str was " << n;
     std::string pos_str =
         n.substr(n.find("(id:") + 4, n.length() - n.find("(id:") - 5);
-    VLOG(0) << "Pos_str was " << pos_str;
+    VLOG(1) << "Pos_str was " << pos_str;
     int pos = std::stoi(pos_str) - 1;
-    VLOG(0) << "Pos was " << pos;
+    VLOG(1) << "Pos was " << pos;
     if (pos >= 0 && pos < nodes_in_pipeline) {
       pipeline_nodes_sorted[pos] = n;
     } else {
@@ -135,6 +135,11 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   std::merge(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.end(),
              excess_pipeline_nodes.begin(), excess_pipeline_nodes.end(),
              std::back_inserter(pipeline_nodes_sorted));
+  // Remove empty elements from pipeline_nodes_sorted
+  pipeline_nodes_sorted.erase(
+      std::remove_if(pipeline_nodes_sorted.begin(), pipeline_nodes_sorted.end(),
+                     [](const std::string& s) { return s.empty(); }),
+      pipeline_nodes_sorted.end());
 
   VLOG(0) << "Sorted the pipeline nodes";
 
@@ -188,9 +193,6 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
     VLOG(0) << pipeline_nodes_sorted_filtered_2[i];
   }
 
-  // Test if we can get to here
-  return Status::OK();
-
   // Use the num elems produced by a specific worker's last node as a weighting means
   std::vector<int> elems_produced_final;
   int total_elems_produced = 0;
@@ -216,7 +218,6 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
   VLOG(0) << "In total " << total_elems_produced << " elements were produced by the input pipeline.";
 
   // Examine the metric for each worker 1 by 1
-
   int64 rem_bytes = 0;
   int64 loc_bytes = 0;
   for (int i = 0; i < num_workers; ++i) {
