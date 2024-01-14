@@ -102,7 +102,7 @@ constexpr const char kBytesPerS[] = "bytes_per_s";
 constexpr const char kActiveTime[] = "active_time";
 constexpr const char kWorkingTime[] = "working_time";
 
-const uint64 kElementThreshold = 50;
+const uint64 kElementThreshold = 300;
 const bool kEnableEventLogging = true;
 
 using DispatcherConfig = experimental::DispatcherConfig;
@@ -560,7 +560,8 @@ Status DataServiceDispatcherImpl::WorkerHeartbeat(
           if (!s.ok()) {
             VLOG(0) << "Determining inflation factors failed";
           }
-          if (element_count >= kElementThreshold + 50) {
+          // Separated just for debugging purposes
+          if (element_count >= kElementThreshold) {
             std::shared_ptr<const Dataset> ds;
             TF_RETURN_IF_ERROR(
                 state_.DatasetFromId(task_object->job->dataset_id, ds));
