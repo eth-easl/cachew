@@ -102,7 +102,7 @@ constexpr const char kBytesPerS[] = "bytes_per_s";
 constexpr const char kActiveTime[] = "active_time";
 constexpr const char kWorkingTime[] = "working_time";
 
-const uint64 kElementThreshold = 1e9;
+const uint64 kElementThreshold = 300;
 const bool kEnableEventLogging = true;
 
 using DispatcherConfig = experimental::DispatcherConfig;
