@@ -145,7 +145,7 @@ Status DetermineInflationFactors(::tensorflow::data::easl::MetadataStore& metada
 
   // 2. Remove any nodes after 1st TFRecord node
   int tf_rec_pos = 0;
-  for (int i = 0; i < nodes_in_pipeline; ++i) {
+  for (int i = 0; i < pipeline_nodes_sorted.size(); ++i) {
     if (pipeline_nodes_sorted[i].find("TFRecord") != std::string::npos) {
       tf_rec_pos = i;
       break;
