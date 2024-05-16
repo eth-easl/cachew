@@ -223,6 +223,9 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
 
+      double org_cost = (dispatcher_config.client_cost() + (last_metrics->remote_worker_count()+1) * dispatcher_config.worker_cost()))
+      double new_cost = (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost())) / (1+relative_improvement)
+      
       // Calculate how much performance degradation is still economical
       double saved_worker_cost = dispatcher_config.worker_cost();
       // Doesn't work properly for v3-8 (still uses v2-8 costs) !!!!!!!!!!!!!!!!!!!!!!
@@ -233,7 +236,9 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
           + last_metrics->remote_worker_count()
           * dispatcher_config.worker_cost());
       //double extra_time_cost = -relative_improvement * (8.8 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
-      bool removing_worker_helped = saved_worker_cost > ((1-kPerformanceDecreaseTolerance) * extra_time_cost);
+      //bool removing_worker_helped = saved_worker_cost > ((1-kPerformanceDecreaseTolerance) * extra_time_cost);
+      VLOG(0) << "Org cost " << org_cost << " New cost " << new_cost;
+      bool removing_worker_helped = ((1-kPerformanceDecreaseTolerance) * new_cost) < org_cost;
       VLOG(0) << "Removing the extra worker was economical: " << removing_worker_helped;
       VLOG(0) << "Removing the worker saved $" << saved_worker_cost << ". The increased training time incurred an extra cost of $" << extra_time_cost;
 
