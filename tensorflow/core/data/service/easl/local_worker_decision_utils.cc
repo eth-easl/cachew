@@ -223,8 +223,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
 
-      double org_cost = (dispatcher_config.client_cost() + (last_metrics->remote_worker_count()+1) * dispatcher_config.worker_cost()));
-      double new_cost = (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost())) / (1+relative_improvement);
+      double org_cost = (dispatcher_config.client_cost() + (last_metrics->remote_worker_count()+1) * dispatcher_config.worker_cost());
+      double new_cost = (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost()) / (1+relative_improvement);
 
       // Calculate how much performance degradation is still economical
       double saved_worker_cost = dispatcher_config.worker_cost();
