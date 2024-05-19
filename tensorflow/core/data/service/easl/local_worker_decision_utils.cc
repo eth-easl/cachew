@@ -137,6 +137,13 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     VLOG(0) << "Failed to record batch time correctly!!! l_batch_time: " << l_batch_time << ", stl_batch_time: " << stl_batch_time;
   }
 
+  // While decreasing the number of local workers we can be sure at least 3 metrics exist
+  if (metrics_history.size() >= 3) {
+    int third_to_last_index = metrics_history.size() - 2;
+    std::shared_ptr<ModelMetrics::Metrics> third_to_last_metrics = metrics_history[third_to_last_index];
+    double ttl_batch_time = third_to_last_metrics->last_x_batch_time_ms();
+  }
+
   double extra_worker_cost = dispatcher_config.worker_cost() * (1.0 - relative_improvement);
   double extra_worker_saving = relative_improvement * (dispatcher_config.client_cost() +
              second_to_last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
@@ -277,7 +284,9 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     case JobScalingState::INCREASING_LOCAL: {
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
-      if (relative_improvement < -kPerformanceErrorBar ||
+      if ((relative_improvement < (-kPerformanceErrorBar/last_metrics->local_worker_count()) &&
+           last_metrics->remote_worker_count() == second_to_last_metrics->remote_worker_count()
+                  ) ||
           last_metrics->local_worker_count() == MAX_LOCAL_WORKERS_PER_JOB
               ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::INCREASING_LOCAL::jump_out)";
