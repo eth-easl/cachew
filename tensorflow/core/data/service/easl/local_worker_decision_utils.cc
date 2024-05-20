@@ -140,7 +140,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   // While decreasing the number of local workers we can be sure at least 3 metrics exist
   double ttl_batch_time;
   if (metrics_history.size() >= 3) {
-    int third_to_last_index = metrics_history.size() - 2;
+    int third_to_last_index = metrics_history.size() - 3;
     std::shared_ptr<ModelMetrics::Metrics> third_to_last_metrics = metrics_history[third_to_last_index];
     ttl_batch_time = third_to_last_metrics->last_x_batch_time_ms();
   }
