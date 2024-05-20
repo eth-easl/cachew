@@ -255,7 +255,10 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       ) {
         // Check that the performance decrease is not due to an inaccurate performance increase in the past
         double stl_relative_improvement = 1.0 - stl_batch_time / ttl_batch_time;
-        if (stl_relative_improvement > kPerformanceDecreaseTolerance) {
+        bool unusual_previous_improvement = stl_relative_improvement > kPerformanceDecreaseTolerance;
+        VLOG(0) << "Stl improvement: " << stl_relative_improvement << " Performance threshold: " << kPerformanceDecreaseTolerance;
+        VLOG(0) << "Stl improvement unusual: " << unusual_previous_improvement;
+        if (unusual_previous_improvement) {
           VLOG(0) << "Unusually large improvement seen in previous measurement, remeasuring. From " <<
               ttl_batch_time << " to " << stl_batch_time << " = " << stl_relative_improvement;
           remote_worker_count = last_metrics->remote_worker_count(); // Keep the same worker counts and try again for a more accurate measurement
@@ -308,7 +311,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         if (relative_improvement < -kPerformanceErrorBar) {
           // set to previous state
           remote_worker_count = last_metrics->remote_worker_count();
-          local_worker_count = last_metrics->local_worker_count() - 1;
+          local_worker_count = last_metrics->local_worker_count();// - 1;
         } else {
           // max local worker reached, keep everything the same
           remote_worker_count = last_metrics->remote_worker_count();
