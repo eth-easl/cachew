@@ -198,8 +198,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
             available_workers > 0) {
           // Add 1 workers at a time for TPU v3-8
           remote_worker_count = last_metrics->remote_worker_count() +
-              std::min<int64_t>(
-                  available_workers, dispatcher_config.worker_steps());
+              std::min<int64_t>(available_workers, dispatcher_config.worker_steps());
           VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::ONLY_REMOTE) "
                   << "Improvement large enough:\n"
                   << " > improvement: " << relative_improvement << "\n"
@@ -253,27 +252,39 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         !removing_worker_helped ||
         last_metrics->remote_worker_count() == 0
       ) {
-        VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump_out)";
-        // jump out
-        if (//relative_improvement < -kPerformanceDecreaseTolerance
-            !removing_worker_helped
-        ) {
-          remote_worker_count = last_metrics->remote_worker_count() + 1;
+        // Check that the performance decrease is not due to an inaccurate performance increase in the past
+        double stl_relative_improvement = 1.0 - stl_batch_time / ttl_batch_time;
+        if (stl_relative_improvement > kPerformanceDecreaseTolerance) {
+          VLOG(0) << "Unusually large improvement seen in previous measurement, remeasuring. From " <<
+              ttl_batch_time << " to " << stl_batch_time << " = " << stl_relative_improvement;
+          remote_worker_count = last_metrics->remote_worker_count(); // Keep the same worker counts and try again for a more accurate measurement
           local_worker_count = last_metrics->local_worker_count();
         } else {
-          remote_worker_count = last_metrics->remote_worker_count();
-          local_worker_count = last_metrics->local_worker_count();
-        }
+          VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump_out)";
+          // jump out
+          if (  // relative_improvement < -kPerformanceDecreaseTolerance
+              !removing_worker_helped) {
+            remote_worker_count = last_metrics->remote_worker_count() + 1;
+            local_worker_count = last_metrics->local_worker_count();
+          } else {
+            remote_worker_count = last_metrics->remote_worker_count();
+            local_worker_count = last_metrics->local_worker_count();
+          }
 
-        if (remote_worker_count == state_initial_worker_count
-              || local_worker_count >= MAX_LOCAL_WORKERS_PER_JOB) {
-          metadata_store.SetJobScalingState(job_id, JobScalingState::STABLE);
-          VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump out to stable mode)";
-        } else {
-          metadata_store.SetJobScalingState(job_id, JobScalingState::INCREASING_LOCAL);
-          metadata_store.SetJobStateInitialWorkerCount(job_id, local_worker_count);
-          local_worker_count += 1;
-          debug_print_local_remote("DECREASING_REMOTE::jump out to increase local", remote_worker_count, local_worker_count);
+          if (remote_worker_count == state_initial_worker_count ||
+              local_worker_count >= MAX_LOCAL_WORKERS_PER_JOB) {
+            metadata_store.SetJobScalingState(job_id, JobScalingState::STABLE);
+            VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::DECREASING_REMOTE::jump out to stable mode)";
+          } else {
+            metadata_store.SetJobScalingState(
+                job_id, JobScalingState::INCREASING_LOCAL);
+            metadata_store.SetJobStateInitialWorkerCount(job_id,
+                                                         local_worker_count);
+            local_worker_count += 1;
+            debug_print_local_remote(
+                "DECREASING_REMOTE::jump out to increase local",
+                remote_worker_count, local_worker_count);
+          }
         }
       } else {
         // try reduce remote worker count further
@@ -284,9 +295,10 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
     case JobScalingState::INCREASING_LOCAL: {
       int64_t state_initial_worker_count;
       metadata_store.GetJobStateInitialWorkerCount(job_id, state_initial_worker_count);
-      if ((relative_improvement < (-kPerformanceErrorBar/last_metrics->local_worker_count()) &&
-           last_metrics->remote_worker_count() == second_to_last_metrics->remote_worker_count()
-                  ) ||
+      if (relative_improvement < -kPerformanceErrorBar ||
+      //if ((relative_improvement < (-kPerformanceErrorBar/last_metrics->local_worker_count()) &&
+      //     last_metrics->remote_worker_count() == second_to_last_metrics->remote_worker_count()
+      //            ) ||
           last_metrics->local_worker_count() == MAX_LOCAL_WORKERS_PER_JOB
               ) {
         VLOG(0) << "(EASL::DynamicWorkerCountUpdateWithLocal_INCDEC::INCREASING_LOCAL::jump_out)";
