@@ -256,7 +256,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
         // Check that the performance decrease is not due to an inaccurate performance increase in the past
         double stl_relative_improvement = 1.0 - stl_batch_time / ttl_batch_time;
         bool unusual_previous_improvement = stl_relative_improvement > kPerformanceDecreaseTolerance;
-        VLOG(0) << "Stl improvement: " << stl_relative_improvement << " Performance threshold: " << kPerformanceDecreaseTolerance;
+        VLOG(0) << "ttl_batch_time: " << ttl_batch_time << " Stl improvement: " << stl_relative_improvement << " Performance threshold: " << kPerformanceDecreaseTolerance;
         VLOG(0) << "Stl improvement unusual: " << unusual_previous_improvement;
         if (unusual_previous_improvement) {
           VLOG(0) << "Unusually large improvement seen in previous measurement, remeasuring. From " <<
