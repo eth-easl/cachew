@@ -110,7 +110,8 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   int second_to_last_index = metrics_history.size() - 2;
   std::shared_ptr<ModelMetrics::Metrics> second_to_last_metrics =
           metrics_history[second_to_last_index];
-  while(second_to_last_metrics->remote_worker_count() == last_metrics->remote_worker_count() &&
+  // Not needed if we have the fast worker removal feature
+  /*while(second_to_last_metrics->remote_worker_count() == last_metrics->remote_worker_count() &&
           second_to_last_metrics->local_worker_count() == last_metrics->local_worker_count()
   ) {
     if (second_to_last_index == 0) {
@@ -128,7 +129,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       return Status::OK();
     }
     second_to_last_metrics = metrics_history[--second_to_last_index];
-  }
+  }*/
 
   double stl_batch_time = second_to_last_metrics->last_x_batch_time_ms();
   double l_batch_time = last_metrics->last_x_batch_time_ms();
@@ -140,7 +141,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
   // While decreasing the number of local workers we can be sure at least 3 metrics exist
   double ttl_batch_time;
   if (metrics_history.size() >= 3) {
-    int third_to_last_index = metrics_history.size() - 3;
+    int third_to_last_index = second_to_last_index - 1;
     std::shared_ptr<ModelMetrics::Metrics> third_to_last_metrics = metrics_history[third_to_last_index];
     ttl_batch_time = third_to_last_metrics->last_x_batch_time_ms();
   }
@@ -238,10 +239,7 @@ Status DynamicWorkerCountUpdateWithLocal_INCDEC(
       // Doesn't work properly for v3-8 (still uses v2-8 costs) !!!!!!!!!!!!!!!!!!!!!!
       //double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
 
-      double extra_time_cost = -relative_improvement * (
-          dispatcher_config.client_cost()
-          + last_metrics->remote_worker_count()
-          * dispatcher_config.worker_cost());
+      double extra_time_cost = -relative_improvement * (dispatcher_config.client_cost() + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
       //double extra_time_cost = -relative_improvement * (8.8 + last_metrics->remote_worker_count() * dispatcher_config.worker_cost());
       //bool removing_worker_helped = saved_worker_cost > ((1-kPerformanceDecreaseTolerance) * extra_time_cost);
       VLOG(0) << "Org cost " << org_cost << " New cost " << new_cost;
