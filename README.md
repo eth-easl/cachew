@@ -2,8 +2,7 @@
   <img src="docs/figures/pecan_logo.png" />
 </p>
 
-# Pecan: Cost-Efficient ML Data Preprocessing with Automatic Transformation
-Ordering and Hybrid Placement
+# Pecan: Cost-Efficient ML Data Preprocessing with Automatic Transformation Ordering and Hybrid Placement
 
 Pecan is a multi-tenant service for cost-efficient input data processing in machine learning jobs. 
 
