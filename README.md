@@ -1,4 +1,6 @@
-![cachew-logo](docs/figures/cachew_logo.png)
+<p align="center">
+  <img src="docs/figures/pecan_logo.png" />
+</p>
 
 # Pecan: Cost-Efficient ML Data Preprocessing with Automatic Transformation
 Ordering and Hybrid Placement
@@ -11,16 +13,18 @@ To minimize end-to-end ML training cost, Pecan utilizes two policies:
 
 Pecan builds on top of the [Cachew](https://www.usenix.org/system/files/atc22-graur.pdf) data loading framework in [TensorFlow](https://github.com/tensorflow/tensorflow), extending [tf.data service](https://www.tensorflow.org/api_docs/python/tf/data/experimental/service) with the AutoPlacement and AutoOrder policies. 
 
-**This repository is a fork of TensorFlow with the source code for Cachew.**
+**This repository is a fork of TensorFlow with the source code for Pecan.**
 
 
-## Cachew System Architecture
+## Pecan System Architecture
 
-Cachew consists of a centralized dispatcher, a dynamic number of input data workers, and a disaggregated storage cluster for data caching.
+Pecan consists of a centralized dispatcher and a dynamic number of remote and local input data workers.
 
-![cachew-system-architecture](docs/figures/cachew_system_arch.png?raw=true)
+<p align="center">
+  <img src="docs/figures/pecan_system_diagram.drawio.png" />
+</p>
 
-Users register training nodes (i.e., clients) with the Cachew dispatcher. To execute an input pipeline with Cachew, clients provide a graph representation of the input pipeline and a path to the input dataset in a cloud storage bucket. Cachew supports and extends the tf.data API for defining input data pipelines from a collection of composable and user-parametrizable operators. Users can annotate their tf.data input pipeline to mark candidate locations for caching/reusing data across executions. Cachew will automatically apply caching at the throughput-optimal location in the input pipeline among the candidate locations. 
+Users register training nodes (i.e., clients) with the Pecan dispatcher. To execute an input pipeline with Pecan, clients provide a graph representation of the input pipeline and a path to the input dataset in a cloud storage bucket. Cachew supports and extends the tf.data API for defining input data pipelines from a collection of composable and user-parametrizable operators. Users can annotate their tf.data input pipeline to mark candidate locations for caching/reusing data across executions. Cachew will automatically apply caching at the throughput-optimal location in the input pipeline among the candidate locations. 
 
 Cachew's input data workers are stateless components responsible for producing batches of preprocessed data for clients. The dispatcher dynamically adjusts the number of input data workers for each job to minimize epoch time while keeping costs low. The dispatcher also profiles and maintains metadata about input pipeline executions across jobs to make data caching decisions. Cachew stores cached datasets in a GlusterFS remote storage cluster. 
 
