@@ -1,14 +1,15 @@
 ![cachew-logo](docs/figures/cachew_logo.png)
 
-# Machine Learning Input Data Processing as a Service
+# Pecan: Cost-Efficient ML Data Preprocessing with Automatic Transformation
+Ordering and Hybrid Placement
 
-Cachew is a multi-tenant service for efficient input data processing in machine learning jobs. 
+Pecan is a multi-tenant service for cost-efficient input data processing in machine learning jobs. 
 
-To minimize end-to-end training time and cost, Cachew jointly optimizes: 
-1) elastic, distributed resource allocation for input data processing and 
-2) input data caching and materialization of preprocessed data within and across jobs. 
+To minimize end-to-end ML training cost, Pecan utilizes two policies: 
+1) Pecan’s AutoPlacement policy scales data preprocessing workers and places them across local and remote resources to minimize cost.
+2) Pecan's AutoOrder policy transparently reorders input pipeline transformations to maximize per-worker throughput.
 
-Cachew builds on top of the [tf.data](http://vldb.org/pvldb/vol14/p2945-klimovic.pdf) data loading framework in [TensorFlow](https://github.com/tensorflow/tensorflow), extending [tf.data service](https://www.tensorflow.org/api_docs/python/tf/data/experimental/service) with autoscaling and autocaching policies. 
+Pecan builds on top of the [Cachew](https://www.usenix.org/system/files/atc22-graur.pdf) data loading framework in [TensorFlow](https://github.com/tensorflow/tensorflow), extending [tf.data service](https://www.tensorflow.org/api_docs/python/tf/data/experimental/service) with the AutoPlacement and AutoOrder policies. 
 
 **This repository is a fork of TensorFlow with the source code for Cachew.**
 
