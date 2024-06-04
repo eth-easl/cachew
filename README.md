@@ -24,38 +24,36 @@ Pecan consists of a centralized dispatcher and a dynamic number of remote and lo
   <img src="docs/figures/pecan_system_diagram.drawio.png" />
 </p>
 
-Users register training nodes (i.e., clients) with the Pecan dispatcher. To execute an input pipeline with Pecan, clients provide a graph representation of the input pipeline and a path to the input dataset in a cloud storage bucket. Cachew supports and extends the tf.data API for defining input data pipelines from a collection of composable and user-parametrizable operators. Users can annotate their tf.data input pipeline to mark candidate locations for caching/reusing data across executions. Cachew will automatically apply caching at the throughput-optimal location in the input pipeline among the candidate locations. 
+Users register training nodes (i.e., clients) with the Pecan dispatcher. To execute an input pipeline with Pecan, clients provide a graph representation of the input pipeline and a path to the input dataset in a cloud storage bucket. Pecan supports and extends the tf.data API for defining input data pipelines from a collection of composable and user-parametrizable operators. To ensure preprocessing semantics are maintained in the context of the AutoOrder policy, users may annotate their tf.data input pipeline to mark transformations with strict dependencies using the `keep_posistion=True` flag. Otherwise Pecan can can perform any reordering in compliance with the AutoOrder policy as described in Section 5.2 of the paper.
 
-Cachew's input data workers are stateless components responsible for producing batches of preprocessed data for clients. The dispatcher dynamically adjusts the number of input data workers for each job to minimize epoch time while keeping costs low. The dispatcher also profiles and maintains metadata about input pipeline executions across jobs to make data caching decisions. Cachew stores cached datasets in a GlusterFS remote storage cluster. 
+Pecan's input data workers are stateless components responsible for producing batches of preprocessed data for clients. The dispatcher dynamically adjusts the number of input data workers for each job to minimize epoch time while keeping costs low. Pecan also profiles and maintains metadata about the inflation factors of the transformations in the input pipeline to make reordering decisions.
 
-Clients fetch data from the workers that are assigned to them by the dispatcher. Clients and workers periodically send heartbeats to the dispatcher to maintain membership in the service and provide metrics used for the autoscaling and autocaching policies.
+Clients fetch data from the workers that are assigned to them by the dispatcher. Clients and workers periodically send heartbeats to the dispatcher to maintain membership in the service and provide metrics used for the worker scaling policies.
 
+## Deploying and Using Pecan
 
-## Deploying and Using Cachew
-
-The [cachew_experiments](https://github.com/eth-easl/cachew_experiments) repository provides scripts and instructions to get started with a Cachew deployment and execute example ML input data pipelines. The repository also provides detailed instructions for reproducing the key results from the Cachew research paper published at USENIX ATC'22. 
+The [pecan-experiments](https://github.com/eth-easl/pecan-experiments) repository provides scripts and instructions to get started with a Pecan deployment and execute example ML input data pipelines. The repository also provides detailed instructions for reproducing the key results from the Pecan research paper published at USENIX ATC'24. 
 
 ## Contributing
 
-We welcome contributions and PRs to Cachew.
-
+We welcome contributions and PRs to Pecan.
  
 ## Referencing our work
 
 Cachew will appear at USENIX ATC'22. If you decide to use Cachew in your work, please cite our paper: 
 
 ```
-@inproceedings{cachew,
+@inproceedings{pecan,
   author    = {Dan Graur and
-               Damien Aymon and
-               Dan Kluser and
-               Tanguy Albrici and
+               Oto Mraz and
+               Muyu Li and
+               Sepehr Pourghannad and
                Chandramohan A. Thekkath and
                Ana Klimovic},
-  title     = {Cachew: Machine Learning Input Data Processing as a Service},
-  booktitle = {Proceedings of the USENIX Annual Technical Confernece (ATC'22)},
+  title     = {Pecan: Cost-Efficient ML Data Preprocessing with Automatic Transformation Ordering and Hybrid Placement},
+  booktitle = {Proceedings of the USENIX Annual Technical Confernece (ATC'24)},
   publisher = {{USENIX}},
-  year      = {2022},
+  year      = {2024},
 }
 ```
 
