@@ -48,7 +48,8 @@ Cachew will appear at USENIX ATC'22. If you decide to use Cachew in your work, p
                Chandramohan A. Thekkath and
                Ana Klimovic},
   title     = {Cachew: Machine Learning Input Data Processing as a Service},
-  booktitle = {Proceedings of the USENIX Annual Technical Confernece (ATC'22)},
+  booktitle = {2022 USENIX Annual Technical Conference (USENIX ATC 22)},
+  pages     = {689--706},
   publisher = {{USENIX}},
   year      = {2022},
 }
