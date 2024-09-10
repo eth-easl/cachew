@@ -39,7 +39,7 @@ We welcome contributions and PRs to Pecan.
  
 ## Referencing our work
 
-Pecan will appear at USENIX ATC'22. If you decide to use Pecan in your work, please cite our paper: 
+Pecan will appear at USENIX ATC'24. If you decide to use Pecan in your work, please cite our paper: 
 
 ```
 @inproceedings{pecan,
